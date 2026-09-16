@@ -395,4 +395,27 @@ describe.skipIf(!hasPwsh)('terminal-bash pwsh real shell', () => {
     expect(result.viewport).toContain('中文 encoding-ok')
     await ctx.terminals.kill(agent, created.sessionId)
   }, 30_000)
+
+  it('pins the line editor so PSReadLine cannot render predictions into submitted input', async () => {
+    // Rendering a history-based inline prediction crashes PSReadLine 2.4.5
+    // (`IndexOutOfRangeException` from `ConvertOffsetToPoint`) and drops the
+    // character it was inserting, so the rest of the submitted line reaches a
+    // new reader and the shell runs a truncated command. Reproducing the crash
+    // needs a host-specific history file, so this holds the setting the
+    // bootstrap must apply before the first submitted line instead.
+    const { ctx, root, agent } = await harness('danger-full-access', {
+      idleSilenceMs: 300,
+      handoffGraceMs: 300,
+      timeoutMs: 8_000,
+    }, 'pwsh')
+    const created = await ctx.terminals.spawn(agent, { type: 'shell', name: 'main', cwd: root })
+    const expected = 'line-editor=None/SaveNothing'
+    const command = "Write-Output ('line-editor=' + (Get-PSReadLineOption).PredictionSource"
+      + " + '/' + (Get-PSReadLineOption).HistorySaveStyle)"
+    expect(command).not.toContain(expected)
+    const sent = ctx.terminals.startSend(agent, created.sessionId, { text: command, submit: true })
+    const result = await sent.done
+    expect(result.viewport).toContain(expected)
+    await ctx.terminals.kill(agent, created.sessionId)
+  }, 30_000)
 })

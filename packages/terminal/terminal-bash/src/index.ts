@@ -97,6 +97,22 @@ function childEnvironment(spec: TerminalBackendSpawnSpec, dialect: ShellDialect)
 export const PWSH_PROMPT_SETUP =
   "function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '" + CONTROLLED_PROMPT + "' }"
 
+/**
+ * Opt the pwsh dialect's line editor out of history prediction and history
+ * saving before the first submitted line. PSReadLine renders a predicted
+ * history entry into the input line as the caller types; rendering a
+ * prediction long enough to wrap crashes PSReadLine 2.4.5 with
+ * `IndexOutOfRangeException` from `ConvertOffsetToPoint`, and the crashed
+ * reader drops the character it was inserting. The remaining input then
+ * reaches a new reader, so a caller that submits one line reaches the shell
+ * with a truncated command. Prediction reads the console host's
+ * `ConsoleHost_history.txt`, which is the user's own command history and
+ * already holds submitted lines from earlier sessions; `SaveNothing` keeps
+ * this shell from adding thousands of wrapper lines to it.
+ */
+export const PWSH_LINE_EDITOR_SETUP =
+  'Set-PSReadLineOption -PredictionSource None -HistorySaveStyle SaveNothing; '
+
 async function spawnArgv(ctx: Context, config: ResolvedConfig, policy: SandboxExecutionPolicy, signal?: AbortSignal): Promise<string[]> {
   const argv = [config.shellPath, ...config.shellArgs]
   if (policy.mode === 'danger-full-access') return argv
@@ -132,7 +148,7 @@ async function startupSession(
     for (;;) {
       const first = viewport.length === 0
       startupOperation = session.startSend({
-        text: first ? ENCODING_PREAMBLE + PWSH_PROMPT_SETUP : '',
+        text: first ? ENCODING_PREAMBLE + PWSH_LINE_EDITOR_SETUP + PWSH_PROMPT_SETUP : '',
         submit: first,
         ...signal !== undefined ? { signal } : {},
       })

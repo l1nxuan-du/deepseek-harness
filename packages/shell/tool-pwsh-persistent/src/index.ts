@@ -89,11 +89,11 @@ function quoteForPwsh(value: string): string {
 }
 
 function wrapCommand(command: string, marker: CommandMarkers): string {
-  // Keep the wrapper on one physical line: PSReadLine renders the echoed
-  // input, and a wrapped line would split the echo the extraction strips.
-  // The echoed END nonce can never fabricate completion because the status
-  // regex needs digits immediately after it and the echo continues with
-  // quote characters.
+  // Keep the wrapper on one physical line: the send submits it with a single
+  // CR, so an embedded newline would run the body as separate commands. The
+  // echoed END nonce can never fabricate completion because the status regex
+  // needs digits immediately after it and the echo continues with quote
+  // characters.
   const body = quoteForPwsh(command)
   return `Write-Output '${marker.start}'; $LASTEXITCODE = $null; $__s = 1; try { Invoke-Expression "${body}"; $__ok = $? } catch { $__ok = $false }; if ($null -ne $LASTEXITCODE) { $__s = [int]$LASTEXITCODE } else { $__s = if ($__ok) { 0 } else { 1 } }; Write-Output ('${marker.end}' + $__s)`
 }
@@ -106,26 +106,44 @@ function stripPrompt(text: string): string {
   return result.endsWith('\n') ? result.slice(0, -1) : result
 }
 
-function commandOutput(
-  snapshot: RetainedOutput,
-  marker: CommandMarkers,
-  wrapper: string,
-): CapturedOutput | undefined {
+/**
+ * Index where this call's command output begins in `text`.
+ *
+ * PSReadLine renders the submitted line before the shell runs it, so the START
+ * marker also appears inside that echo, where the wrapper's closing quote
+ * follows it; the copy the shell printed ends its line. A submission whose
+ * first statement failed prints no START marker at all, and the echoed END
+ * marker then ends the echo's own line, or ends the retained text when the
+ * scrollback window cut the echo short.
+ * @param text - retained scrollback, or one send's captured output.
+ * @param marker - markers minted for the call being extracted.
+ * @param before - index of the printed END marker, or the text length.
+ * @returns index of the first character of this call's output, or undefined when neither anchor survives in `text`.
+ */
+function outputStart(text: string, marker: CommandMarkers, before: number): number | undefined {
+  const startMarker = text.lastIndexOf(marker.start, before)
+  if (startMarker >= 0) {
+    const afterStart = startMarker + marker.start.length
+    if (text[afterStart] !== "'") {
+      const newline = text.indexOf('\n', afterStart)
+      return newline >= 0 && newline - afterStart < 2 ? newline + 1 : afterStart
+    }
+  }
+  const echoedEnd = text.lastIndexOf(`${marker.end}'`, before)
+  if (echoedEnd < 0) return undefined
+  const lineEnd = text.indexOf('\n', echoedEnd + marker.end.length)
+  return lineEnd < 0 ? text.length : lineEnd + 1
+}
+
+function commandOutput(snapshot: RetainedOutput, marker: CommandMarkers): CapturedOutput | undefined {
   const text = snapshot.text
   const end = text.lastIndexOf(marker.end)
   const status = /^(\d+)\r?\n/.exec(text.slice(end + marker.end.length))?.[1]
   if (status === undefined) return undefined
-  const startMarker = text.lastIndexOf(marker.start, end)
-  const start = startMarker < 0 ? 0 : startMarker + marker.start.length
-  let captured = text.slice(start, end)
-  // The PSReadLine echo carries the wrapper source (including both marker
-  // nonces) before the real markers; anchor on the real markers excludes it,
-  // and stripping the wrapper covers the rare case where the real START
-  // scrolled out and extraction fell back to the echoed copy.
-  captured = captured.replaceAll(wrapper, '')
+  const start = outputStart(text, marker, end)
   return {
-    text: captured.replace(/^\r?\n/, '').replace(/\r?\n$/, ''),
-    incomplete: startMarker < 0,
+    text: text.slice(start ?? 0, end).replace(/\r?\n$/, ''),
+    incomplete: start === undefined,
     exitCode: Number(status),
   }
 }
@@ -139,26 +157,22 @@ function promptCompleted(result: TerminalSendResult): boolean {
 function partialOutput(
   snapshot: RetainedOutput,
   marker: CommandMarkers,
-  wrapper: string,
   fallback: string,
   fallbackTruncated = false,
 ): CapturedOutput {
-  const startMarker = snapshot.text.lastIndexOf(marker.start)
-  if (startMarker >= 0) {
-    return {
-      text: stripPrompt(snapshot.text.slice(startMarker + marker.start.length).replace(/^\r?\n/, '')),
-      incomplete: false,
-    }
+  const snapshotStart = outputStart(snapshot.text, marker, snapshot.text.length)
+  if (snapshotStart !== undefined) {
+    return { text: stripPrompt(snapshot.text.slice(snapshotStart)), incomplete: false }
   }
-  const fallbackStart = fallback.lastIndexOf(marker.start)
-  const afterStart = fallbackStart < 0
+  const fallbackStart = outputStart(fallback, marker, fallback.length)
+  const afterStart = fallbackStart === undefined
     ? fallback
-    : fallback.slice(fallbackStart + marker.start.length).replace(/^\r?\n/, '')
+    : fallback.slice(fallbackStart)
   const fallbackEnd = afterStart.lastIndexOf(marker.end)
   const beforeEnd = fallbackEnd < 0 ? afterStart : afterStart.slice(0, fallbackEnd)
   return {
-    text: stripPrompt(beforeEnd.replaceAll(SHELL_PROMPT, '').replaceAll(wrapper, '')),
-    incomplete: fallbackTruncated || fallbackStart < 0,
+    text: stripPrompt(beforeEnd.replaceAll(SHELL_PROMPT, '')),
+    incomplete: fallbackTruncated || fallbackStart === undefined,
   }
 }
 
@@ -235,7 +249,6 @@ async function respondToSessionExit(
   id: TerminalSessionId,
   status: { exitCode: number | null; signal: NodeJS.Signals | null },
   marker: CommandMarkers,
-  wrapped: string,
   fallback: string,
   fallbackTruncated: boolean,
   config: ResolvedConfig,
@@ -244,7 +257,7 @@ async function respondToSessionExit(
   await shells.reset(owner, 'persistent pwsh shell exited')
   return [
     renderShellExitStatus(
-      renderCaptured(partialOutput(snapshot, marker, wrapped, fallback, fallbackTruncated), config.maxOutputChars),
+      renderCaptured(partialOutput(snapshot, marker, fallback, fallbackTruncated), config.maxOutputChars),
       status.exitCode,
       status.signal,
     ),
@@ -357,7 +370,7 @@ async function executeCommand(
     const status = ctx.terminals.list(owner).find(session => session.sessionId === id)?.status
     if (status?.kind === 'exited') {
       return await respondToSessionExit(
-        ctx, shells, owner, id, status, marker, wrapped, fallback, fallbackTruncated, config,
+        ctx, shells, owner, id, status, marker, fallback, fallbackTruncated, config,
       )
     }
     let operation
@@ -382,7 +395,7 @@ async function executeCommand(
     if (timedOut !== undefined) {
       const snapshot = retainedScrollback(ctx, owner, id, latest)
       const partial = renderCaptured(
-        partialOutput(snapshot, marker, wrapped, fallback, fallbackTruncated),
+        partialOutput(snapshot, marker, fallback, fallbackTruncated),
         config.maxOutputChars,
       )
       await shells.reset(owner, 'persistent pwsh command timed out')
@@ -398,18 +411,18 @@ async function executeCommand(
       commandDeadline.signal.throwIfAborted()
     }
     if (latest.text.includes(marker.end)) {
-      const complete = commandOutput(retainedScrollback(ctx, owner, id, latest), marker, wrapped)
+      const complete = commandOutput(retainedScrollback(ctx, owner, id, latest), marker)
       if (complete !== undefined) return renderCaptured(complete, config.maxOutputChars)
     }
     if (result.sessionStatus.kind === 'exited') {
       return await respondToSessionExit(
-        ctx, shells, owner, id, result.sessionStatus, marker, wrapped, fallback, fallbackTruncated, config,
+        ctx, shells, owner, id, result.sessionStatus, marker, fallback, fallbackTruncated, config,
       )
     }
     if (promptCompleted(result)) {
       const snapshot = retainedScrollback(ctx, owner, id, latest)
       return renderCaptured(
-        partialOutput(snapshot, marker, wrapped, fallback, fallbackTruncated),
+        partialOutput(snapshot, marker, fallback, fallbackTruncated),
         config.maxOutputChars,
       )
     }

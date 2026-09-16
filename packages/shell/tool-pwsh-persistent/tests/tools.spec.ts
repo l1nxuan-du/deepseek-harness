@@ -98,6 +98,10 @@ type StubMode =
   | 'send-error'
   | 'prompt-after-idle'
   | 'incremental-fallback'
+  | 'echo-only'
+  | 'echo-only-split'
+  | 'printed-marker-joined'
+  | 'echo-truncated'
   | 'empty-page-after-latest'
   | 'paged-scrollback'
   | 'with-echo'
@@ -183,6 +187,31 @@ class StubTerminalSession implements TerminalBackendSession {
       const output = `${sent}\n${start ?? ''}\nhello from stub\n${end ?? ''}0\n${this.motd}`
       this.scrollback += output
       return this.operation(Promise.resolve(this.result(output, 'stdin_read')))
+    }
+    if (this.mode === 'echo-only' || this.mode === 'echo-only-split') {
+      // A wrapper whose first statement failed prints no START marker, leaving
+      // the echo as the only carrier of both markers. PSReadLine redraws the
+      // echoed line on interior render boundaries, so it can arrive split.
+      const markerCommand = sent.indexOf('Invoke-Expression')
+      const echo = this.mode === 'echo-only-split'
+        ? `${sent.slice(0, markerCommand)}\n${sent.slice(markerCommand)}`
+        : sent
+      const output = `${echo}\nrite-Output: The term 'rite-Output' is not recognized as a name of a cmdlet.\nhello from stub\n${end ?? ''}0\n${this.motd}`
+      this.scrollback += output
+      return this.operation(Promise.resolve(this.result(output, 'stdin_read')))
+    }
+    if (this.mode === 'printed-marker-joined') {
+      // A backend that leaves the printed marker's line unterminated: the
+      // command output continues on the marker's own line.
+      const output = `${start ?? ''}hello from stub\n${end ?? ''}0\n${this.motd}`
+      this.scrollback += output
+      return this.operation(Promise.resolve(this.result(output, 'stdin_read')))
+    }
+    if (this.mode === 'echo-truncated') {
+      // The retained scrollback window ends inside the echo, before the echoed
+      // END marker's line ends; only the send's own viewport is complete.
+      this.scrollback += sent
+      return this.operation(Promise.resolve(this.result(`${sent}\n${this.motd}`, 'stdin_read')))
     }
     if (this.mode === 'exit-after-send') {
       // A fast `exit` settles the send with an echoed wrapper (marker end,
@@ -364,6 +393,38 @@ describe('tool-pwsh-persistent', () => {
     expect(result).toBe('hello from stub')
     expect(result).not.toContain('__DSH_PERSISTENT_PWSH_START_')
     expect(result).not.toContain('__DSH_PERSISTENT_PWSH_END_')
+    expect(result).not.toContain('Invoke-Expression')
+  })
+
+  // The echo, not the missing START marker, is what a failed first statement
+  // leaves behind; anchoring the extraction on it keeps the wrapper source out
+  // of the result whether PSReadLine rendered the line once or in pieces.
+  it.each(['echo-only', 'echo-only-split'] as const)(
+    'keeps the %s echo out of a result whose start marker was never printed',
+    async (mode) => {
+      const { ctx, owner, stub } = await setup({ backendType: 'stub' })
+      await call(ctx, owner, 'warm up')
+      stub.sessions[0]!.mode = mode
+      const result = text(await call(ctx, owner, 'Write-Output hi'))
+      expect(result).toBe("rite-Output: The term 'rite-Output' is not recognized as a name of a cmdlet.\nhello from stub")
+      expect(result).not.toContain('Invoke-Expression')
+      expect(result).not.toContain('__DSH_PERSISTENT_PWSH')
+    },
+  )
+
+  it("captures output that continues on the printed start marker's line", async () => {
+    const { ctx, owner, stub } = await setup({ backendType: 'stub' })
+    await call(ctx, owner, 'warm up')
+    stub.sessions[0]!.mode = 'printed-marker-joined'
+    expect(text(await call(ctx, owner, 'Write-Output hi'))).toBe('hello from stub')
+  })
+
+  it('drops a partial echo the retained window cut before its line end', async () => {
+    const { ctx, owner, stub } = await setup({ backendType: 'stub' })
+    await call(ctx, owner, 'warm up')
+    stub.sessions[0]!.mode = 'echo-truncated'
+    const result = text(await call(ctx, owner, 'Write-Output hi'))
+    expect(result).toBe('')
     expect(result).not.toContain('Invoke-Expression')
   })
 
