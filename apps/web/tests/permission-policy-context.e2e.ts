@@ -74,6 +74,7 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
+      profile: { packages: [] },
       agentPresets: { roots: [], default: 'cordis' },
       ...MODE === 'record' ? {} : { replayFixture: FIXTURE, compareReplaySession: true },
       ...process.platform === 'win32' ? {} : {

@@ -602,7 +602,7 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
   }
   const promptHandle = await ctx.agents.create({
     sessionId: SessionId('shipped-composition-prompt'),
-    setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'cordis').then(() => undefined),
+    setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'codex-v5').then(() => undefined),
   })
   try {
     const fileReferenceSection = (await ctx.systemPrompt.assemble({ scope: promptHandle.agent })).sections
