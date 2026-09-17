@@ -123,6 +123,26 @@ describe('PiAiAdapter provider routing', () => {
     expect(server.headers[0]?.['user-agent']).toBe(userAgent())
   })
 
+  it('carries the session id on OpenCode native and gateway headers', async () => {
+    const server = await mockServer([{ events: textEvents }])
+    vi.stubEnv('PI_TEST_KEY', 'test-key')
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LlmPiAi, {
+      providers: {
+        'opencode-go': { apiKeyEnv: 'PI_TEST_KEY', baseURL: server.url },
+      },
+    })
+    await assemble(ctx, {
+      provider: 'opencode-go',
+      model: 'deepseek-v4-flash',
+      messages: [],
+      sessionId: 'session-opencode-go' as never,
+    })
+    expect(server.headers[0]?.['x-deepseek-harness-session-id']).toBe('session-opencode-go')
+    expect(server.headers[0]?.['x-opencode-session']).toBe('session-opencode-go')
+  })
+
   it('forwards common stream options and profile reasoning', async () => {
     const server = await mockServer([{ events: textEvents }])
     const ctx = await harness(server.url, {
@@ -150,6 +170,8 @@ describe('PiAiAdapter provider routing', () => {
     })
     expect(server.requests[0]).not.toHaveProperty('dsh_session_log')
     expect(server.requests[0]).not.toHaveProperty('dsh_plugin_packages')
+    expect(server.headers[0]).not.toHaveProperty('x-deepseek-harness-session-id')
+    expect(server.headers[0]).not.toHaveProperty('x-opencode-session')
   })
 
   it('uses a dynamic request effort and reports unsupported efforts before network I/O', async () => {

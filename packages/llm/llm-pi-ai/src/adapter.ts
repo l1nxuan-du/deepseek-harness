@@ -201,12 +201,53 @@ function reasoningInfo(
   }
 }
 
-/** Merge deployment headers while removing case-insensitive attribution collisions. */
-function requestHeaders(headers: Readonly<Record<string, string>> | undefined): Record<string, string> {
+/** Whether one endpoint belongs to OpenCode's hosted gateway. */
+function isOpenCodeEndpoint(value: string | undefined): boolean {
+  if (value === undefined) return false
+  try {
+    return new URL(value).hostname === 'opencode.ai'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * OpenCode routes use the harness session-id header they recognize and their
+ * own documented session header. Other providers receive generic pi-ai session
+ * affinity only; the harness session id is not part of their request vocabulary.
+ */
+function openCodeSessionHeaders(
+  provider: string,
+  profile: ResolvedPiAiProviderProfile,
+  model: Model<Api>,
+  sessionId: GenerateOptions['sessionId'],
+): Record<string, string> {
+  if (sessionId === undefined) return {}
+  const openCode = provider === 'opencode'
+    || provider === 'opencode-go'
+    || profile.piProvider?.id === 'opencode'
+    || profile.piProvider?.id === 'opencode-go'
+    || isOpenCodeEndpoint(model.baseUrl)
+    || isOpenCodeEndpoint(profile.baseURL)
+    || isOpenCodeEndpoint(profile.piProvider?.baseUrl)
+  if (!openCode) return {}
+  const value = String(sessionId)
+  return {
+    'x-deepseek-harness-session-id': value,
+    'x-opencode-session': value,
+  }
+}
+
+/** Merge deployment headers and session identity while removing case-insensitive attribution collisions. */
+function requestHeaders(
+  headers: Readonly<Record<string, string>> | undefined,
+  sessionHeaders: Readonly<Record<string, string>> = {},
+): Record<string, string> {
   const attribution = attributionHeaders()
   const reserved = new Set(Object.keys(attribution).map(name => name.toLowerCase()))
   return {
     ...Object.fromEntries(Object.entries(headers ?? {}).filter(([name]) => !reserved.has(name.toLowerCase()))),
+    ...sessionHeaders,
     ...attribution,
   }
 }
@@ -385,7 +426,7 @@ export class PiAiAdapter extends LlmAdapter {
         signal: watchdog.signal,
         // Profile headers are deployment-owned; attribution names are
         // Harness-owned and therefore win collisions.
-        headers: requestHeaders(profile.headers),
+        headers: requestHeaders(profile.headers, openCodeSessionHeaders(options.provider, profile, model, options.sessionId)),
       })
       const iterator = toStreamChunks(events, model.contextWindow, options.signal, model.id)[Symbol.asyncIterator]()
       let exhausted = false
