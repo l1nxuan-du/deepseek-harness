@@ -2,7 +2,7 @@
   - navigation "Session hierarchy":
     - button "Stream one TypeScript fence for" [disabled]
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -10,17 +10,9 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - text: Stream one TypeScript fence for the highlighting snapshot. {{clock}}
 - button "Copy":
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
-  - img
-  - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
 - text: ts
 - button "Copy"
 - code: "const first: number = 1 const second = \"two\" let tail"

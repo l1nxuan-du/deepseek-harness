@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决策
 
-那些并非 surface 专属的行移入 [`base.cordis.yml`](../../../../packages/bundle/base/cordis.patch.yml)，另有三行加入：`tool-session-query`、`tool-str-replace-editor` 和 `repeat-tool-reminder`。Web 搜索也一并移入；其[部署决策](2026-07-31-web-default-search.zh.md)负责安全边界，共享 base 则负责与 surface 无关的挂载。两个 surface 组装同一份清单，其中 `glob` 和 `grep` 是固定成员，因为 `dsh-tool-fs-search` 直接 spawn [打包的 ripgrep 二进制](../../archived/architecture/2026-08-01-packaged-ripgrep-search.md)。后续决策收窄了这份清单：[session-search 决策](../../archived/feature/2026-08-02-session-search-not-shipped-default.md)让 `tool-session-query` 保持需显式启用，[单一 editor 决策](../../archived/simplification/2026-08-10-default-presets-single-editor.md)从通用 preset 移除 `tool-str-replace-editor`，[仅持久 shell 决策](../simplification/2026-09-03-minimal-profiles-persistent-shell-only.zh.md)则从极简组合移除它，[ralph 降级决策](../simplification/2026-09-12-ralph-off-in-shipped-defaults.zh.md)让 `ralph` 在这份 base 清单与镜像它的 preset 中默认关闭。
+那些并非 surface 专属的行移入 [`base.cordis.yml`](../../../../packages/bundle/base/cordis.patch.yml)，另有三行加入：`tool-session-query`、`tool-str-replace-editor` 和 `repeat-tool-reminder`。Web 搜索也一并移入；其[部署决策](2026-07-31-web-default-search.zh.md)负责安全边界，共享 base 则负责与 surface 无关的挂载。两个 surface 组装同一份清单，其中 `glob`、`grep` 和 `rg` 是固定成员，因为 `dsh-tool-fs-search` 直接 spawn [打包的 ripgrep 二进制](../../archived/architecture/2026-08-01-packaged-ripgrep-search.md)。后续决策收窄了这份清单：[session-search 决策](../../archived/feature/2026-08-02-session-search-not-shipped-default.md)让 `tool-session-query` 保持需显式启用，[单一 editor 决策](../../archived/simplification/2026-08-10-default-presets-single-editor.md)从通用 preset 移除 `tool-str-replace-editor`，[仅持久 shell 决策](../simplification/2026-09-03-minimal-profiles-persistent-shell-only.zh.md)则从极简组合移除它，[ralph 降级决策](../simplification/2026-09-12-ralph-off-in-shipped-defaults.zh.md)让 `ralph` 在这份 base 清单与镜像它的 preset 中默认关闭。
 
 有两行仍是 surface 专属。`tmux-context` 只在 TUI，因为浏览器 surface 没有终端复用器可描述。`session-reference` 只在 TUI，因为它以 launcher 的进程本地路径驱动共享的 session-query 索引，而浏览器侧边栏会在自己的首次搜索里重建该索引。
 
@@ -42,7 +42,7 @@ Status: implemented
 
 [`apps/web/tests/shipped-composition.e2e.ts`](../../../../apps/web/tests/shipped-composition.e2e.ts) 在构建产物 lane 中覆盖 Web surface,断言它的工具目录、它的访问默认值未被触碰,以及 `workspace-write` 的可写根包含临时目录——一个会让沙箱测试说谎的陷阱,当工作区落在 `/tmp` 下时([`roots.ts`](../../../../packages/sandbox/sandbox/src/roots.ts))。
 
-`glob` 与 `grep` 被作为固定成员断言，而不是一对宿主依赖：`dsh-tool-fs-search` spawn 打包的 ripgrep 二进制并无条件注册两个工具，因此这一对始终在场。
+`glob`、`grep` 与 `rg` 被作为固定成员断言，而不是宿主依赖：`dsh-tool-fs-search` spawn 打包的 ripgrep 二进制并无条件注册三个工具，因此这一组始终在场。
 
 除入库测试外,两个 surface 都以 plain Node 从构建产物 `apps/cli/lib/bin.js` 出发、用真实密钥驱动过。每一个已挂载的工具都执行成功,包括 `ralph` 与 `web_search`;模型从未触达 `cordis_*` 或 `mcp_*`,被要求做 LSP 跳转时退化到 `grep`,被要求开持久终端时用了后台 `bash` 任务。
 
@@ -58,7 +58,7 @@ Status: implemented
 
 ## 后果
 
-同一个模型在两个 surface 上拿到同样的工具,那处没有记录理由的差异消失了。测试会精确断言二十个无条件提供的名称，并把 `glob` 与 `grep` 作为固定成员钉在两侧，因此日后只改一个 surface 都会让检查失败而不是悄悄发出去；[session-search-not-shipped-default 决策](../../archived/feature/2026-08-02-session-search-not-shipped-default.md)正是这样一次后来的改动，两个测试也随之移动。
+同一个模型在两个 surface 上拿到同样的工具,那处没有记录理由的差异消失了。测试会精确断言二十个无条件提供的名称，并把 `glob`、`grep` 与 `rg` 作为固定成员钉在两侧，因此日后只改一个 surface 都会让检查失败而不是悄悄发出去；[session-search-not-shipped-default 决策](../../archived/feature/2026-08-02-session-search-not-shipped-default.md)正是这样一次后来的改动，两个测试也随之移动。
 
 `apps/cli` 增加了五个 workspace 依赖:四个是交付树当时挂载的,外加 `dsh-mcp-client`——它并不被挂载,存在的意义是让已安装的 `dsh` 能挂。四个保留了下来——[session-search-not-shipped-default 决策](../../archived/feature/2026-08-02-session-search-not-shipped-default.md)把 `@deepseek-ai/dsh-tool-session-query` 连同它的行一起移除了。
 

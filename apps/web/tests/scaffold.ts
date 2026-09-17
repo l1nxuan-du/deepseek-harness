@@ -386,7 +386,7 @@ export interface LaunchOptions {
   }
   /**
    * Replace the roster row the scaffold pins by default (no configured roots,
-   * default `standard` — the plugin's own shipped presets). Supply this only
+   * default `s1mple-mode` — the plugin's own shipped presets). Supply this only
    * to change WHICH presets a scenario sees beyond the shipped set — a
    * writable user root, a different default. The patch lands after the
    * default, so it wins.
@@ -542,7 +542,7 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     {
       id: 'agent-presets',
       config: {
-        default: 'standard',
+        default: 's1mple-mode',
         includeUserRoot: false,
       },
     },
@@ -650,7 +650,7 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       }],
     ...maskDeepSeekCredential && !messages ? [] : [
       { id: 'llm-deepseek', disabled: mode !== 'record' && !maskDeepSeekCredential,
-        config: messages ? {} : { protocol: 'chat-completions' } },
+        config: { protocol: messages ? 'messages' : 'chat-completions' } },
     ],
   ]
 
@@ -1418,10 +1418,19 @@ const ARIA_AGE =
 
 function normalizeAria(snapshot: string, workspaceCwd: string, age: boolean): string {
   // The session heading renders the workspace's basename, not the full
-  // path, so both spellings must collapse to the token.
-  const base = workspaceCwd.split('/').pop()!
-  return (age ? snapshot.replace(ARIA_AGE, '{{age}}') : snapshot)
-    .split(workspaceCwd).join('{{cwd}}')
+  // path, so both spellings must collapse to the token. Variants cover the
+  // native and forward-slash spellings Windows mixes in rendered paths.
+  const base = workspaceCwd.split(/[\\/]/).pop()!
+  const cwdVariants = [...new Set([workspaceCwd, workspaceCwd.replaceAll('\\', '/')])]
+    .sort((left, right) => right.length - left.length)
+  let normalized = age ? snapshot.replace(ARIA_AGE, '{{age}}') : snapshot
+  for (const cwd of cwdVariants) {
+    normalized = normalized
+      .split(`${cwd}\\`).join('{{cwd}}/')
+      .split(`${cwd}/`).join('{{cwd}}/')
+      .split(cwd).join('{{cwd}}')
+  }
+  return normalized
     .split(base).join('{{workspace}}')
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '{{uuid}}')
     // The optional space in `\d+m ?\d+s` covers both minute spellings: the

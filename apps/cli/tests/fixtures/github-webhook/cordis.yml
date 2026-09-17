@@ -12,7 +12,7 @@
         repository: deepseek-ai/deepseek-harness
         workspacePath: !!js process.env.DSH_GITHUB_E2E_WORKSPACE
         marker: !!js process.env.DSH_GITHUB_E2E_MARKER
-        agentPreset: minimal
+        agentPreset: anchored-standard
         permissionPreset: read-only
 
     - id: github-webhook-real-e2e-ingress

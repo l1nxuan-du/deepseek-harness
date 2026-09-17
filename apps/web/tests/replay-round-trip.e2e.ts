@@ -57,6 +57,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
       compareReplaySession: true,
+      agentPresets: { roots: [], default: 'cordis' },
       ...(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 15 }),
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
@@ -116,7 +117,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     const paragraphs = system.split('\n\n')
     expect(paragraphs.slice(0, 2)).toEqual([
       'You are an AI agent powered by DeepSeek Harness.',
-      'You are a coding agent powered by the deepseek-v4-flash model.',
+      'You are a coding agent powered by the deepseek-v4-flash model, running on the DeepSeek Harness.',
     ])
     const suffix = paragraphs.slice(-3).join('\n\n')
       .split(REPO_ROOT).join('{{sourceRoot}}')

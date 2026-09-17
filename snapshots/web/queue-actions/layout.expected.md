@@ -2,7 +2,7 @@
   - navigation "Session hierarchy":
     - button "workspace" [disabled]
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -15,18 +15,10 @@
   - img
   - img
   - text: "goal Goal created Status: active Objective: Keep the composer context panels aligned Rounds: 0/256 Activation: armed Commands: /goal edit <objective>, /goal pause, /goal clear"
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - button "Context injection goal":
   - img
   - img
   - text: Context injection goal
-- button "Context injection @deepseek-ai/dsh-system-prompt":
-  - img
-  - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
 - paragraph: partial
 - status: Deep diving...
 - region "To-dos":

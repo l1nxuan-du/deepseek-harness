@@ -1,5 +1,5 @@
 ---
-description: "Configure DeepSeek Messages, Chat Completions overrides, reasoning, and image input through one first-party provider."
+description: "Configure DeepSeek Responses, Messages, and Chat Completions overrides, reasoning, and image input through one first-party provider."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Stream DeepSeek models through `deepseek-official` with Messages by default, or select Chat Completions in Cordis YAML. Both protocols share credentials, endpoint settings, image handling, and the model catalog. Valid settings changes affect subsequent calls while in-flight calls retain their configuration. Web shows one DeepSeek provider with an editable API base and key. This package can run beside the [pi-ai adapter](../llm-pi-ai/README.md).
+Stream DeepSeek models through `deepseek-official` with Responses by default, or select Messages or Chat Completions in Cordis YAML. All three protocols share credentials, endpoint settings, image handling, and the model catalog. Valid settings changes affect subsequent calls while in-flight calls retain their configuration. Web shows one DeepSeek provider with an editable API base and key. This package can run beside the [pi-ai adapter](../llm-pi-ai/README.md).
 
 ## Table of Contents
 
@@ -49,7 +49,7 @@ A request selects the route with `provider: deepseek-official`; the model id pas
 
 | Field | Default | Meaning |
 |---|---|---|
-| `protocol` | `messages` | Choose `messages` or `chat-completions` in Cordis YAML; Web has no protocol selector |
+| `protocol` | `responses` | Choose `responses`, `messages`, or `chat-completions` in Cordis YAML or the `llm-deepseek` settings section |
 | `apiKeyEnv` | `DEEPSEEK_API_KEY` | Credential reference resolved per request through the credentials seam, then the environment |
 | `baseURL` | Selected protocol’s official root | Explicit value, then `$DEEPSEEK_BASE_URL`, then the selected protocol default |
 | `thinking` | `enabled` | Deployment policy; `disabled` locks every request to `off` |
@@ -83,9 +83,9 @@ To select Chat Completions explicitly, patch the existing plugin:
     protocol: chat-completions
 ```
 
-`protocol` defaults to `messages`, with official root `https://api.deepseek.com/anthropic`; `chat-completions` uses `https://api.deepseek.com`. Shipped first-party compositions inherit this default. Neither protocol requires `baseURL`: its official default applies when both `baseURL` and `$DEEPSEEK_BASE_URL` are absent. Switching protocols retains endpoint overrides, so users must supply an address compatible with the selected protocol. An explicit `https://api.deepseek.com` override selects the Chat root: remove that override to use the official Messages default, or set it to `https://api.deepseek.com/anthropic`. Chat appends `/chat/completions`; Messages appends `/v1/messages`. Apart from trailing slashes, neither infers or removes custom path suffixes such as `/v1`. Both share the `llm-deepseek` settings section, `apiKeyEnv`, and `deepseek-official`, so saved model selections remain valid.
+`protocol` defaults to `responses`, which uses the official root `https://api.deepseek.com` and appends `/responses`; `chat-completions` shares that root and appends `/chat/completions`; `messages` uses `https://api.deepseek.com/anthropic` and appends `/v1/messages`. Shipped first-party compositions inherit this default. No protocol requires `baseURL`: its official default applies when both `baseURL` and `$DEEPSEEK_BASE_URL` are absent. Switching protocols retains endpoint overrides, so users must supply an address compatible with the selected protocol, and an explicit `https://api.deepseek.com` override means the Responses or Chat root. Apart from trailing slashes, none of them infers or removes custom path suffixes such as `/v1`. All three share the `llm-deepseek` settings section, `apiKeyEnv`, and `deepseek-official`, so saved model selections remain valid.
 
-Messages sends text, thinking, tool calls, and tool results as content blocks, reasoning effort as `output_config.effort`, and images as Files references or inline base64. Models declaring `systemPromptUpdate: in-history` retain the initial top-level system and send new system snapshots after their corresponding user/tool-result turn; undeclared models use the latest snapshot as the top-level system. Replay metadata identifies the Messages format, model, and signatures. Chat requests serialize durable content without those signatures. Invalid Messages replay metadata emits a warning and omits signatures while retaining text and tool history.
+Messages sends text, thinking, tool calls, and tool results as content blocks, reasoning effort as `output_config.effort`, and images as Files references or inline base64. Models declaring `systemPromptUpdate: in-history` retain the initial top-level system and send new system snapshots after their corresponding user/tool-result turn; undeclared models use the latest snapshot as the top-level system. Replay metadata identifies the Messages format, model, and signatures. Chat requests serialize durable content without those signatures. Invalid Messages replay metadata emits a warning and omits signatures while retaining text and tool history. Responses sends the system prompt as `instructions`, the conversation as typed input items, and the tool set as a flat list; a tool carrying a grammar is offered as a provider custom tool, so the model writes its input — a patch envelope, for example — without JSON escaping it, and the tool layer delivers that text as the tool's declared parameter.
 
 ### Streaming with thinking and images
 

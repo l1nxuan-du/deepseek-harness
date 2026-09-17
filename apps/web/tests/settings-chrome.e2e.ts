@@ -108,7 +108,7 @@ describe('web e2e: settings modal and General preferences', () => {
     const presetSwitcher = dialog.getByRole('button', { name: '选择要查看的 Agent 预设' })
     await presetSwitcher.waitFor({ timeout: 10_000 })
     // The shipped default's zh display name comes from the zh dictionaries.
-    expect(await presetSwitcher.textContent()).toBe('标准模式（默认）')
+    expect(await presetSwitcher.textContent()).toBe('飞猪模式（默认）')
     await dialog.getByRole('button', { name: /^全局/ }).click()
     const pluginRow = dialog.locator(PLUGIN_ROW_SELECTOR)
     await pluginRow.waitFor({ timeout: 10_000 })
@@ -655,7 +655,7 @@ describe('web e2e: settings modal and General preferences', () => {
       await dialog.getByRole('tab', { name: 'Plugin list', exact: true }).click()
       const presetSwitcher = dialog.getByRole('button', { name: 'Choose the agent preset to inspect' })
       await presetSwitcher.waitFor({ timeout: 10_000 })
-      expect(await presetSwitcher.textContent()).toBe('Standard mode (default)')
+      expect(await presetSwitcher.textContent()).toBe('S1mple mode (default)')
       // This page has no closing inventory spec to sweep its console, so the
       // scenario clears both tripwire channels itself.
       expect(enTripwire.pageErrors).toEqual([])

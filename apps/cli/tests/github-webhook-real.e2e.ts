@@ -406,7 +406,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('GitHub webhook through the real 
       expect(sessions.items.find(session => session.sessionId === sessionId)).toMatchObject({
         blank: false,
         cwd: canonicalWorkspacePath,
-        projections: { values: { agentPreset: 'minimal' } },
+        projections: { values: { agentPreset: 'anchored-standard' } },
       })
 
       const admitted = await eventually(

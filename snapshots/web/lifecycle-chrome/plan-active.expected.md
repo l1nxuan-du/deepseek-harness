@@ -25,9 +25,9 @@
   - img
   - text: workspace
   - img
-- button "Standard mode":
+- button "S1mple mode":
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - img
 - textbox "Describe what you want to build, / commands, @ files or sessions"
 - button "Add files or run commands":

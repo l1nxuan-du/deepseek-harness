@@ -13,7 +13,7 @@
   - navigation "Session hierarchy":
     - button "Review deepseek-ai/deepseek-harness#314" [disabled]
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -21,10 +21,6 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - button "Thought for a while":
   - text: Thought for a while
   - img

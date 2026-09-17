@@ -9,7 +9,7 @@
  * suite: the derived writable root is resolved in the constructor.
  */
 
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -89,7 +89,8 @@ describe('the shipped preset root', () => {
     const ctx = await roster({ includeUserRoot: false })
 
     const listed = await ctx.agentPresets.list()
-    expect(listed.map(preset => preset.id).sort()).toEqual(['cordis', 'minimal', 'ptc', 'standard'])
+    expect(listed.map(preset => preset.id).sort())
+      .toEqual(['anchored-standard', 'codex-v5', 'codex-v6', 'cordis', 'ptc', 's1mple-mode'])
     expect(listed.every(preset => preset.trust === 'system')).toBe(true)
     // Not `broken === undefined`: health asks whether each row's package is
     // installed above the base, and the shipped rows name packages the
@@ -109,11 +110,15 @@ describe('the shipped preset root', () => {
       expect.stringContaining('.agent-presets'),
     ])
     expect(ctx.agentPresets.roots[0]).toEqual({ path: SHIPPED_PRESET_ROOT, trust: 'system' })
-    // Prepended, so a configured directory claiming a shipped id is shadowed:
-    // the fixture root also carries `minimal`, and the roster serves the
-    // shipped one.
-    const minimal = (await ctx.agentPresets.list()).find(preset => preset.id === 'minimal')
-    expect(minimal?.path.startsWith(SHIPPED_PRESET_ROOT)).toBe(true)
+    // Prepended, so a configured directory claiming a shipped id is shadowed.
+    // (This root is written here rather than added to the shared fixture, whose
+    // inventory other suites enumerate.)
+    const shadowing = join(home, '.agent-presets', 'cordis')
+    await mkdir(shadowing, { recursive: true })
+    await writeFile(join(shadowing, 'agent.cordis.yml'), '- id: shadowed\n  name: fixtures/plugins/contribute.js\n')
+    const cordis = (await roster({ roots: [{ path: SYSTEM_ROOT, trust: 'user' }] })).agentPresets
+    const resolved = (await cordis.list()).find(preset => preset.id === 'cordis')
+    expect(resolved?.path.startsWith(SHIPPED_PRESET_ROOT)).toBe(true)
   })
 
   it('mounts a roster without the shipped set when includeShippedRoot is false', async () => {
@@ -129,7 +134,7 @@ describe('the shipped preset root', () => {
   })
 
   it('enables web_fetch in each tool-bearing Web app preset', async () => {
-    for (const id of ['cordis', 'ptc', 'standard']) {
+    for (const id of ['cordis', 'ptc', 's1mple-mode']) {
       const entries = await shippedEntries(id)
       const toolWeb: unknown = entries.find((entry: unknown) =>
         typeof entry === 'object' && entry !== null && 'id' in entry && entry.id === 'tool-web')
@@ -146,7 +151,7 @@ describe('the shipped preset root', () => {
     expect(findEntry(ptc, 'tool-workflow')?.disabled).toBe(true)
     expect(findEntry(ptc, 'workflow-ptc')?.disabled).toBe(true)
 
-    for (const id of ['standard', 'cordis']) {
+    for (const id of ['s1mple-mode', 'cordis']) {
       const entries = await shippedEntries(id)
       expect(findEntry(entries, 'tool-workflow')?.disabled, id).not.toBe(true)
       expect(findEntry(entries, 'workflow-ptc')?.disabled, id).not.toBe(true)
@@ -154,9 +159,8 @@ describe('the shipped preset root', () => {
   })
 
   it('disables the ralph tool in every shipped preset that carries it', async () => {
-    for (const id of ['cordis', 'ptc', 'standard']) {
+    for (const id of ['cordis', 'ptc', 's1mple-mode', 'anchored-standard', 'codex-v5', 'codex-v6']) {
       expect(findEntry(await shippedEntries(id), 'tool-ralph')?.disabled, id).toBe(true)
     }
-    expect(findEntry(await shippedEntries('minimal'), 'tool-ralph')).toBeUndefined()
   })
 })

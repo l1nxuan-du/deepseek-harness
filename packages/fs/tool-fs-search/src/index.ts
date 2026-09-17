@@ -1,7 +1,7 @@
 /**
- * The model-facing filesystem discovery tool suite (`glob`, `grep`) over the
- * packaged ripgrep binary (`@vscode/ripgrep`). This single plugin registers
- * both tools; the binary ships inside the npm dependency, so no system `rg`
+ * The model-facing filesystem discovery tool suite (`glob`, `grep`, `rg`) over
+ * the packaged ripgrep binary (`@vscode/ripgrep`). This single plugin registers
+ * all three tools; the binary ships inside the npm dependency, so no system `rg`
  * install and no shell layer is involved.
  *
  * ## Spawn-backed, not a `ctx.fs` provider method
@@ -11,7 +11,8 @@
  * never `ctx.shell`, never `ctx.shell.start()`, never a model-visible background
  * task. The tool layer owns schemas, argument validation, argv construction
  * ({@link module:@deepseek-ai/dsh-tool-fs-search/glob} /
- * {@link module:@deepseek-ai/dsh-tool-fs-search/grep}), result parsing,
+ * {@link module:@deepseek-ai/dsh-tool-fs-search/grep} /
+ * {@link module:@deepseek-ai/dsh-tool-fs-search/rg}), result parsing,
  * retention, formatted-result spill, and timeout declaration; the subprocess
  * seam owns spawn execution, process-tree termination, environment scrubbing,
  * and raw output capture. The package injects `tools`, `systemPrompt`, and
@@ -31,6 +32,7 @@ import z from '@deepseek-ai/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { GLOB_MAX_RESULTS, applyGlobTool } from './glob.ts'
 import { GREP_MAX_LINE_BYTES, GREP_MAX_MATCHES, applyGrepTool } from './grep.ts'
+import { RG_MAX_LINES, applyRgTool } from './rg.ts'
 import { RAW_OUTPUT_MAX_BYTES, SEARCH_GRACE_MS, SEARCH_META_MAX_BYTES, SEARCH_STDERR_MAX_BYTES, SEARCH_TIMEOUT_MS } from './search-core.ts'
 
 export { GLOB_MAX_RESULTS, GLOB_VCS_EXCLUDES, applyGlobTool, buildGlobCommand, formatGlobOutput, parseGlobArgs, presentGlobCall, presentGlobResult, sampleAcrossTopLevel } from './glob.ts'
@@ -48,6 +50,16 @@ export {
   presentGrepResult,
 } from './grep.ts'
 export type { GrepInput, GrepToolCaps } from './grep.ts'
+export {
+  RG_MAX_LINES,
+  applyRgTool,
+  buildRgCommand,
+  formatRgOutput,
+  parseRgArgs,
+  presentRgCall,
+  retainRgLines,
+} from './rg.ts'
+export type { RgInput, RgToolCaps } from './rg.ts'
 export {
   RAW_OUTPUT_MAX_BYTES,
   SEARCH_GRACE_MS,
@@ -79,6 +91,8 @@ export interface Config {
   grepMaxMatches?: number
   /** Max bytes retained for one matched-line preview (the cut preserves UTF-8 boundaries). */
   grepMaxLineBytes?: number
+  /** Max output lines one `rg` call retains inline; later lines go to the formatted spill file. */
+  rgMaxLines?: number
   /** Max bytes of one search's serialized `presentationMeta`; trailing groups/paths drop past it so the persisted card stays bounded. */
   searchMetaMaxBytes?: number
   /** Max complete raw `rg` stdout bytes a search will parse; larger raw output fails with `SEARCH_RAW_OUTPUT_OVERFLOW`. */
@@ -99,6 +113,7 @@ export const Config: z<Config> = z.object({
   globMaxResults: z.number().default(GLOB_MAX_RESULTS),
   grepMaxMatches: z.number().default(GREP_MAX_MATCHES),
   grepMaxLineBytes: z.number().default(GREP_MAX_LINE_BYTES),
+  rgMaxLines: z.number().default(RG_MAX_LINES),
   searchMetaMaxBytes: z.number().default(SEARCH_META_MAX_BYTES),
   rawOutputMaxBytes: z.number().default(RAW_OUTPUT_MAX_BYTES),
   graceMs: z.number().default(SEARCH_GRACE_MS),
@@ -131,6 +146,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   assertPositiveInteger('globMaxResults', resolved.globMaxResults)
   assertPositiveInteger('grepMaxMatches', resolved.grepMaxMatches)
   assertPositiveInteger('grepMaxLineBytes', resolved.grepMaxLineBytes)
+  assertPositiveInteger('rgMaxLines', resolved.rgMaxLines)
   assertPositiveInteger('searchMetaMaxBytes', resolved.searchMetaMaxBytes)
   assertPositiveInteger('rawOutputMaxBytes', resolved.rawOutputMaxBytes)
   assertPositiveInteger('graceMs', resolved.graceMs)
@@ -152,6 +168,14 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     maxMatches: resolved.grepMaxMatches,
     maxLineBytes: resolved.grepMaxLineBytes,
     maxMetaBytes: resolved.searchMetaMaxBytes,
+    rawOutputMaxBytes: resolved.rawOutputMaxBytes,
+    graceMs: resolved.graceMs,
+    stderrMaxBytes: resolved.stderrMaxBytes,
+    timeoutMs: resolved.timeoutMs,
+  })
+  applyRgTool(ctx, {
+    maxLines: resolved.rgMaxLines,
+    maxLineBytes: resolved.grepMaxLineBytes,
     rawOutputMaxBytes: resolved.rawOutputMaxBytes,
     graceMs: resolved.graceMs,
     stderrMaxBytes: resolved.stderrMaxBytes,

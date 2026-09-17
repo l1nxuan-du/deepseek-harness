@@ -1,5 +1,5 @@
 ---
-description: "通过同一官方提供方配置 DeepSeek Messages、Chat Completions 覆盖、推理与图片输入。"
+description: "通过同一官方提供方配置 DeepSeek Responses、Messages、Chat Completions 覆盖、推理与图片输入。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-通过 `deepseek-official` 流式调用 DeepSeek 模型，默认使用 Messages，也可在 Cordis YAML 中选择 Chat Completions。两种协议共用凭据、端点配置、图片处理和模型目录。有效的设置更改在后续请求生效，进行中的请求保留原配置。Web 显示一个 DeepSeek 提供方，并提供 API 地址和密钥编辑。本包可与 [pi-ai 适配器](../llm-pi-ai/README.zh.md)并用。
+通过 `deepseek-official` 流式调用 DeepSeek 模型，默认使用 Responses，也可在 Cordis YAML 中选择 Messages 或 Chat Completions。三种协议共用凭据、端点配置、图片处理和模型目录。有效的设置更改在后续请求生效，进行中的请求保留原配置。Web 显示一个 DeepSeek 提供方，并提供 API 地址和密钥编辑。本包可与 [pi-ai 适配器](../llm-pi-ai/README.zh.md)并用。
 
 ## 目录
 
@@ -49,7 +49,7 @@ kind: "package-reference"
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `protocol` | `messages` | Cordis YAML 中选择 `messages` 或 `chat-completions`；Web 不提供选择器 |
+| `protocol` | `responses` | 在 Cordis YAML 或 `llm-deepseek` 设置段中选择 `responses`、`messages` 或 `chat-completions` |
 | `apiKeyEnv` | `DEEPSEEK_API_KEY` | 按请求解析的凭据引用：先经凭据 seam，再到环境变量 |
 | `baseURL` | 按协议选择官方根地址 | 显式值优先，其次 `$DEEPSEEK_BASE_URL`，最后采用当前协议的官方端点 |
 | `thinking` | `enabled` | 部署策略；`disabled` 把所有请求锁定为 `off` |
@@ -83,9 +83,9 @@ kind: "package-reference"
     protocol: chat-completions
 ```
 
-`protocol` 默认为 `messages`，官方根地址为 `https://api.deepseek.com/anthropic`；`chat-completions` 使用 `https://api.deepseek.com`。随产品交付的官方组合继承该默认值。两种协议都不要求填写 `baseURL`：当 `baseURL` 与 `$DEEPSEEK_BASE_URL` 均未设置时使用当前协议的官方默认值。切换协议保留已有端点覆盖，用户需要填写与选定协议兼容的地址。显式填写的 `https://api.deepseek.com` 是 Chat 根地址：删除该覆盖即可使用官方 Messages 默认值，也可以改填 `https://api.deepseek.com/anthropic`。Chat 追加 `/chat/completions`，Messages 追加 `/v1/messages`；除去末尾斜线之外，不推测或删除自定义路径中的 `/v1` 等后缀。两种协议共用 `llm-deepseek` 设置、`apiKeyEnv` 与 `deepseek-official`，因此已保存的模型选择仍然有效。
+`protocol` 默认为 `responses`，使用官方根地址 `https://api.deepseek.com` 并追加 `/responses`；`chat-completions` 共用该根地址并追加 `/chat/completions`；`messages` 使用 `https://api.deepseek.com/anthropic` 并追加 `/v1/messages`。随产品交付的官方组合继承该默认值。三种协议都不要求填写 `baseURL`：当 `baseURL` 与 `$DEEPSEEK_BASE_URL` 均未设置时使用当前协议的官方默认值。切换协议保留已有端点覆盖，用户需要填写与选定协议兼容的地址；显式填写的 `https://api.deepseek.com` 表示 Responses 或 Chat 根地址。除去末尾斜线之外，三者都不推测或删除自定义路径中的 `/v1` 等后缀。三种协议共用 `llm-deepseek` 设置、`apiKeyEnv` 与 `deepseek-official`，因此已保存的模型选择仍然有效。
 
-Messages 以内容块发送文本、思考、工具调用和工具结果，以 `output_config.effort` 发送推理强度，并以 Files 引用或内联 base64 发送图片。声明 `systemPromptUpdate: in-history` 的模型保留初始顶层 system，在对应 user/tool-result 轮次之后发送新的 system 快照；未声明能力时，使用最新快照作为顶层 system。回放元数据记录 Messages 格式、模型和签名；Chat 请求只序列化持久化内容，不发送这些签名。无效的 Messages 回放元数据产生警告并省略签名，不丢弃文本或工具历史。
+Messages 以内容块发送文本、思考、工具调用和工具结果，以 `output_config.effort` 发送推理强度，并以 Files 引用或内联 base64 发送图片。声明 `systemPromptUpdate: in-history` 的模型保留初始顶层 system，在对应 user/tool-result 轮次之后发送新的 system 快照；未声明能力时，使用最新快照作为顶层 system。回放元数据记录 Messages 格式、模型和签名；Chat 请求只序列化持久化内容，不发送这些签名。无效的 Messages 回放元数据产生警告并省略签名，不丢弃文本或工具历史。Responses 把系统提示词放进 `instructions`，把对话变成带类型条目的 `input`，并把工具集作为扁平列表发送；带语法的工具会作为提供方的自定义工具提供，因此模型书写其输入（例如补丁信封）时无需 JSON 转义，工具层再把该文本作为工具声明的参数送达。
 
 ### 带 thinking 与图片的流式调用
 

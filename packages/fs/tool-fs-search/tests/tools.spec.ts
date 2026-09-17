@@ -27,14 +27,19 @@ import * as ToolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
 import {
   buildGlobCommand,
   buildGrepCommand,
+  buildRgCommand,
   formatGrepMatches,
+  formatRgOutput,
   parseGrepMatches,
+  parseRgArgs,
   presentGlobCall,
   presentGlobResult,
   presentGrepCall,
   presentGrepResult,
+  presentRgCall,
   previewLine,
   resolveRgPath,
+  retainRgLines,
   runRipgrep,
   sampleAcrossTopLevel,
   toWorkdirRelative,
@@ -234,12 +239,12 @@ function matchLine(path: string, lineNumber: number, lineText: string): string {
 }
 
 describe('registration', () => {
-  it('registers glob and grep unconditionally with their prompt sections', async () => {
+  it('registers glob, grep, and rg unconditionally with their prompt sections', async () => {
     const { ctx, subprocess } = await setup()
     // Registration performs NO load-time probe: the packaged binary is always
     // available, so nothing spawns until a tool call.
     expect(subprocess.spawns).toHaveLength(0)
-    expect(ctx.tools.schemas().map(s => s.name).sort()).toEqual(['glob', 'grep'])
+    expect(ctx.tools.schemas().map(s => s.name).sort()).toEqual(['glob', 'grep', 'rg'])
     const prompt = renderPrompt(await ctx.systemPrompt.assemble())
     expect(prompt).toContain('Use the glob tool')
     expect(prompt).toContain('Use the grep tool')
@@ -259,12 +264,38 @@ describe('registration', () => {
 
   it('unregisters everything on fiber disposal (HMR safety)', async () => {
     const { ctx, fiber } = await setup()
-    expect(ctx.tools.schemas()).toHaveLength(2)
+    expect(ctx.tools.schemas()).toHaveLength(3)
     await fiber.dispose()
     expect(ctx.tools.schemas()).toHaveLength(0)
     const sections = (await ctx.systemPrompt.assemble()).sections.map(s => s.name)
     expect(sections).not.toContain('tool:glob')
     expect(sections).not.toContain('tool:grep')
+  })
+
+  it('gives rg a schema but contributes no system-prompt section', async () => {
+    const { ctx } = await setup()
+    expect(ctx.tools.schemas().map(schema => schema.name)).toContain('rg')
+    const rg = ctx.tools.schemas().find(schema => schema.name === 'rg')
+    // The pass-through argument surface is the whole story, so rg adds no
+    // guidance section: the model learns it from the tool description, and the
+    // grep guidance still owns the "prefer the structured tool" half.
+    expect(rg?.description).toContain('Run the packaged ripgrep with your own flags')
+    expect(rg?.description).toContain('reaches ripgrep verbatim')
+    expect(rg?.description).toContain(`Keeps the first ${ToolFsSearch.RG_MAX_LINES} output lines inline`)
+    const sections = (await ctx.systemPrompt.assemble()).sections.map(s => s.name)
+    expect(sections).toContain('tool:glob')
+    expect(sections).toContain('tool:grep')
+    expect(sections).not.toContain('tool:rg')
+    expect(renderPrompt(await ctx.systemPrompt.assemble())).not.toContain('Use the rg tool')
+  })
+
+  it('unregisters rg on fiber disposal (HMR safety)', async () => {
+    const { ctx, fiber } = await setup()
+    expect(ctx.tools.get('rg')).toBeDefined()
+    await fiber.dispose()
+    expect(ctx.tools.get('rg')).toBeUndefined()
+    const sections = (await ctx.systemPrompt.assemble()).sections.map(s => s.name)
+    expect(sections).not.toContain('tool:rg')
   })
 
   it('attaches the configured timeoutMs to both tool definitions', async () => {
@@ -303,6 +334,7 @@ describe('config validation', () => {
     ['globMaxResults', { globMaxResults: 0 }],
     ['grepMaxMatches', { grepMaxMatches: -1 }],
     ['grepMaxLineBytes', { grepMaxLineBytes: 1.5 }],
+    ['rgMaxLines', { rgMaxLines: 0 }],
     ['rawOutputMaxBytes', { rawOutputMaxBytes: 0 }],
     ['graceMs', { graceMs: 0 }],
     ['stderrMaxBytes', { stderrMaxBytes: -1 }],
@@ -324,6 +356,19 @@ describe('config validation', () => {
       ...DEFAULT_CONFIG,
       graceMs: MAX_TIMER_DELAY_MS + 1,
     })).rejects.toThrow(`tool-fs-search: graceMs must be no greater than ${MAX_TIMER_DELAY_MS}`)
+  })
+
+  it('defaults rgMaxLines to RG_MAX_LINES', () => {
+    expect(new ToolFsSearch.Config({ sampleOverCapGlobResults: true }).rgMaxLines).toBe(ToolFsSearch.RG_MAX_LINES)
+  })
+
+  it('rejects a fractional rgMaxLines at load, naming the field', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(FakeSubprocess)
+    await expect(ctx.plugin(ToolFsSearch, { ...DEFAULT_CONFIG, rgMaxLines: 2.5 })).rejects
+      .toThrow('tool-fs-search: rgMaxLines must be a positive integer')
   })
 })
 
@@ -1074,6 +1119,177 @@ describe('grep results', () => {
   })
 })
 
+describe('rg arguments (tokenization, passthrough, errors)', () => {
+  it('hands a normal argument line to ripgrep unchanged', () => {
+    const input = parseRgArgs({ args: '-n -g *.ts pattern src' })
+    expect(input).toEqual({ args: '-n -g *.ts pattern src', argv: ['-n', '-g', '*.ts', 'pattern', 'src'] })
+    expect(buildRgCommand(input)).toEqual(['-n', '-g', '*.ts', 'pattern', 'src'])
+  })
+
+  it('groups quoted tokens and drops the quotes without expansion', () => {
+    expect(parseRgArgs({ args: '-n "two words" \'$HOME\' *.ts' }).argv)
+      .toEqual(['-n', 'two words', '$HOME', '*.ts'])
+    // A quoted empty token survives as an empty path.
+    expect(parseRgArgs({ args: '-e needle ""  ' }).argv).toEqual(['-e', 'needle', ''])
+  })
+
+  it.each([
+    ['--pre run-me pattern', ['--pre', 'run-me', 'pattern']],
+    ['-z -n pattern', ['-z', '-n', 'pattern']],
+    ['-f patterns.txt src', ['-f', 'patterns.txt', 'src']],
+    ['--frobnicate pattern', ['--frobnicate', 'pattern']],
+    ['-in --no-ignore pattern', ['-in', '--no-ignore', 'pattern']],
+    ['--glob=*.ts pattern', ['--glob=*.ts', 'pattern']],
+    ['-- -n', ['--', '-n']],
+    ['--files', ['--files']],
+    ['--json -n pattern', ['--json', '-n', 'pattern']],
+  ] as const)('passes %s through verbatim', (args, argv) => {
+    // Every token reaches ripgrep as written: this tool no longer rewrites
+    // values or refuses flags, so ripgrep owns the argument vocabulary and
+    // reports its own argument errors.
+    expect(parseRgArgs({ args }).argv).toEqual(argv)
+  })
+
+  it.each([
+    ['empty args', '   ', 'args must carry ripgrep arguments'],
+    ['an unterminated double quote', '--glob "*.ts', 'unterminated " quote'],
+    ['an unterminated single quote', "-g '*.ts", "unterminated ' quote"],
+    ['a positional - (stdin pattern)', '- pattern', 'reading patterns from stdin is not supported'],
+  ] as const)('%s is an ordinary argument error', (_label, args, message) => {
+    expect(() => parseRgArgs({ args })).toThrow(message)
+  })
+
+  it('surfaces an argument error through the registry without spawning', async () => {
+    const { ctx, subprocess } = await setup()
+    const result = await call(ctx, 'rg', { args: '' })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('args must carry ripgrep arguments')
+    expect(subprocess.spawns).toHaveLength(0)
+  })
+})
+
+describe('rg results, retention, and spill', () => {
+  it('returns ripgrep stdout lines with the trailing newline and any CR stripped', async () => {
+    const { ctx, subprocess } = await setup()
+    subprocess.handler = () => runResult('a.ts:1:hit\r\nb.ts:2:other\n')
+    const result = await call(ctx, 'rg', { args: '-n hit' }, { agent: agent('/w') })
+    if (result.isError) throw new Error('expected rg success')
+    expect(result.value).toEqual({ lines: ['a.ts:1:hit', 'b.ts:2:other'] })
+    expect(text(result)).toBe('a.ts:1:hit\nb.ts:2:other')
+    // --no-config keeps a host RIPGREP_CONFIG_PATH from injecting a
+    // preprocessor into this unconfined spawn, ahead of every model token.
+    expect(subprocess.spawns[0]?.argv).toEqual([rgPath, '--no-config', '-n', 'hit'])
+  })
+
+  it('renders No matches found for exit 1 and for an empty stdout', async () => {
+    const { ctx, subprocess } = await setup()
+    subprocess.handler = () => runResult('', { exitCode: 1 })
+    const noMatch = await call(ctx, 'rg', { args: 'nope' })
+    if (noMatch.isError) throw new Error('expected rg success')
+    expect(noMatch.value).toEqual({ lines: [] })
+    expect(text(noMatch)).toBe('No matches found')
+    subprocess.handler = () => runResult('\n')
+    expect(text(await call(ctx, 'rg', { args: 'nope' }))).toBe('No matches found')
+  })
+
+  it('classifies a regex parse error as SEARCH_INVALID_PATTERN', async () => {
+    const { ctx, subprocess } = await setup()
+    subprocess.handler = () => runResult('', { exitCode: 2, stderr: { text: 'rg: regex parse error:\n    (\nerror: unclosed group' } })
+    const result = await call(ctx, 'rg', { args: '(' })
+    expect(result.isError).toBe(true)
+    expect(result.error).toMatchObject({ info: { code: 'SEARCH_INVALID_PATTERN' } })
+    expect(text(result)).toContain('regex parse error')
+  })
+
+  it('reports an abort fired during the run as SEARCH_ABORTED', async () => {
+    const { ctx, subprocess } = await setup()
+    const controller = new AbortController()
+    subprocess.handler = () => {
+      controller.abort('timeout')
+      return runResult('', { exitCode: null, signal: 'SIGTERM' })
+    }
+    const result = await call(ctx, 'rg', { args: 'hit' }, { signal: controller.signal })
+    expect(result.isError).toBe(true)
+    expect(result.error).toMatchObject({ info: { code: 'SEARCH_ABORTED' } })
+    expect(text(result)).toContain('aborted before completion')
+  })
+
+  it('formats an empty, a complete, and a capped line list', () => {
+    expect(formatRgOutput(retainRgLines([], 2, 200), undefined)).toBe('No matches found')
+    expect(formatRgOutput(retainRgLines(['a', 'b'], 2, 200), undefined)).toBe('a\nb')
+    const capped = retainRgLines(['a', 'b', 'c'], 2, 200)
+    expect(capped).toMatchObject({ items: ['a', 'b'], kept: 2, seen: 3, truncated: true })
+    expect(formatRgOutput(capped, undefined))
+      .toBe('a\nb\n\n(Showing 2 of 3 output lines. The complete output could not be saved; narrow the pattern, paths, or flags to see more.)')
+    expect(formatRgOutput(capped, {
+      locator: SpillLocator('/spill/rg-results.txt'),
+      bytes: 3,
+      retrievalHint: 'Use the fake retrieval hint.',
+    })).toBe('a\nb\n\n(Showing 2 of 3 output lines. Full rg output stored at: /spill/rg-results.txt. Use the fake retrieval hint.)')
+  })
+
+  it('marks an over-long line with the per-line preview suffix', async () => {
+    const { ctx, subprocess } = await setup({ config: { grepMaxLineBytes: 5 } })
+    subprocess.handler = () => runResult('abcdefgh\n')
+    expect(text(await call(ctx, 'rg', { args: 'x' }))).toBe('abcde (line truncated)')
+  })
+
+  it('spills the COMPLETE output and names the locator when the call exceeds rgMaxLines', async () => {
+    const { ctx, subprocess, spill } = await setup({ config: { rgMaxLines: 2 }, spill: true })
+    ctx.on('tools/post-execute', async () => ({
+      kind: 'accept',
+      additionalContexts: [createUserMessage({
+        content: [{ type: 'text', text: 'rg context' }], source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+    subprocess.handler = () => runResult('a\nb\nc\nd\n')
+    const result = await call(ctx, 'rg', { args: 'x' }, { agent: agent('/w') })
+    if (result.isError) throw new Error('expected rg success')
+    // The canonical value keeps every line; only the rendered content is capped.
+    expect(result.value).toEqual({ lines: ['a', 'b', 'c', 'd'] })
+    expect(text(result)).toBe('a\nb\n\n(Showing 2 of 4 output lines. Full rg output stored at: /spill/rg-results.txt. Use the fake retrieval hint.)')
+    expect(spill?.saves).toHaveLength(1)
+    expect(spill?.saves[0]).toMatchObject({
+      owner: { sessionId: 'session-1' },
+      source: { toolName: 'rg', label: 'result' },
+      suggestedName: 'rg-results.txt',
+      content: 'a\nb\nc\nd',
+    })
+    expect(result.additionalContexts?.[0]?.content).toEqual([{ type: 'text', text: 'rg context' }])
+  })
+
+  it('previews each spilled line but keeps every line in the artifact', async () => {
+    const { ctx, subprocess, spill } = await setup({ config: { rgMaxLines: 1, grepMaxLineBytes: 5 }, spill: true })
+    subprocess.handler = () => runResult('abcdefgh\nab\n')
+    const result = await call(ctx, 'rg', { args: 'x' }, { agent: agent('/w') })
+    if (result.isError) throw new Error('expected rg success')
+    expect(text(result)).toBe('abcde (line truncated)\n\n(Showing 1 of 2 output lines. Full rg output stored at: /spill/rg-results.txt. Use the fake retrieval hint.)')
+    // The artifact holds every line, each one previewed to the shared budget.
+    expect(spill?.saves[0]?.content).toBe('abcde (line truncated)\nab')
+  })
+
+  it('reports the unsaved remainder when capped with no spill backend', async () => {
+    const { ctx, subprocess } = await setup({ config: { rgMaxLines: 1 } })
+    subprocess.handler = () => runResult('a\nb\n')
+    const result = await call(ctx, 'rg', { args: 'x' }, { agent: agent('/w') })
+    expect(result.isError).toBe(false)
+    expect(text(result)).toBe('a\n\n(Showing 1 of 2 output lines. The complete output could not be saved; narrow the pattern, paths, or flags to see more.)')
+  })
+
+  it('keeps the full nested Code value without creating a top-level spill', async () => {
+    const { ctx, subprocess, spill } = await setup({ config: { rgMaxLines: 1 }, spill: true })
+    subprocess.handler = () => runResult('a\nb\n')
+    const result = await call(ctx, 'rg', { args: 'x' }, {
+      agent: agent('/w'),
+      parent: Symbol('run_code') as ToolExecutionToken,
+    })
+    if (result.isError) throw new Error('expected rg success')
+    expect(result.value).toEqual({ lines: ['a', 'b'] })
+    expect(text(result)).toBe('a\n\n(Showing 1 of 2 output lines. The complete output could not be saved; narrow the pattern, paths, or flags to see more.)')
+    expect(spill?.saves).toHaveLength(0)
+  })
+})
+
 describe('rg --json transport failures (SEARCH_FAILED)', () => {
   it.each([
     ['a non-JSON line', 'not json at all'],
@@ -1116,6 +1332,11 @@ describe('presentation', () => {
   it('grep titles carry the pattern, target, and include filter', () => {
     expect(presentGrepCall({ pattern: 'todo' })).toMatchObject({ card: 'generic', title: 'Grep todo', kind: 'search' })
     expect(presentGrepCall({ pattern: 'todo', path: 'src', include: '*.ts' }).title).toBe('Grep todo in src (*.ts)')
+  })
+
+  it('rg titles carry the raw argument line', () => {
+    expect(presentRgCall({ args: '-n -g *.ts pattern src' }))
+      .toEqual({ card: 'generic', title: 'rg -n -g *.ts pattern src', kind: 'search', rawInput: '-n -g *.ts pattern src' })
   })
 
   it('grep projects a search card from a real execute, grouped by file with total and truncation', async () => {

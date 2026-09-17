@@ -1108,7 +1108,7 @@ Requires: `llm`
  * reasoning effort resolves to `high`.
  */
 export interface Config {
-  /** Wire protocol; defaults to messages. Configure through Cordis YAML. */
+  /** Wire protocol; defaults to Responses. Configure through Cordis YAML or the settings section. */
   protocol?: DeepSeekProtocol
   /** Credential reference (environment-variable name) resolved per request; defaults to `DEEPSEEK_API_KEY`. */
   apiKeyEnv?: string
@@ -1150,8 +1150,8 @@ export interface Config {
   retryPolicy?: RetryPolicyConfig
 }
 
-/** Supported wire implementations; Responses is not yet implemented. */
-export type DeepSeekProtocol = 'chat-completions' | 'messages'
+/** Supported wire implementations. */
+export type DeepSeekProtocol = 'chat-completions' | 'messages' | 'responses'
 
 /** One optional model entry advertised by the direct-fetch adapter. */
 export interface DeepSeekCatalogModel {
@@ -2857,6 +2857,31 @@ export type TokenMeterConfig = Record<string, never>
 
 Source: [`packages/llm/token-meter/src/types.ts:13`](../packages/llm/token-meter/src/types.ts)
 
+<a id="deepseek-aidsh-tool-apply-patch"></a>
+
+## `@deepseek-ai/dsh-tool-apply-patch`
+
+Requires: `tools` · `fs`
+
+```ts config-catalog
+/** Configuration for the `apply_patch` tool. */
+export interface Config {
+  /** Model-facing tool description; replace it with the deployment's own editing guidance. */
+  description?: string
+  /** Findings printed per detail list under a declined hunk; raise it for a richer, more expensive diagnosis. */
+  detailLimit?: number
+  /**
+   * Offer the envelope as grammar-constrained freeform input where the wire
+   * supports custom tools (default `true`). Set `false` when the configured
+   * endpoint rejects custom tools, which leaves the JSON `patch` argument form
+   * on every wire.
+   */
+  freeform?: boolean
+}
+```
+
+Source: [`packages/fs/tool-apply-patch/src/index.ts:108`](../packages/fs/tool-apply-patch/src/index.ts)
+
 <a id="deepseek-aidsh-tool-bash"></a>
 
 ## `@deepseek-ai/dsh-tool-bash`
@@ -2934,6 +2959,8 @@ export interface Config {
   grepMaxMatches?: number
   /** Max bytes retained for one matched-line preview (the cut preserves UTF-8 boundaries). */
   grepMaxLineBytes?: number
+  /** Max output lines one `rg` call retains inline; later lines go to the formatted spill file. */
+  rgMaxLines?: number
   /** Max bytes of one search's serialized `presentationMeta`; trailing groups/paths drop past it so the persisted card stays bounded. */
   searchMetaMaxBytes?: number
   /** Max complete raw `rg` stdout bytes a search will parse; larger raw output fails with `SEARCH_RAW_OUTPUT_OVERFLOW`. */
@@ -2950,7 +2977,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/fs/tool-fs-search/src/index.ts:73`](../packages/fs/tool-fs-search/src/index.ts)
+Source: [`packages/fs/tool-fs-search/src/index.ts:85`](../packages/fs/tool-fs-search/src/index.ts)
 
 <a id="deepseek-aidsh-tool-goal"></a>
 
@@ -3340,7 +3367,7 @@ export interface Config {
 export type ToolPresentationMode = 'native' | 'ptc' | 'both'
 ```
 
-Source: [`packages/core/tools/src/index.ts:656`](../packages/core/tools/src/index.ts)
+Source: [`packages/core/tools/src/index.ts:673`](../packages/core/tools/src/index.ts)
 
 <a id="deepseek-aidsh-typert-loader"></a>
 

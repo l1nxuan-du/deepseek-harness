@@ -1,0 +1,3 @@
+name: 飞猪模式
+description: 完整工具集、开场不带任何系统提示词的编码 Agent：persona 为空并屏蔽运行时上下文注入。
+order: 1

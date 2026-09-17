@@ -12,7 +12,7 @@ import { readReplay, replayState } from '../../src/protocols/messages/replay.ts'
 import { serialize } from '../../src/protocols/messages/serialize.ts'
 import { MODEL, options, user } from './helpers.ts'
 
-const connection = resolveAdapterOptions({})
+const connection = resolveAdapterOptions({ protocol: 'messages' })
 const call = (id = 'a'): ContentBlock => ({ type: 'tool-call', id: ToolCallId(id), name: 'read', arguments: '{"path":"a"}' })
 const assistant = (content: ContentBlock[]) => createAssistantMessage({ content, source: { provider: 'deepseek-official', model: MODEL } })
 const result = (id = 'a', content: ContentBlock[] = [{ type: 'text', text: 'result' }]) => createToolResultMessage({ callId: ToolCallId(id), content, isError: false })
@@ -231,7 +231,7 @@ describe('validated configuration', () => {
     expect(modelInfo(capable, 'deepseek-official', MODEL).systemPromptUpdate).toBe('in-history')
     expect(modelInfo(capable, 'deepseek-official', 'custom').systemPromptUpdate).toBeUndefined()
     expect(modelInfo(resolveAdapterOptions({ thinking: 'disabled' }), 'deepseek-official', MODEL).reasoning?.efforts).toMatchObject([{ id: 'off', name: 'Off' }])
-    expect(resolveAdapterOptions({ baseURL: 'https://example.com/anthropic///' }).baseURL).toBe('https://example.com/anthropic///')
+    expect(resolveAdapterOptions({ protocol: 'messages', baseURL: 'https://example.com/anthropic///' }).baseURL).toBe('https://example.com/anthropic///')
   })
   it.each([
     { thinking: 'disabled', reasoningEffort: 'high' }, { models: [{ id: '' }] },
@@ -242,7 +242,8 @@ describe('validated configuration', () => {
     { maxTokens: 0 }, { streamIdleTimeoutMs: 0 },
     { models: [{ id: MODEL, systemPromptUpdate: 'unsupported' }] },
   ])('rejects invalid composition input %#', (value) => {
-    expect(() => resolveAdapterOptions(value as Config)).toThrow()
+    // The baseURL rejections below are Messages-specific, so the protocol is pinned.
+    expect(() => resolveAdapterOptions({ protocol: 'messages', ...value } as Config)).toThrow()
   })
 })
 

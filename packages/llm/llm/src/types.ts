@@ -447,6 +447,25 @@ export interface ToolSchema {
   description: string
   /** JSON Schema object for the arguments. */
   parameters: Record<string, unknown>
+  /**
+   * Optional provider custom-tool presentation: a wire that supports
+   * grammar-constrained custom tools offers this tool as freeform text instead
+   * of a JSON function, so the model writes the input the grammar describes
+   * without JSON escaping it. Every other wire keeps {@link ToolSchema.parameters};
+   * the tool layer delivers the text a custom-tool call carries as the declared
+   * parameter.
+   */
+  format?: ToolGrammarFormat
+}
+
+/** Grammar a provider constrains a custom tool's freeform input with. */
+export interface ToolGrammarFormat {
+  /** Only grammar-constrained input is supported. */
+  type: 'grammar'
+  /** Grammar language the definition is written in. */
+  syntax: 'lark'
+  /** Complete grammar definition text. */
+  definition: string
 }
 
 /** A single model request, fully assembled. */

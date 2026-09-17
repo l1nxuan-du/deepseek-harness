@@ -13,7 +13,7 @@
   - navigation "Session hierarchy":
     - button "Review deepseek-ai/deepseek-harness#314" [disabled]
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -21,10 +21,6 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - button "Thought for a while" [expanded]:
   - text: Thought for a while
   - img
@@ -32,10 +28,6 @@
   - img
   - img
   - text: Context injection webhook github webhook handled by review-pr-when-ready
-- button "Context injection @deepseek-ai/dsh-system-prompt":
-  - img
-  - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
 - paragraph: "Review complete: no actionable findings."
 - button "Copy":
   - img

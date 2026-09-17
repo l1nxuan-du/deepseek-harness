@@ -23,7 +23,7 @@ const MODEL_MODALITIES = ['text', 'image'] as const satisfies readonly ModelModa
  * reasoning effort resolves to `high`.
  */
 export interface Config {
-  /** Wire protocol; defaults to messages. Configure through Cordis YAML. */
+  /** Wire protocol; defaults to Responses. Configure through Cordis YAML or the settings section. */
   protocol?: DeepSeekProtocol
   /** Credential reference (environment-variable name) resolved per request; defaults to `DEEPSEEK_API_KEY`. */
   apiKeyEnv?: string
@@ -78,7 +78,7 @@ const catalogModel: z<DeepSeekCatalogModel> = z.object({
 })
 
 export const Config: z<Config> = z.object({
-  protocol: z.union(['chat-completions', 'messages']).default('messages'),
+  protocol: z.union(['chat-completions', 'messages', 'responses']).default('responses'),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
   baseURL: z.string(),
   thinking: z.union(['enabled', 'disabled']),
@@ -204,9 +204,9 @@ function resolveModels(models: readonly DeepSeekCatalogModel[] | undefined): Dee
  */
 export function resolveAdapterOptions(config: Config, environment?: LaunchEnvironmentSnapshot): ResolvedDeepSeekOptions {
   // Settings updates can reach this resolver without schema validation.
-  const protocol: string = config.protocol ?? 'messages'
-  if (protocol !== 'chat-completions' && protocol !== 'messages') {
-    throw new Error('llm-deepseek: protocol must be chat-completions or messages')
+  const protocol: string = config.protocol ?? 'responses'
+  if (protocol !== 'chat-completions' && protocol !== 'messages' && protocol !== 'responses') {
+    throw new Error('llm-deepseek: protocol must be chat-completions, messages, or responses')
   }
   if (config.thinking === 'disabled'
     && config.reasoningEffort !== undefined
@@ -298,7 +298,7 @@ export function resolveAdapterOptions(config: Config, environment?: LaunchEnviro
     }
   }
   return {
-    protocol,
+    protocol: protocol as DeepSeekProtocol,
     apiKeyEnv: credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV),
     baseURL,
     defaults: {

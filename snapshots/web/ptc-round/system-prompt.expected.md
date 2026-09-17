@@ -49,6 +49,11 @@ Program-only SDK bindings:
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 
 interface ToolArgsMap {
+  /** Apply a Codex-style multi-file patch to the workspace. The patch must use the Codex envelope: ~~~text *** Begin Patch *** Add File: path +content *** Update File: path @@ context -old +new *** Move to: new-path *** Delete File: path *** End Patch ~~~ Paths may be absolute or relative to the session working directory. Every hunk is checked against its file before anything is written, so a patch whose anchor lines are missing is declined whole; a failure that only the write itself can report — a file that changed since it was read, a sandbox denial — leaves the operations before it applied. Updates match whole lines and apply at the first run that matches: exactly, then ignoring surrounding whitespace, then ignoring the difference between plain ASCII and typographic punctuation. A hunk that removes and keeps nothing is inserted at the end of the file, and a `*** End of File` line anchors its hunk there. Line endings of untouched lines are kept, inserted lines take the file's own ending, and an updated file ends with a newline. `*** Add File: ` writes over an existing path, `*** Move to: ` writes over an existing destination, and removing a path that is not a regular file is refused. */
+  apply_patch: {
+    /** The complete Codex-style patch envelope. */
+    patch: string;
+  } & Record<string, JsonValue>;
   /** Ask the user a concise question when you need confirmation, a choice, or missing information before proceeding. Send one or more questions, each with a stable id that will be echoed in the answer. */
   ask_user_question: {
     /** Questions to ask the user before continuing. */
@@ -183,6 +188,11 @@ interface ToolArgsMap {
     /** Path to the image file, resolved by the filesystem backend. */
     file_path: string;
   } & Record<string, JsonValue>;
+  /** Run the packaged ripgrep with your own flags and return its raw output. Use it for ripgrep features the grep tool does not expose: counts, file lists, context lines, type filters, inverted matches, multiline search. The argument line reaches ripgrep verbatim — quotes group a token, and no shell expansion applies — so ripgrep reports its own argument errors. Use `--files` to list paths instead of matching content. Keeps the first 200 output lines inline; a capped result reports where the complete output was saved. */
+  rg: {
+    /** The ripgrep arguments: flags then the pattern and paths, e.g. "-n -g *.ts pattern src". Quotes group a token; no shell expansion applies. */
+    args: string;
+  } & Record<string, JsonValue>;
   /** Send a message to a direct continuable child by its agent id. If you are a resident continuable child, you may also target your direct parent. If the target is still working, the message steers its nearest step; if it is idle, the message starts a turn. This call returns no answer from the agent — only confirmation that the message was delivered. A failure means the message was NOT delivered. */
   send_message: {
     /** The agent id of your direct continuable child, or your direct parent when you are a resident continuable child. */
@@ -262,6 +272,7 @@ interface ToolArgsMap {
 }
 
 interface ToolOutputMap {
+  apply_patch: string;
   ask_user_question: {
     answers: {
       id: string;
@@ -429,6 +440,9 @@ interface ToolOutputMap {
         height: number;
       };
     };
+  };
+  rg: {
+    lines: string[];
   };
   send_message: {
     messageId: string;

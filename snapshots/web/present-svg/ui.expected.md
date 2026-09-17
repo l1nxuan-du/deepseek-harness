@@ -1,17 +1,9 @@
-- button "系统提示词":
-  - img
-  - img
-  - text: 系统提示词
 - text: 简单画一个 SVG 表示冯诺依曼架构, 保存为 von-neumann.svg {{clock}}
 - button "复制":
   - img
 - button "2 次工具调用 · 1 条消息" [expanded]:
   - text: 2 次工具调用 · 1 条消息
   - img
-- button "上下文注入 @deepseek-ai/dsh-system-prompt":
-  - img
-  - img
-  - text: 上下文注入 @deepseek-ai/dsh-system-prompt
 - button "思考 The user wants a simple SVG diagram of the von Neumann architecture, saved as von-neumann.svg. Let me create a clean SVG showing CPU (control unit, ALU), memory, input, and output with bidirectional data/control buses.":
   - img
   - img
@@ -50,7 +42,7 @@
     - text: ：CPU 与内存间的地址总线，以及 CPU 与 I/O 设备间的数据/控制线，箭头标明数据流向
 - paragraph: 下方附一行核心思想说明：指令与数据以二进制统一存储在存储器中。用浏览器打开该 SVG 文件即可查看。
 - text: 本轮文件改动
-- button "打开 {{cwd}}/workspace/von-neumann.svg": von-neumann.svg
+- button "打开 von-neumann.svg": von-neumann.svg
 - text: 此主机没有可用的桌面，无法打开文件或文件夹
 - button "在侧边栏预览 von-neumann.svg"
 - text: von-neumann.svg 冯诺依曼架构示意图 SVG

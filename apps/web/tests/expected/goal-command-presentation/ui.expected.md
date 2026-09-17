@@ -2,7 +2,7 @@
   - navigation "Session hierarchy":
     - button "workspace" [disabled]
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":

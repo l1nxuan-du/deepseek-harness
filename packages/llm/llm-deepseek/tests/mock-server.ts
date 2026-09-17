@@ -4,6 +4,7 @@ import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 /** One scripted behavior for the next request the mock server receives. */
 export type Behavior =
   | { kind: 'sse'; events: string[]; delayMs?: number }
+  | { kind: 'sse-frames'; frames: string[]; delayMs?: number }
   | { kind: 'http-error'; status: number; body: string; contentType?: string; headers?: Record<string, string> }
   | { kind: 'close-early'; events: string[] }
 
@@ -33,6 +34,72 @@ export const textEvents = [
   '{"choices":[{"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":1}}',
   '[DONE]',
 ]
+
+/** One streamed event payload of the Responses wire, carrying whatever fields its `type` family uses. */
+type ResponsesEvent = { type: string } & Record<string, unknown>
+
+/**
+ * Frame one Responses event the way the wire sends it: the `event:` name above
+ * the payload JSON, terminated by a blank line.
+ * @param event - event payload, whose `type` is also its event name.
+ * @returns the complete SSE frame text.
+ */
+export function responsesFrame(event: ResponsesEvent): string {
+  return `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`
+}
+
+/**
+ * A minimal complete generation: one message item streamed as text deltas and
+ * closed by `response.completed` with usage.
+ * @param text - assistant text to stream.
+ * @returns ordered SSE frames, terminal event included.
+ */
+export function textResponsesFrames(text = 'hello'): string[] {
+  return [
+    { type: 'response.created', response: { id: 'resp_mock', status: 'in_progress', output: [] } },
+    { type: 'response.in_progress', response: { id: 'resp_mock', status: 'in_progress' } },
+    {
+      type: 'response.output_item.added',
+      output_index: 0,
+      item: { id: 'msg_mock', type: 'message', status: 'in_progress', role: 'assistant', content: [] },
+    },
+    {
+      type: 'response.content_part.added',
+      item_id: 'msg_mock',
+      output_index: 0,
+      content_index: 0,
+      part: { type: 'output_text', text: '' },
+    },
+    { type: 'response.output_text.delta', item_id: 'msg_mock', output_index: 0, content_index: 0, delta: text },
+    { type: 'response.output_text.done', item_id: 'msg_mock', output_index: 0, content_index: 0, text },
+    {
+      type: 'response.output_item.done',
+      output_index: 0,
+      item: {
+        id: 'msg_mock',
+        type: 'message',
+        status: 'completed',
+        role: 'assistant',
+        content: [{ type: 'output_text', text }],
+      },
+    },
+    {
+      type: 'response.completed',
+      response: {
+        id: 'resp_mock',
+        object: 'response',
+        status: 'completed',
+        usage: {
+          input_tokens: 3,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 1,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 4,
+        },
+      },
+    },
+  ].map(responsesFrame)
+}
 
 /** Local chat-completions stand-in: replays scripted behaviors per request. */
 export async function mockServer(script: Behavior[]): Promise<MockServer> {
@@ -130,14 +197,17 @@ export async function mockServer(script: Behavior[]): Promise<MockServer> {
           return
         }
         response.writeHead(200, { 'content-type': 'text/event-stream' })
+        const frames = behavior.kind === 'sse-frames'
+          ? behavior.frames
+          : behavior.events.map(event => `data: ${event}\n\n`)
         const write = (index: number): void => {
-          if (index >= behavior.events.length) {
-            if (behavior.kind === 'sse') response.end()
-            else response.destroy() // close-early: drop the socket mid-stream
+          if (index >= frames.length) {
+            if (behavior.kind === 'close-early') response.destroy() // drop the socket mid-stream
+            else response.end()
             return
           }
-          response.write(`data: ${behavior.events[index]}\n\n`)
-          setTimeout(() => { write(index + 1) }, behavior.kind === 'sse' ? behavior.delayMs ?? 0 : 5)
+          response.write(frames[index] as string)
+          setTimeout(() => { write(index + 1) }, behavior.kind === 'close-early' ? 5 : behavior.delayMs ?? 0)
         }
         write(0)
       })().catch((error: unknown) => {

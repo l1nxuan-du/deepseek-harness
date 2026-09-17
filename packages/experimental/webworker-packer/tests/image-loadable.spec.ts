@@ -183,6 +183,18 @@ const archive = async (): Promise<Uint8Array> =>
     expect(image[9]).toBe(255)
   })
 
+  it('does not treat relative plugin rows as package dependencies', () => {
+    const result = packVfsImage({
+      config: `- id: subject\n  name: '${SUBJECT}'\n- id: local\n  name: './local.mjs'\n`,
+      profile: 'relative-row-check',
+      workspaces,
+      resolveFrom: repoRoot,
+      entries: [],
+    })
+    expect(result.roster).toEqual([SUBJECT])
+    expect(result.missing).toEqual([])
+  })
+
   it('packs the same tree to the same bytes', () => {
     // The preview build compares a freshly packed image against the shipped one,
     // so anything the compressor takes from its environment would read as a
@@ -305,6 +317,7 @@ const archive = async (): Promise<Uint8Array> =>
     inventory.apply({
       baseUrl,
       loader: tree,
+      get: () => undefined,
       deepseekLlmApiExtensions: {
         register: (field: string, contribution: { readonly prepare: Prepare }): void => {
           expect(field).toBe('dsh_plugin_packages')

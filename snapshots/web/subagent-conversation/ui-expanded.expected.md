@@ -7,7 +7,7 @@
       - text: 1 subagent
       - img
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -18,20 +18,12 @@
 - navigation "Turn navigation":
   - button "Jump to turn 1"
   - button "Jump to turn 2"
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - text: "Explain event sourcing in one sentence.Your parent agent id is \"session-{{uuid}}\". Before you finish, send your result to that agent with send_message({ agent_id: \"session-{{uuid}}\", message: \"<self-contained result>\" }). The parent shares your workspace but does not automatically receive your transcript, tool output, or reasoning. Send earlier messages as well when a finding changes what the parent should do next; sending a message does not end your turn. {{clock}}"
 - button "Copy":
   - img
 - button "Thought for a while" [expanded]:
   - text: Thought for a while
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
-  - img
-  - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
 - button "Think The user is asking for a one-sentence description of event sourcing. This is a straightforward knowledge question that doesn't require any skill loading or tool calls.":
   - img
   - img
@@ -48,12 +40,7 @@
 - button "Ran for {{duration}}":
   - img
   - text: Ran for {{duration}}
-- text: {{clock}}
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
-- text: Now give the same explanation to a human reader. {{clock}}
+- text: {{clock}} Now give the same explanation to a human reader. {{clock}}
 - button "Copy":
   - img
 - button "Thought for a while" [expanded]:

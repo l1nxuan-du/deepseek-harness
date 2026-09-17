@@ -23,18 +23,28 @@
   - heading "Agent 预设" [level=2]
   - paragraph: 预设即一个会话的 Agent 所运行的插件组装 —— 它的工具、提示词与能力。复制一份既有预设改成自己的，或用「创造模式」让 Agent 帮你创建。
   - text: 允许切换agent模式 beta
-  - paragraph: 开启后，新任务可选择标准、PTC、创造、极简及自定义模式；关闭后统一使用默认模式（默认为标准模式，可自定义）。仅影响新任务。
+  - paragraph: 开启后，新任务可选择飞猪、Anchored Standard (实验性)、PTC、创造、Codex V5/V6 及自定义模式；关闭后统一使用默认模式（默认为飞猪模式，可自定义）。仅影响新任务。
   - switch "允许切换agent模式" [checked]
   - heading "内置" [level=3]
   - list:
     - listitem:
-      - 'button "新任务默认: 标准模式" [disabled] [pressed]':
-        - text: 标准模式 内置 新任务默认 功能完整的编码 Agent，支持文件编辑、Shell、文件与网页检索、Skills、计划、目标、子代理和工作流。
-        - code: standard
-      - 'button "查看: 标准模式"':
+      - 'button "新任务默认: 飞猪模式" [disabled] [pressed]':
+        - text: 飞猪模式 内置 新任务默认 完整工具集，开场不带系统提示词：persona 为空并屏蔽运行时上下文注入。
+        - code: s1mple-mode
+      - 'button "查看: 飞猪模式"':
         - img
         - text: 查看
-      - 'button "复制: 标准模式"':
+      - 'button "复制: 飞猪模式"':
+        - img
+        - text: 复制
+    - listitem:
+      - 'button "设为默认: Anchored Standard (实验性)"':
+        - text: Anchored Standard (实验性) 内置 首轮使用 Minimal 条件的持久 shell 与 str_replace_editor，并屏蔽工作区和技能上下文；会话晋升后开放标准工具集，重工具按需解锁。
+        - code: anchored-standard
+      - 'button "查看: Anchored Standard (实验性)"':
+        - img
+        - text: 查看
+      - 'button "复制: Anchored Standard (实验性)"':
         - img
         - text: 复制
     - listitem:
@@ -48,23 +58,33 @@
         - img
         - text: 复制
     - listitem:
-      - 'button "设为默认: 极简模式"':
-        - text: 极简模式 内置 仅提供持久 shell 的单工具编码 Agent。
-        - code: minimal
-      - 'button "查看: 极简模式"':
-        - img
-        - text: 查看
-      - 'button "复制: 极简模式"':
-        - img
-        - text: 复制
-    - listitem:
       - 'button "设为默认: 创造模式"':
-        - text: 创造模式 内置 用于创建自定义 Agent preset：具备标准模式的全部能力，并提供运行时检查、插件实验和 preset 创作指导。
+        - text: 创造模式 内置 用于创建自定义 Agent preset：具备完整工具集，并提供运行时检查、插件实验和 preset 创作指导。
         - code: cordis
       - 'button "查看: 创造模式"':
         - img
         - text: 查看
       - 'button "复制: 创造模式"':
+        - img
+        - text: 复制
+    - listitem:
+      - 'button "设为默认: Codex V5"':
+        - text: Codex V5 内置 GPT-5 版 Codex 基础指令集移植到 DSH：每代理一个持久 shell、apply_patch 编辑、grep/glob 检索、jobs、计划与目标、子代理与 present 交付。
+        - code: codex-v5
+      - 'button "查看: Codex V5"':
+        - img
+        - text: 查看
+      - 'button "复制: Codex V5"':
+        - img
+        - text: 复制
+    - listitem:
+      - 'button "设为默认: Codex V6"':
+        - text: Codex V6 内置 GPT-6 / Astra 版 Codex 指令集移植到 DSH，工具集与 Codex V5 相同，差异只在 persona 文本与身份表述。
+        - code: codex-v6
+      - 'button "查看: Codex V6"':
+        - img
+        - text: 查看
+      - 'button "复制: Codex V6"':
         - img
         - text: 复制
   - heading "自定义" [level=3]

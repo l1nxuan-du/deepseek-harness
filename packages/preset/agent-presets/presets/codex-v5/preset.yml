@@ -1,0 +1,3 @@
+name: Codex V5
+description: Codex 基础指令集（GPT-5 版）移植到 DSH：每代理一个持久 shell、apply_patch 编辑、grep/glob 检索、jobs、计划与目标、子代理与 present 交付。
+order: 5

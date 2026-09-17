@@ -584,10 +584,13 @@ export class SystemPrompt extends Service {
     const knownNames = new Set<string>()
     for (const provider of providers) {
       const result = provider(context)
-      const schemas = result.schemas.map(({ name, description, parameters }): ToolSchema => ({
+      const schemas = result.schemas.map(({ name, description, parameters, format }): ToolSchema => ({
         name,
         description,
         parameters: structuredClone(parameters),
+        // A grammar presentation is model-visible input, so it travels with the
+        // schema the request is assembled from.
+        ...format === undefined ? {} : { format: structuredClone(format) },
       }))
       const acceptedKnownNames = result.knownNames ?? schemas.map(tool => tool.name)
       collected.push(...schemas)

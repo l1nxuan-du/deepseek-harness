@@ -6,7 +6,7 @@
  * @module dsh-llm-deepseek/serialize
  */
 
-import { contentHasImage, IMAGE_OFFLOAD_REQUIRED_CODE, LlmError, offloadedImageText, projectOffloadedImages, requestImageHandleText, requiredImageOffload } from '@deepseek-ai/dsh-llm'
+import { contentHasImage, LlmError, offloadedImageText, projectOffloadedImages, requestImageHandleText } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions, ImageAttachmentAccessResolver, Message } from '@deepseek-ai/dsh-llm'
 import type { ImageAttachmentRef, RequestImageAttachment } from '@deepseek-ai/dsh-attachment'
 import type {
@@ -19,85 +19,15 @@ import type {
 } from './types.ts'
 
 import type { RequestDefaults } from '../../common/types.ts'
+import { flattenText, resolveThinking } from '../../common/thinking.ts'
 
-interface ResolvedThinking {
-  thinking?: 'enabled' | 'disabled'
-  reasoningEffort?: 'low' | 'high' | 'max'
-}
-
-/** Provider representation for every retained image in one request. */
-export type ImageRequestRepresentation =
-  | {
-    kind: 'file'
-    /** Resolve a retained request version to a reusable DeepSeek file id. */
-    resolveFileId: (
-      version: RequestImageAttachment,
-      block: Extract<ContentBlock, { type: 'image' }>,
-      location: ImageWireLocation,
-    ) => Promise<string>
-  }
-  | { kind: 'base64' }
-
-/** Dependencies required only when the request contains image input. */
-export interface ImageSerializationOptions {
-  /** One representation used for every retained image in this request. */
-  representation: ImageRequestRepresentation
-  /** Request versions prepared for the conservatively retained normalized attachments, keyed by attachment id. */
-  requestImages: ReadonlyMap<ImageAttachmentRef['attachmentId'], RequestImageAttachment>
-  /** Resolve current tool access independently from deterministic request-image versions. */
-  resolveImageAccess?: ImageAttachmentAccessResolver
-  /** Positive bound on accumulated represented image bytes. */
-  maxRequestImageBytes: number
-  /** Maximum represented images in one request. */
-  maxImagesPerRequest?: number
-  /** Represented-byte removal step applied after the request exceeds its byte bound. */
-  byteQuantum?: number
-  /** Image-count removal step applied after the request exceeds its count bound. */
-  countQuantum?: number
-}
-
+export type { ImageRequestRepresentation, ImageSerializationOptions } from '../../common/image-offload.ts'
+import { assertRetainedImagesFit } from '../../common/image-offload.ts'
+import type { ImageSerializationOptions } from '../../common/image-offload.ts'
 export type { ImageWireLocation } from '../../common/request-files.ts'
 import type { ImageWireLocation } from '../../common/request-files.ts'
 
 const TOOL_RESULT_IMAGE_TEXT = 'Attached image(s) from tool result:'
-
-/** Validate the adapter-owned effort before resolving its DeepSeek wire fields. */
-function reasoningEffort(effort: NonNullable<GenerateOptions['reasoningEffort']>): 'off' | 'low' | 'high' | 'max' {
-  if (effort === 'off' || effort === 'low' || effort === 'high' || effort === 'max') {
-    return effort as 'off' | 'low' | 'high' | 'max'
-  }
-  throw new LlmError(
-    `DeepSeek does not support reasoning effort "${effort}"`,
-    'UNSUPPORTED_REASONING_EFFORT',
-  )
-}
-
-/** Resolve one legal thinking/effort pair without exposing `off` as a wire effort. */
-function resolveThinking(options: GenerateOptions, defaults: RequestDefaults): ResolvedThinking {
-  if (options.purpose === 'session-title') return { thinking: 'disabled' }
-  const effort = options.reasoningEffort === undefined
-    ? defaults.reasoningEffort
-    : reasoningEffort(options.reasoningEffort)
-  if (defaults.thinking === 'disabled' && effort !== undefined && effort !== 'off') {
-    throw new LlmError(
-      `DeepSeek deployment does not support reasoning effort "${effort}"`,
-      'UNSUPPORTED_REASONING_EFFORT',
-    )
-  }
-  if (effort === 'off') return { thinking: 'disabled' }
-  if (effort === 'low' || effort === 'high' || effort === 'max') {
-    return { thinking: 'enabled', reasoningEffort: effort }
-  }
-  return defaults.thinking === undefined ? {} : { thinking: defaults.thinking }
-}
-
-/** Join the text blocks of a message (used for user/tool-result content). */
-function flattenText(blocks: ContentBlock[]): string {
-  return blocks
-    .filter(block => block.type === 'text')
-    .map(block => block.text)
-    .join('')
-}
 
 /** Reject core image content before any text-flattening path can silently erase it. */
 function assertTextOnly(blocks: readonly ContentBlock[]): void {
@@ -382,36 +312,6 @@ export function serializeRequest(
   messages.push(...serializeMessages(options.messages))
 
   return requestWithMessages(options, messages, defaults)
-}
-
-/**
- * Reject a request whose retained occurrences, at their exact request-version
- * byte lengths under this representation, still exceed the route budget. The
- * failure names how many more oldest retained occurrences need durable
- * omission before the request can be retried.
- */
-function assertRetainedImagesFit(messages: readonly Message[], images: ImageSerializationOptions): void {
-  const representation = images.representation.kind === 'file' ? 'raw' : 'base64'
-  const offloadImages = requiredImageOffload(messages, {
-    representation,
-    maxBytes: images.maxRequestImageBytes,
-    ...images.maxImagesPerRequest === undefined ? {} : { maxImages: images.maxImagesPerRequest },
-    ...images.byteQuantum === undefined ? {} : { byteQuantum: images.byteQuantum },
-    ...images.countQuantum === undefined ? {} : { countQuantum: images.countQuantum },
-  }, (block) => {
-    const version = images.requestImages.get(block.attachment.attachmentId)
-    if (version === undefined) {
-      throw new LlmError(`DeepSeek request image ${block.attachment.attachmentId} was not prepared.`, 'INVALID_REQUEST')
-    }
-    return version.bytes
-  })
-  if (offloadImages > 0) {
-    throw new LlmError(
-      `DeepSeek ${representation} request images exceed the route budget; ${offloadImages} more oldest occurrence(s) must be offloaded.`,
-      IMAGE_OFFLOAD_REQUIRED_CODE,
-      { offloadImages },
-    )
-  }
 }
 
 /**

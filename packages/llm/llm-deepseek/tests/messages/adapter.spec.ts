@@ -169,7 +169,7 @@ describe('Cordis provider composition', () => {
     const { ctx, home } = await context()
     vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
     await ctx.plugin(LlmRuntime)
-    await ctx.plugin(Messages, { baseURL: http.url })
+    await ctx.plugin(Messages, { protocol: 'messages', baseURL: http.url })
     const model = 'deepseek-v4-flash-vision-exp'
     const price = () => ctx.llm.imageRequestPricing('deepseek-official', model)!
     const dummy = { attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`), width: 1, height: 1, bytes: 3, mediaType: 'image/png' as const }
@@ -369,7 +369,7 @@ describe('Cordis provider composition', () => {
     vi.stubEnv('DEEPSEEK_BASE_URL', http.url)
     vi.stubEnv('DEEPSEEK_API_KEY', 'env-key')
     await ctx.plugin(LlmRuntime)
-    const fiber = ctx.plugin(Messages)
+    const fiber = ctx.plugin(Messages, { protocol: 'messages' })
     await fiber
     await chunks(ctx.llm.stream(options()))
     expect(http.requests[0]?.headers['x-api-key']).toBe('env-key')

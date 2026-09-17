@@ -53,10 +53,13 @@
 
 # ── filesystem ──────────────────────────────────────────────────────────────
 
-# Both register into the host `tools` registry and provide nothing, so
+# These register into the host `tools` registry and provide nothing, so
 # they need no realm. The `fs` service and its policy stay in the host.
 - id: tool-fs
   name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-apply-patch
+  name: '@deepseek-ai/dsh-tool-apply-patch'
 
 - id: tool-fs-search
   name: '@deepseek-ai/dsh-tool-fs-search'

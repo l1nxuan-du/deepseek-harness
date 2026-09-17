@@ -1,0 +1,3 @@
+name: Codex V6
+description: Codex V6（GPT-6 / Astra 版）指令集移植到 DSH，工具集与 Codex V5 相同，差异只在 persona 文本与身份表述。
+order: 6

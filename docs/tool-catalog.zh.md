@@ -32,7 +32,8 @@
 | `@deepseek-ai/dsh-tool-pwsh-persistent` | `pwsh` | `ctx.tools`、`ctx.terminals`、`an owning Agent at execution time` | `tool/call`、`PTY shell state`、`tool/result` | - | 一个按所有者隔离的持久 pwsh 工具，持久 bash 工具的 Windows 对应物；部署组合提供 pwsh 方言的 PTY 后端，并可覆盖面向模型的环境描述。 |
 | `@deepseek-ai/dsh-tool-str-replace-editor` | `str_replace_editor` | `ctx.tools`、`ctx.fs` | `tool/call`、`fs/observed after view presence/absence, edit absence, or successful mutation`、`tool/result` | - | 基于文件系统 seam 的独立查看／创建／唯一字面量替换／按行插入工具；可与任何 shell 或终端接口组合。 |
 | `@deepseek-ai/dsh-tool-fs` | `edit`、`read`、`read_image`、`write` | `ctx.tools`、`ctx.fs`、`ctx.systemPrompt`、`ctx.attachments (image-tool registration)`、`ctx.llm + an image-capable route (image-tool execution)` | `tool/call`、`fs/write-intent or fs/edit-intent for mutations`、`fs/observed after read presence/absence or successful file operation`、`durable attachment (read_image)`、`tool/result` | - | 先读后写／编辑策略由 `@deepseek-ai/dsh-fs-observation-policy` 添加；它是一个 `fs/*` 事件门禁插件，不会改变 schema。加载这些工具的部署按预期也应加载该插件。没有 `ctx.attachments` 时图片工具不会注册；其 schema 与路由无关，执行时除非确切路由的模型声明图片输入，否则拒绝。 |
-| `@deepseek-ai/dsh-tool-fs-search` | `glob`、`grep` | `ctx.tools`、`ctx.subprocess`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn 随包提供的 ripgrep 二进制文件（`@vscode/ripgrep`），并作为普通前台调用运行，绝不作为后台任务；无需在宿主机安装 `rg`，也不经过 shell 层。本目录使用 `sampleOverCapGlobResults: true`；部署必须显式选择该行为。结果超过上限时，会通过可选的 ctx.spillStore 后端保存完整的格式化列表；在共置部署中，如果后端公开本地路径，返回的定位信息可供后续读取／搜索。 |
+| `@deepseek-ai/dsh-tool-apply-patch` | `apply_patch` | `ctx.tools`、`ctx.fs` | `tool/call`、`fs/write-intent or fs/edit-intent for mutations`、`fs/observed after read presence/absence or successful file operation`、`tool/result` | - | 在文件系统 seam 上应用 Codex 风格的多文件补丁信封：每个 hunk 都会在写入任何内容之前对照其文件检查，并且该工具可与任何 shell 或终端接口组合。支持语法约束自定义工具的线协议会把该信封作为自由格式输入接收，因此模型无需做 JSON 转义。 |
+| `@deepseek-ai/dsh-tool-fs-search` | `glob`、`grep`、`rg` | `ctx.tools`、`ctx.subprocess`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | glob、grep 和 rg 是无条件可用的发现工具，通过 ctx.subprocess spawn 随包提供的 ripgrep 二进制文件（`@vscode/ripgrep`），并作为普通前台调用运行，绝不作为后台任务；无需在宿主机安装 `rg`，也不经过 shell 层。本目录使用 `sampleOverCapGlobResults: true`；部署必须显式选择该行为。结果超过上限时，会通过可选的 ctx.spillStore 后端保存完整的格式化列表；在共置部署中，如果后端公开本地路径，返回的定位信息可供后续读取／搜索。 |
 | `@deepseek-ai/dsh-tool-terminal` | `terminal_close`、`terminal_list`、`terminal_open`、`terminal_read`、`terminal_send`、`terminal_signal` | `ctx.tools`、`ctx.terminals`、`ctx.systemPrompt`、`ctx.jobs at call time for run_in_background` | `tool/call`、`tool/result` | - | 这 6 个终端工具需要选择启用，用于补充一次性 bash／文件系统工具。`terminal_send(run_in_background: true)` 会注册到 `ctx.jobs`；schema 不包含 TUI、具名按键序列、BEL、调整尺寸、自动启动和跨 agent 共享。 |
 | `@deepseek-ai/dsh-tool-goal` | `create_goal`、`get_goal`、`update_goal` | `ctx.tools`、`ctx.agents`、`ctx.goals`、`ctx.systemPrompt`、`a calling Agent in an authorized open turn` | `tool/call`、`goal/change for mutations`、`tool/result` | - | create、edit、pause 和 resume 要求直接来自人类的根权限；complete 和 blocked 也接受确切的当前 Goal Round。blocked 的默认下限是 3 个获准的 Round。 |
 | `@deepseek-ai/dsh-schedule` | `schedule_create`、`schedule_delete`、`schedule_list` | `ctx.tools`、`ctx.sessions`、Session 持久化、未来创建的 live 根 Agent | `tool/call`、`schedule/change create or delete`、`tool/result` | - | 仅在选择启用的 Schedule 插件加载后创建的 live 根 Agent scope 内注册。版本 1 接受 after_seconds、显式绝对 at 和有界固定速率 every_seconds，并披露 session-local 交付；管理读取与变更必须通过共享的 Session 持久化 barrier。 |
@@ -1172,6 +1173,55 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
 
 先读后写／编辑策略由 `@deepseek-ai/dsh-fs-observation-policy` 添加；它是一个 `fs/*` 事件门禁插件，不会改变 schema。加载这些工具的部署按预期也应加载该插件。没有 `ctx.attachments` 时图片工具不会注册；其 schema 与路由无关，执行时除非确切路由的模型声明图片输入，否则拒绝。
 
+<a id="deepseek-aidsh-tool-apply-patch"></a>
+
+## `@deepseek-ai/dsh-tool-apply-patch`
+
+### `apply_patch`
+
+把一个 Codex 风格的多文件补丁应用到工作区。
+
+补丁必须使用 Codex 信封：
+
+~~~text
+*** Begin Patch
+*** Add File: path
++content
+*** Update File: path
+@@
+ context
+-old
++new
+*** Move to: new-path
+*** Delete File: path
+*** End Patch
+~~~
+
+路径可以是绝对路径，也可以是相对于会话工作目录的路径。每个 hunk 都会在写入任何内容之前对照其文件检查，因此锚点行缺失的补丁会被整体拒绝；只有写入本身才能报告的失败——文件在读取后发生变化、沙箱拒绝——会保留此前的操作。
+
+更新按整行匹配，并在第一个匹配处应用：先精确匹配，再忽略首尾空白，最后忽略 ASCII 与排印标点之间的差异。只删除而无所保留的 hunk 会插入到文件末尾，而 `*** End of File` 行让其 hunk 锚定在那里。未触碰行的行尾保持不变，插入行沿用文件自身的行尾，更新后的文件以换行结尾。
+
+`*** Add File: ` 会覆盖已存在的路径，`*** Move to: ` 会覆盖已存在的目标，删除非常规文件会被拒绝。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "patch": {
+      "type": "string",
+      "description": "The complete Codex-style patch envelope."
+    }
+  },
+  "required": [
+    "patch"
+  ]
+}
+```
+
+来源：[`packages/fs/tool-apply-patch/src/index.ts`](../packages/fs/tool-apply-patch/src/index.ts)
+
+在文件系统 seam 上应用 Codex 风格的多文件补丁信封：每个 hunk 都会在写入任何内容之前对照其文件检查，并且该工具可与任何 shell 或终端接口组合。支持语法约束自定义工具的线协议会把该信封作为自由格式输入接收，因此模型无需做 JSON 转义。
+
 <a id="deepseek-aidsh-tool-fs-search"></a>
 
 ## `@deepseek-ai/dsh-tool-fs-search`
@@ -1230,7 +1280,28 @@ pwsh 工具是 Windows 组合中 bash 执行器 seam 的 PowerShell 方言消费
 
 来源：[`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-search/src/index.ts)
 
-glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn 随包提供的 ripgrep 二进制文件（`@vscode/ripgrep`），并作为普通前台调用运行，绝不作为后台任务；无需在宿主机安装 `rg`，也不经过 shell 层。本目录使用 `sampleOverCapGlobResults: true`；部署必须显式选择该行为。结果超过上限时，会通过可选的 ctx.spillStore 后端保存完整的格式化列表；在共置部署中，如果后端公开本地路径，返回的定位信息可供后续读取／搜索。
+### `rg`
+
+用你自己的标志运行打包的 ripgrep 并返回其原始输出。当你需要 grep 工具未暴露的 ripgrep 功能时使用它：计数、文件清单、上下行、类型过滤、反向匹配、多行搜索。参数行原样交给 ripgrep——引号包裹一个 token，不做 shell 展开——因此参数错误由 ripgrep 自己报出。用 `--files` 列举路径而不是匹配内容。内联保留前 200 行输出；结果达到上限时会报告完整输出的保存位置。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "args": {
+      "type": "string",
+      "description": "The ripgrep arguments: flags then the pattern and paths, e.g. \"-n -g *.ts pattern src\". Quotes group a token; no shell expansion applies."
+    }
+  },
+  "required": [
+    "args"
+  ]
+}
+```
+
+来源：[`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-search/src/index.ts)
+
+glob、grep 和 rg 是无条件可用的发现工具，通过 ctx.subprocess spawn 随包提供的 ripgrep 二进制文件（`@vscode/ripgrep`），并作为普通前台调用运行，绝不作为后台任务；无需在宿主机安装 `rg`，也不经过 shell 层。本目录使用 `sampleOverCapGlobResults: true`；部署必须显式选择该行为。结果超过上限时，会通过可选的 ctx.spillStore 后端保存完整的格式化列表；在共置部署中，如果后端公开本地路径，返回的定位信息可供后续读取／搜索。
 
 <a id="deepseek-aidsh-tool-terminal"></a>
 

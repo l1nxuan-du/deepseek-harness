@@ -2,7 +2,7 @@
   - navigation "Session hierarchy":
     - button "/user-invoke-demo @\"meeting notes.md\" an" [disabled]
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -10,10 +10,6 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - button "/user-invoke-demo"
 - button "meeting notes.md":
   - img

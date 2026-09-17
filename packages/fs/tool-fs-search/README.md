@@ -1,5 +1,5 @@
 ---
-description: "The model-facing glob and grep discovery tools for users and maintainers composing or debugging workspace search for agents."
+description: "The model-facing glob, grep, and rg discovery tools for users and maintainers composing or debugging workspace search for agents."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use `dsh-tool-fs-search` to give models `glob` file discovery and `grep` content search over a local workspace. Searches need no host `rg` installation or filesystem provider, return workdir-relative results, and include hidden and ignored files while excluding VCS metadata. Configurable caps bound inline output; with an optional spill store, capped results remain fully recoverable. Choose the sibling `dsh-tool-fs` package for reading, writing, or editing files.
+Use `dsh-tool-fs-search` to give models `glob` file discovery, `grep` content search, and raw `rg` output over a local workspace. Searches need no host `rg` installation or filesystem provider, return workdir-relative results, and include hidden and ignored files while excluding VCS metadata. Configurable caps bound inline output; with an optional spill store, capped results remain fully recoverable. The `rg` tool passes only ripgrep's read-only search flags, and a flag that runs another program is refused by name. Choose the sibling `dsh-tool-fs` package for reading, writing, or editing files.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ Use `dsh-tool-fs-search` to give models `glob` file discovery and `grep` content
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount the tools after a `ctx.subprocess` backend; no host `rg` install is needed, and no filesystem provider is required. The model then gets modification-time-ordered file discovery and line-oriented content search, each bounded and timeout-guarded.
+Mount the tools after a `ctx.subprocess` backend; no host `rg` install is needed, and no filesystem provider is required. The model then gets modification-time-ordered file discovery, line-oriented content search, and raw ripgrep output, each bounded and timeout-guarded.
 
 ### Minimal composition
 
@@ -47,8 +47,15 @@ A subprocess backend, then the tools; the spill backend is optional and makes ca
 |---|---|---|
 | `glob` | `pattern`, `path?` | Finds files whose paths match a glob pattern, including hidden and ignored files but excluding VCS metadata; a pattern with no `/` matches basenames at any depth, so `*` matches the whole tree; complete results stay modification-time ordered |
 | `grep` | `pattern`, `path?`, `include?` | Searches file contents with a ripgrep regex and returns matches grouped by file as `Line N: <preview>`; `include` is one positive glob filter, with comma-separated lists and negated values rejected up front |
+| `rg` | `args` | Runs the packaged ripgrep with a model-written argument line and returns its raw stdout lines, for the ripgrep features `grep` does not expose (counts, file lists, context lines, type filters, inverted matches, multiline search); only the read-only flag allowlist below is accepted |
 
 Routine budgets stay out of the model-facing schema: a model that needs surrounding context reads the matched file with `read`, and one that needs later results follows the returned spill locator's retrieval hint.
+
+### The `rg` argument line
+
+`rg` takes one `args` string — the flags, pattern, and paths exactly as ripgrep takes them, for example `-n -g *.ts pattern src` or `--files -g *.ts`. The line is split on whitespace, quotes group a token, and no shell layer, escape processing, or variable expansion applies; see [`src/rg.ts`](src/rg.ts). The tokens become ripgrep's argv unchanged, so the model reaches ripgrep's own vocabulary and ripgrep reports its own argument errors. Two shapes are ordinary argument errors here because this spawn can never satisfy them: a blank argument line, and the positional `-`, which would ask ripgrep to read patterns from a stdin the tool does not provide.
+
+The argument surface is ripgrep's own. This spawn does not yet route through the sandbox seam, so a flag that runs another program (`--pre`, a preprocessor for every matched file) or reads another file (`-f`/`--file`, `--ignore-file`) executes outside that fence; `--no-config` is prepended so a host configuration file cannot contribute flags the model did not write. An earlier revision passed only an allowlist of read-only flags; that boundary returns when the sandbox wiring reaches this spawn.
 
 ### Configuration
 
@@ -60,6 +67,7 @@ Routine budgets stay out of the model-facing schema: a model that needs surround
 | `globMaxResults` | `100` | Max paths one `glob` call shows inline |
 | `grepMaxMatches` | `250` | Max flat matches one `grep` call retains inline; later matches go to the formatted spill artifact |
 | `grepMaxLineBytes` | `2000` | Byte cap per matched-line preview, preserving UTF-8 boundaries |
+| `rgMaxLines` | `200` | Max output lines one `rg` call keeps inline; later lines go to the formatted spill artifact |
 | `rawOutputMaxBytes` | `20000000` | Max complete raw `rg` stdout a search will parse; larger raw output fails with `SEARCH_RAW_OUTPUT_OVERFLOW` |
 | `timeoutMs` | `30000` | Cooperative tool-call budget on both tools, enforced through `exec.signal` |
 | `graceMs` | `3000` | Terminate-escalation grace the subprocess seam grants past `timeoutMs` |
@@ -97,6 +105,7 @@ Local workspace discovery is naturally a process-backed `rg` workflow, and putti
 | [`src/index.ts`](src/index.ts) | Plugin entry: `Config`, tool composition, cap validation |
 | [`src/glob.ts`](src/glob.ts) | `glob` schema, argv, parsing, inline sampling, formatting |
 | [`src/grep.ts`](src/grep.ts) | `grep` schema, argv, `--json` parsing, preview retention, formatting |
+| [`src/rg.ts`](src/rg.ts) | `rg` schema, flag allowlists, inert argv rewriting, raw-line retention, formatting |
 | [`src/search-core.ts`](src/search-core.ts) | Shared spawn helper, `SEARCH_*` errors, spill handoff, workdir-relative display |
 | [`src/presentation.ts`](src/presentation.ts) | Search-card metadata projection |
 | [`src/direct-call.ts`](src/direct-call.ts) | Direct-call result acceptance for spill post-processing |
@@ -134,7 +143,7 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-At assembly time, each section checks `ctx.tools.get(name, scope)` and renders only while its tool is visible. The grep paragraph includes its read follow-up sentence only while read is visible. The original text and section order stay unchanged for the same supported tool set, including PTC capabilities behind `run_code`. This scope-dependent text selection applies to system-prompt sections. Tool schema descriptions remain registration-time text; in particular, the grep schema still recommends read even in a scope that hides read. Scope-dependent schema wording is not implemented.
+At assembly time, each section checks `ctx.tools.get(name, scope)` and renders only while its tool is visible. The grep paragraph includes its read follow-up sentence only while read is visible. The original text and section order stay unchanged for the same supported tool set, including PTC capabilities behind `run_code`. This scope-dependent text selection applies to system-prompt sections. Tool schema descriptions remain registration-time text; in particular, the grep schema still recommends read even in a scope that hides read. Scope-dependent schema wording is not implemented. The `rg` tool contributes no section; its description carries the accepted flag surface.
 
 ##### Glob guidance with `sampleOverCapGlobResults: true`
 
@@ -166,7 +175,7 @@ Prefix-stable while the visible tool set, plugin scope, sampling choice, and gui
 
 #### What the model sees
 
-The glob description states the configured over-cap ordering. The generated [`glob` and `grep` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-fs-search) use `sampleOverCapGlobResults: true`; the tools are registered unconditionally.
+The glob description states the configured over-cap ordering, and the rg description states the configured inline line cap. The generated [`glob`, `grep`, and `rg` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-fs-search) use `sampleOverCapGlobResults: true`; the tools are registered unconditionally.
 
 #### Token effect
 
@@ -180,11 +189,11 @@ Prefix-stable while tool visibility and definitions are unchanged. Registration 
 
 #### What the model sees
 
-`glob` returns one path per line; `grep` groups `Line <line>: <preview>` matches beneath each path. Empty searches return `No files found` or `No matches found`. A capped result ends with its omission count plus the spill locator and backend retrieval hint, or says the complete result could not be saved. With `sampleOverCapGlobResults: true`, an over-cap `glob` page takes paths round-robin across entries immediately beneath the actual search root, and the footer states the sampled basis and how many top-level entries it reached; with `false`, the page is the modification-time-ordered head and keeps the plain capped-result footer. The spill artifact always holds the complete list in modification-time order.
+`glob` returns one path per line; `grep` groups `Line <line>: <preview>` matches beneath each path. Empty searches return `No files found` or `No matches found`. A capped result ends with its omission count plus the spill locator and backend retrieval hint, or says the complete result could not be saved. With `sampleOverCapGlobResults: true`, an over-cap `glob` page takes paths round-robin across entries immediately beneath the actual search root, and the footer states the sampled basis and how many top-level entries it reached; with `false`, the page is the modification-time-ordered head and keeps the plain capped-result footer. The spill artifact always holds the complete list in modification-time order. `rg` returns ripgrep's own stdout lines unmodified and says `No matches found` for a zero-result search; its capped footer carries the same omission count plus the spill locator or the could-not-save sentence.
 
 #### Token effect
 
-Inline paths and matches are bounded by `globMaxResults`, `grepMaxMatches`, and `grepMaxLineBytes`; the call and retained result remain in history until compaction.
+Inline paths and matches are bounded by `globMaxResults`, `grepMaxMatches`, and `grepMaxLineBytes`; `rg` output lines are bounded by `rgMaxLines`; the call and retained result remain in history until compaction.
 
 #### KV Cache effect
 
@@ -213,8 +222,9 @@ These limits define when the search tools are a poor fit or need special operati
 
 - **Search and file access have no shared-workspace proof** — returned paths are follow-up-readable only when the workdir and filesystem root denote the same workspace; the package performs no runtime cross-service validation.
 - **The packaged binary is fixed at dependency version** — Node deployments use the version selected by `@vscode/ripgrep`; Python single-file runtimes copy that target-native version into the required `-rg` sidecar. An unsupported platform or a corrupted installation fails with `SEARCH_FAILED`, while the Python runtime package rejects a missing sidecar before launch. Remote or virtual filesystems need a co-located workspace or another search consumer.
-- **The schemas expose one bounded page** — offset pagination, case-mode switches, alternate output modes, and provider-backed discovery remain outside this package; capped complete output requires a spill backend.
+- **The structured schemas expose one bounded page** — `glob` and `grep` offer neither offset pagination nor alternate output modes; the wider ripgrep output surface is reachable only through the `rg` flag allowlist, and capped complete output requires a spill backend.
 - **Sampling, when enabled, groups by first path segment beneath the search root only** — an over-cap `glob` page balances across those top-level entries, so a result concentrated deeper is still shown unevenly below that level; recursive balancing is deferred.
+- **The `rg` argument line is passed through, not filtered** — `--pre` and the pattern/ignore-file readers are reachable until this tool reaches the sandbox fence, so a deployment that mounts `rg` trusts the model with the tool process's own reach.
 
 <a id="dev-note"></a>
 ### Dev Note

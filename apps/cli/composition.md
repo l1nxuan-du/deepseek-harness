@@ -92,6 +92,8 @@ flowchart LR
   cfg --> plugin_dsh_base_fs_observation_policy
   plugin_dsh_base_tool_fs["tool-fs<br/>@deepseek-ai/dsh-tool-fs"]
   cfg --> plugin_dsh_base_tool_fs
+  plugin_dsh_base_tool_apply_patch["tool-apply-patch<br/>@deepseek-ai/dsh-tool-apply-patch"]
+  cfg --> plugin_dsh_base_tool_apply_patch
   plugin_dsh_base_tool_fs_search["tool-fs-search<br/>@deepseek-ai/dsh-tool-fs-search"]
   cfg --> plugin_dsh_base_tool_fs_search
   plugin_dsh_base_agent_instructions["agent-instructions<br/>@deepseek-ai/dsh-agent-instructions"]
@@ -228,6 +230,7 @@ flowchart LR
 | `tool-jobs` | `@deepseek-ai/dsh-tool-jobs` |
 | `fs-observation-policy` | `@deepseek-ai/dsh-fs-observation-policy` |
 | `tool-fs` | `@deepseek-ai/dsh-tool-fs` |
+| `tool-apply-patch` | `@deepseek-ai/dsh-tool-apply-patch` |
 | `tool-fs-search` | `@deepseek-ai/dsh-tool-fs-search` |
 | `agent-instructions` | `@deepseek-ai/dsh-agent-instructions` |
 | `skill` | `@deepseek-ai/dsh-skill` |

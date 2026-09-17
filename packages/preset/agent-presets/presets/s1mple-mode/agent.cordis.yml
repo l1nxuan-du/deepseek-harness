@@ -1,3 +1,13 @@
+# The `s1mple-mode` agent preset: the full tool set with no opening prompt.
+#
+# It is the `standard` composition — every tool row unchanged — behind a persona
+# that contributes no text at all: an empty `prefix` with `complete: true` keeps
+# the harness identity, tool guidance, and every other prompt section out, and
+# runtime-context snapshots are suppressed. The model therefore starts from the
+# tool schemas alone, with nothing that narrows or steers the toolset.
+#
+# Every other row is the shipped `standard` composition unchanged.
+
 # The `standard` agent preset: the full coding agent, mounted once per process.
 #
 # This file is an AGENT-PLANE composition. The roster mounts it ONCE under a
@@ -19,14 +29,15 @@
 
 # ── identity ────────────────────────────────────────────────────────────────
 
-# The preset's own persona, shadowing the deployment default for this agent.
-# `{{model}}` and `{{cwd}}` resolve from the agent's own route and workspace.
+# No persona text: an empty prefix with `complete` suppresses the suffix and every
+# other prompt section, and runtime-context snapshots stay out. The model starts
+# with the tool schemas alone.
 - id: persona
   name: '@deepseek-ai/dsh-persona'
   config:
-    suffix: Your working directory is {{cwd}}.
-    prefix: >-
-      You are a coding agent powered by the {{model}} model.
+    prefix: ''
+    complete: true
+    includeRuntimeContext: false
 
 - id: agent-instructions
   name: '@deepseek-ai/dsh-agent-instructions'
@@ -52,10 +63,13 @@
 
 # ── filesystem ──────────────────────────────────────────────────────────────
 
-# Both register into the host `tools` registry and provide nothing, so
+# These register into the host `tools` registry and provide nothing, so
 # they need no realm. The `fs` service and its policy stay in the host.
 - id: tool-fs
   name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-apply-patch
+  name: '@deepseek-ai/dsh-tool-apply-patch'
 
 - id: tool-fs-search
   name: '@deepseek-ai/dsh-tool-fs-search'

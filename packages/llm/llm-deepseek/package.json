@@ -72,6 +72,7 @@
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
     "@deepseek-ai/dsh-credentials-local": "workspace:^",
-    "@deepseek-ai/dsh-settings-file": "workspace:^"
+    "@deepseek-ai/dsh-settings-file": "workspace:^",
+    "@deepseek-ai/dsh-tool-apply-patch": "workspace:^"
   }
 }

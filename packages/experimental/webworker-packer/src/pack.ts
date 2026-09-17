@@ -157,7 +157,8 @@ function moduleNamesOf(rows: unknown, names: Set<string>): void {
   for (const row of rows) {
     if (typeof row !== 'object' || row === null) continue
     const { name, config } = row as { name?: unknown; config?: unknown }
-    if (typeof name === 'string' && (name.startsWith('@') || name.includes('/'))) {
+    if (typeof name === 'string' && !name.startsWith('.') && !name.startsWith('/')
+      && (name.startsWith('@') || name.includes('/'))) {
       names.add(packageNameOf(name))
     }
     moduleNamesOf(config, names)

@@ -77,6 +77,7 @@ LEGACY_CUSTOM_DISABLED_ROWS = (
     "skill",
     "skill-filesystem",
     "tool-fs",
+    "tool-apply-patch",
     "tool-fs-search",
     "tool-goal",
     "tool-ralph",

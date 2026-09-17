@@ -2,7 +2,7 @@
   - navigation "Session hierarchy":
     - button "workspace" [disabled]
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -18,10 +18,6 @@
   - img
   - img
   - text: "goal Goal created Status: active Objective: 做两个turn，每个turn输出随机一个包的文件结构。注意你做完一个turn之后，直接输出内容，停止，我们的系统会帮你再开一个turn，你看着做一个类似的 Rounds: 0/256 Activation: armed Commands: /goal edit <objective>, /goal pause, /goal clear"
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - button "6 tool calls":
   - text: 6 tool calls
   - img
@@ -47,10 +43,6 @@
   - img
   - text: Ran for {{duration}}
 - text: {{clock}}
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - button "5 tool calls · 2 messages":
   - text: 5 tool calls · 2 messages
   - img

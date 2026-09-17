@@ -17,6 +17,11 @@ async function endpoint(...args: Parameters<typeof server>) {
 }
 const chat = 'data: {"choices":[{"delta":{"content":"Chat answer"}}]}\n\n'
   + 'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n'
+/** The shipped default wire's frames for one short text turn. */
+const responses = 'event: response.created\ndata: {"type":"response.created","response":{"id":"resp_1","status":"in_progress","output":[]}}\n\n'
+  + 'event: response.output_item.added\ndata: {"type":"response.output_item.added","output_index":0,"item":{"id":"msg_1","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n'
+  + 'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","item_id":"msg_1","output_index":0,"delta":"Responses answer"}\n\n'
+  + 'event: response.completed\ndata: {"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":3,"output_tokens":1}}}\n\n'
 function adapter(connection: () => DeepSeekConnectionOptions) {
   return new DeepSeekAdapter({
     options: connection,
@@ -26,18 +31,18 @@ function adapter(connection: () => DeepSeekConnectionOptions) {
   })
 }
 
-it.each([false, true])('uses Messages when protocol is omitted, schema=%s', async (schema) => {
-  const http = await endpoint()
+it.each([false, true])('uses Responses when protocol is omitted, schema=%s', async (schema) => {
+  const http = await endpoint(response => response.end(responses))
   const raw = { baseURL: http.url }
   const connection = resolveAdapterOptions(schema ? Config(raw) : raw)
   const response = await assemble(adapter(() => connection).stream(options()))
 
-  expect(response.message.content).toEqual([{ type: 'text', text: 'Hello 世界' }])
+  expect(response.message.content).toEqual([{ type: 'text', text: 'Responses answer' }])
   expect(http.requests).toHaveLength(1)
   expect(http.requests[0]).toMatchObject({
-    path: '/anthropic/v1/messages',
-    headers: { 'x-api-key': 'key-for-DEEPSEEK_API_KEY', 'anthropic-version': '2023-06-01' },
-    body: { model: MODEL, messages: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }] },
+    // The wire path is appended to the configured root, which this mock serves under `/anthropic`.
+    path: '/anthropic/responses',
+    body: { model: MODEL, stream: true, input: [{ type: 'message', role: 'user', content: 'hello' }] },
   })
 })
 

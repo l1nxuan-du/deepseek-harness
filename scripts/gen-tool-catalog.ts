@@ -48,6 +48,7 @@ import CordisHostRunner from '@deepseek-ai/dsh-cordis-host-runner'
 import * as ToolCordis from '@deepseek-ai/dsh-tool-cordis'
 import * as ToolPresent from '@deepseek-ai/dsh-tool-present'
 import * as ToolFs from '@deepseek-ai/dsh-tool-fs'
+import * as ToolApplyPatch from '@deepseek-ai/dsh-tool-apply-patch'
 import * as ToolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
 import * as ToolStrReplaceEditor from '@deepseek-ai/dsh-tool-str-replace-editor'
 import TerminalSessionService from '@deepseek-ai/dsh-terminal'
@@ -380,6 +381,19 @@ const TOOL_PACKAGES: ToolPackage[] = [
       'The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input.',
   },
   {
+    pkg: '@deepseek-ai/dsh-tool-apply-patch',
+    dir: 'tool-apply-patch',
+    source: 'packages/fs/tool-apply-patch/src/index.ts',
+    requires: ['ctx.tools', 'ctx.fs'],
+    writes: ['tool/call', 'fs/write-intent or fs/edit-intent for mutations', 'fs/observed after read presence/absence or successful file operation', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(LocalFileSystem)
+      await ctx.plugin(ToolApplyPatch)
+    },
+    note:
+      'Applies a Codex-style multi-file patch envelope over the filesystem seam: every hunk is checked against its file before anything is written, and the tool composes with any shell or terminal API. A wire that supports grammar-constrained custom tools receives the envelope as freeform input, so the model writes the patch without JSON escaping it.',
+  },
+  {
     pkg: '@deepseek-ai/dsh-tool-fs-search',
     dir: 'tool-fs-search',
     source: 'packages/fs/tool-fs-search/src/index.ts',
@@ -395,7 +409,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolFsSearch, { sampleOverCapGlobResults: true })
     },
     note:
-      'glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments.',
+      'glob, grep, and rg are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-terminal',

@@ -464,6 +464,7 @@ function assertLeanChildRecord(agent: Agent, mode: 'one-shot' | 'continuable'): 
  * Agent Note owns the rationale and its sources.
  */
 const EXPECTED_TOOLS = [
+  'apply_patch',
   'ask_user_question',
   'bash',
   'create_goal',
@@ -491,12 +492,12 @@ const EXPECTED_TOOLS = [
 ]
 
 /**
- * `glob` and `grep` come from `dsh-tool-fs-search`, which spawns the PACKAGED
- * ripgrep binary (`@vscode/ripgrep`) through the subprocess seam, so the pair
- * is always present on every host — asserted as fixed members, not a host
- * dependency.
+ * `glob`, `grep`, and `rg` come from `dsh-tool-fs-search`, which spawns the
+ * PACKAGED ripgrep binary (`@vscode/ripgrep`) through the subprocess seam, so
+ * the set is always present on every host — asserted as fixed members, not a
+ * host dependency.
  */
-const RIPGREP_TOOLS = ['glob', 'grep']
+const RIPGREP_TOOLS = ['glob', 'grep', 'rg']
 
 let scaffold: WebScaffold | undefined
 let childOverlayDirectory: string | undefined
@@ -593,14 +594,22 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
   try {
     const names = ctx.tools.schemas(handle.agent).map(schema => schema.name).sort()
     expect(names.filter(name => !RIPGREP_TOOLS.includes(name))).toEqual(EXPECTED_TOOLS)
-    // The packaged ripgrep binary ships with the dependency, so the pair is a
+    // The packaged ripgrep binary ships with the dependency, so the set is a
     // fixed roster member on every host.
     expect(names.filter(name => RIPGREP_TOOLS.includes(name))).toEqual(RIPGREP_TOOLS)
-    const fileReferenceSection = (await ctx.systemPrompt.assemble({ scope: handle.agent })).sections
+  } finally {
+    await handle.dispose()
+  }
+  const promptHandle = await ctx.agents.create({
+    sessionId: SessionId('shipped-composition-prompt'),
+    setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'cordis').then(() => undefined),
+  })
+  try {
+    const fileReferenceSection = (await ctx.systemPrompt.assemble({ scope: promptHandle.agent })).sections
       .find(section => section.name === 'ui:deliverable-file-references')
     expect(fileReferenceSection?.text).toBe(readFileSync(FILE_REFERENCE_PROMPT, 'utf8').trimEnd())
   } finally {
-    await handle.dispose()
+    await promptHandle.dispose()
   }
   // `workspace-write` is not "the workspace and nothing else": the shared roots
   // helper always admits the temp directories too. Pinning it against an
@@ -1060,12 +1069,12 @@ it('withdraws Auto on shipped Loader unload and does not restore migrated live s
   if (autoEntry === undefined) throw new Error('shipped Auto review Loader entry is missing')
   const handle = await ctx.agents.create({
     sessionId: SessionId('shipped-auto-hot-plug'),
-    meta: { cwd: scaffold.workspaceCwd, agentPreset: 'minimal' },
-    setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'minimal').then(() => undefined),
+    meta: { cwd: scaffold.workspaceCwd, agentPreset: 'anchored-standard' },
+    setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'anchored-standard').then(() => undefined),
   })
   const terminals = ctx.agentPresets.serviceFor(handle.agent, 'terminals')
   try {
-    if (terminals === undefined) throw new Error('shipped minimal preset has no terminal registry')
+    if (terminals === undefined) throw new Error('shipped anchored-standard preset has no terminal registry')
     ctx.permissionPresets.set(handle.agent.session, 'danger-full-access')
     const terminal = await terminals.spawn(handle.agent, { type: 'shell', cwd: scaffold.workspaceCwd })
     ctx.permissionPresets.set(handle.agent.session, 'auto')

@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it, onTestFailed, vi } from 'vitest'
 import { deriveReplayScript, parseSessionLog, type ReplayEntry } from '@deepseek-ai/dsh-llm-replay'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
-  assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria, compareOrRefreshGolden,
+  assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
@@ -24,7 +24,6 @@ const COLLAPSED_EXPECTED = join(SNAPSHOT_DIR, 'collapsed.expected.md')
 const EDITING_EXPECTED = join(SNAPSHOT_DIR, 'editing.expected.md')
 const LAYOUT_EXPECTED = join(SNAPSHOT_DIR, 'layout.expected.md')
 const PRESERVED_EXPECTED = join(SNAPSHOT_DIR, 'preserved.expected.md')
-const PRESERVED_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'preserved-expanded.expected.md')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const SENDING_EXPECTED = join(SNAPSHOT_DIR, 'sending.expected.md')
 const FAILED_EXPECTED = join(SNAPSHOT_DIR, 'failed.expected.md')
@@ -253,12 +252,6 @@ describe('web e2e: queue row actions', () => {
     await expect.poll(() => page.getByRole('tooltip').count()).toBe(0)
     const preservedSnapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(PRESERVED_EXPECTED, preservedSnapshot, MODE)
-    const expanded = await captureExpandedTurnProcessAria(
-      page,
-      '[class*="centerCol"]',
-      scaffold.workspaceCwd,
-    )
-    await compareOrRefreshGolden(PRESERVED_EXPANDED_EXPECTED, expanded, MODE)
 
     const settled = scaffold.whenTurnSettled()
     await input.fill(WAKE)

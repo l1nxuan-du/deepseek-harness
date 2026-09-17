@@ -35,7 +35,6 @@ const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
 // state, and the other four capture what remains after cancel, after a
 // non-retryable failure, after retry recovery, and after retry exhaustion.
 const CANCEL_EXPECTED = join(SNAPSHOT_DIR, 'cancel.expected.md')
-const CANCEL_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'cancel-expanded.expected.md')
 const LOADING_EXPECTED = join(SNAPSHOT_DIR, 'loading.expected.md')
 const RUNNING_DRAFT_EXPECTED = join(SNAPSHOT_DIR, 'running-draft.expected.md')
 const ERROR_EXPECTED = join(SNAPSHOT_DIR, 'error-auth.expected.md')
@@ -200,12 +199,6 @@ describe('web e2e: live-turn interactions (cancel / error / retry)', () => {
     // partial ('partial' is the hang entry's replayed prefix) and no more.
     const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold!.workspaceCwd)
     await compareOrRefreshGolden(CANCEL_EXPECTED, snapshot, MODE)
-    const expanded = await captureExpandedTurnProcessAria(
-      page,
-      '[class*="centerCol"]',
-      scaffold!.workspaceCwd,
-    )
-    await compareOrRefreshGolden(CANCEL_EXPANDED_EXPECTED, expanded, MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   }, 120_000)

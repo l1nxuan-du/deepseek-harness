@@ -27,7 +27,7 @@ kind: "package-reference"
 
 在需要让每个 agent 会话从 preset 文件获得自己的工具、提示词段落与 skill 的组装中挂载本包。每个会话都会命名一个 preset——显式指定或通过配置的默认值——并据此组装；没有本包时，会话只能回退到宿主组装挂载的内容。
 
-随附 Web 的 `standard`、`ptc` 与 `cordis` preset 包含[显式文件交付](../../client/ui-deliverables/README.zh.md#explicit-deliveries)。`minimal` preset 保留固定的双工具训练配置。
+随附 Web 的 `s1mple-mode`、`anchored-standard`、`codex-v5`、`codex-v6`、`ptc` 与 `cordis` preset 包含[显式文件交付](../../client/ui-deliverables/README.zh.md#explicit-deliveries)。`anchored-standard` 在会话晋升前刻意只组合 bootstrap 工具对与发现工具。
 
 ### preset 给会话带来什么
 
@@ -66,7 +66,7 @@ kind: "package-reference"
 ```yaml
 agent-presets:
   modeSelectionEnabled: true
-  default: minimal
+  default: s1mple-mode
 ```
 
 客户端只需写入 `modeSelectionEnabled` 即可显示或隐藏选择，[Web GUI 设置开关](../../client/ui-agent-preset/README.zh.md)正是这样做的。选择器隐藏期间由部署默认值生效；再次开启时恢复已保存的用户 `default`，尚未保存时则继续使用部署默认值。模式选择保持开启时，选择默认模式会写入用户覆盖值，仅供此后创建的会话使用。由于该策略归 Host 所有，它适用于 Web、CLI、SDK 与 headless 调用方此后创建的全部未显式指定 preset 的会话；显式指定的 preset 与任何既有会话均不受影响。

@@ -115,6 +115,9 @@ describe('HarnessSdkJsonRpcServer', () => {
     vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
     vi.stubEnv('DEEPSEEK_BASE_URL', llmServer.url)
     const ctx = await makeHarness(storageDir)
+    // This endpoint speaks the Messages wire, so the owner mounts it explicitly;
+    // the shipped default is the Responses protocol.
+    await ctx.plugin(LlmDeepSeek, { protocol: 'messages' })
     try {
       const transport = new FakeTransport()
       const server = new HarnessSdkJsonRpcServer(ctx, transport)
@@ -408,6 +411,7 @@ describe('HarnessSdkJsonRpcServer', () => {
     vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
     vi.stubEnv('DEEPSEEK_BASE_URL', llmServer.url)
     const ctx = await makeHarness(storageDir)
+    await ctx.plugin(LlmDeepSeek, { protocol: 'messages' })
     try {
       const server = new HarnessSdkJsonRpcServer(ctx, new FakeTransport())
 

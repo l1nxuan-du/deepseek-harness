@@ -29,7 +29,7 @@
     "tests/scaffold-generation.spec.ts",
     "tests/scaffold-hermetic.e2e.ts",
     "tests/startup-rpc-budget.e2e.ts",
-    "tests/minimal-preset.snapshot.ts",
+    "tests/anchored-standard.snapshot.ts",
     "tests/message-feedback-protocol.snapshot.ts",
     "tests/preset-migration.snapshot.ts",
     "tests/live-interactions.e2e.ts",

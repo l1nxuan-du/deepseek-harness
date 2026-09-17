@@ -1,4 +1,4 @@
-/** Web-localized copy for the four shipped presets and file copy for every other row. */
+/** Web-localized copy for the six shipped presets and file copy for every other row. */
 
 import { describe, expect, it } from 'vitest'
 import { en, presetDisplayText, zh } from '../src/client/locales.ts'
@@ -7,9 +7,11 @@ const translate = (bundle: typeof en) => (key: keyof typeof en): string => bundl
 
 describe('preset display copy', () => {
   it.each([
-    ['standard', 'presetStandardName', 'presetStandardDescription'],
+    ['s1mple-mode', 'presetS1mpleName', 'presetS1mpleDescription'],
+    ['anchored-standard', 'presetAnchoredStandardName', 'presetAnchoredStandardDescription'],
+    ['codex-v5', 'presetCodexV5Name', 'presetCodexV5Description'],
+    ['codex-v6', 'presetCodexV6Name', 'presetCodexV6Description'],
     ['ptc', 'presetPtcName', 'presetPtcDescription'],
-    ['minimal', 'presetMinimalName', 'presetMinimalDescription'],
     ['cordis', 'presetCordisName', 'presetCordisDescription'],
   ] as const)('localizes the shipped %s preset in English and Chinese', (id, nameKey, descriptionKey) => {
     const preset = { id, trust: 'system' as const, name: 'file name', description: 'file description' }
@@ -23,7 +25,7 @@ describe('preset display copy', () => {
   it('keeps file metadata for user and unknown system presets', () => {
     const fileCopy = { name: '我的标准', description: '团队自己的 preset。' }
 
-    expect(presetDisplayText({ id: 'standard', trust: 'user', ...fileCopy }, translate(en)))
+    expect(presetDisplayText({ id: 's1mple-mode', trust: 'user', ...fileCopy }, translate(en)))
       .toEqual(fileCopy)
     expect(presetDisplayText({ id: 'deployment-extra', trust: 'system', ...fileCopy }, translate(en)))
       .toEqual(fileCopy)

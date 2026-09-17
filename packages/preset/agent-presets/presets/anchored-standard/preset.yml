@@ -1,0 +1,3 @@
+name: Anchored Standard (experimental)
+description: 首轮只给 Minimal 条件的系统提示词与工具对（持久 shell + str_replace_editor，且不注入工作区/技能上下文），会话出现首个持久信号后再开放标准工具集，重工具按需解锁。
+order: 2

@@ -1,0 +1,8 @@
+version: 1
+scenario: anchored-standard
+profile: web
+composition: web-anchored-standard
+recording: authored
+header:
+  class: web-anchored-standard
+  pin: true

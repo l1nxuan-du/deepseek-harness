@@ -3,7 +3,14 @@
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import type { ToolDefinition, ToolExecution, ToolExecutionResult, ToolRunContext, ToolResult } from './index.ts'
+import type {
+  ToolDefinition,
+  ToolExecution,
+  ToolExecutionResult,
+  ToolFreeformDefinition,
+  ToolRunContext,
+  ToolResult,
+} from './index.ts'
 import { assertSupportedJsonSchema, isJsonSchemaRecord, isPlainJsonArray, JsonSchemaError, validateJsonSchemaValue } from './json-schema.ts'
 import type { JsonSchemaNode, JsonSchemaScalar, ObjectJsonSchema } from './json-schema.ts'
 import type { ToolCallView, ToolResultView } from './presentation.ts'
@@ -487,6 +494,14 @@ export interface DefineToolOptions<S extends ParameterSchemaSpec, O extends Valu
   readonly description: string
   /** Per-property parameter schema compiled to an implicit open object root. */
   readonly parameters: S
+  /**
+   * Optional grammar presentation. A wire that supports grammar-constrained
+   * custom tools offers this tool as freeform text, and the registry delivers
+   * that text as {@link ToolFreeformDefinition.parameter}; the parameter must be
+   * one of {@link DefineToolOptions.parameters} so every wire validates the same
+   * shape.
+   */
+  readonly freeform?: ToolFreeformDefinition
   /** Canonical output schema plus pure Native and presentation projections. */
   readonly output: {
     /** Schema enforced against every successful body or policy-replaced value. */
@@ -564,12 +579,16 @@ export function defineTool<const S extends ParameterSchemaSpec, const O extends 
     throw new Error(`defineTool(${options.name}): timeoutMs must be a positive finite number`)
   }
   const parameters = parameterSchemaSpecToJsonSchema(options.parameters)
+  if (options.freeform !== undefined && !Object.hasOwn(options.parameters, options.freeform.parameter)) {
+    throw new Error(`defineTool(${options.name}): freeform.parameter must name one of the declared parameters`)
+  }
   const outputSchema = valueSchemaSpecToJsonSchema(options.output.schema)
   const validate = (args: unknown): string[] => validateJsonSchemaValue(parameters, args, '')
   const tool: ToolDefinition = {
     name: options.name,
     description: options.description,
     parameters: parameters as unknown as Record<string, unknown>,
+    ...options.freeform === undefined ? {} : { freeform: options.freeform },
     output: {
       schema: outputSchema,
       render(args: unknown, value: JsonValue): ContentBlock[] {

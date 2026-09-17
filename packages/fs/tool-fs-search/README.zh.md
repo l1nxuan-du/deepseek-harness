@@ -1,5 +1,5 @@
 ---
-description: "面向模型的 glob 与 grep 发现工具：供组合或排查 agent（智能体）工作区搜索的用户与维护者使用。"
+description: "面向模型的 glob、grep 与 rg 发现工具：供组合或排查 agent（智能体）工作区搜索的用户与维护者使用。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-使用 `dsh-tool-fs-search` 为模型提供本地工作区中的 `glob` 文件发现与 `grep` 内容搜索。搜索无需在宿主上安装 `rg`，也无需文件系统提供方；结果相对于工作目录，并包含隐藏与忽略文件但排除 VCS 元数据。可配置上限约束内联输出；挂载可选 spill 存储后，达到上限的结果仍可完整恢复。若需读取、写入或编辑文件，请选择同级 `dsh-tool-fs` 包。
+使用 `dsh-tool-fs-search` 为模型提供本地工作区中的 `glob` 文件发现、`grep` 内容搜索与 `rg` 原始输出。搜索无需在宿主上安装 `rg`，也无需文件系统提供方；结果相对于工作目录，并包含隐藏与忽略文件但排除 VCS 元数据。可配置上限约束内联输出；挂载可选 spill 存储后，达到上限的结果仍可完整恢复。`rg` 工具把模型给出的参数行原样交给打包的 ripgrep。若需读取、写入或编辑文件，请选择同级 `dsh-tool-fs` 包。
 
 ## 目录
 
@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-在 `ctx.subprocess` 后端之后挂载工具；无需宿主 `rg` 安装，也无需文件系统提供方。模型随后获得按修改时间排序的文件发现与按行组织的内容搜索，两者都有界并受超时防护。
+在 `ctx.subprocess` 后端之后挂载工具；无需宿主 `rg` 安装，也无需文件系统提供方。模型随后获得按修改时间排序的文件发现、按行组织的内容搜索与原始 ripgrep 输出，三者都有界并受超时防护。
 
 ### 最小组合
 
@@ -47,8 +47,15 @@ kind: "package-reference"
 |---|---|---|
 | `glob` | `pattern`、`path?` | 查找路径匹配 glob 模式的文件，包含隐藏与忽略文件但排除 VCS 元数据；不含 `/` 的模式匹配任意深度的基名，因此 `*` 匹配整棵树；完整结果保持按修改时间排序 |
 | `grep` | `pattern`、`path?`、`include?` | 用 ripgrep 正则搜索文件内容，并按文件分组返回 `Line N: <preview>` 匹配；`include` 是一个正向 glob 过滤器，逗号分隔列表与否定值会被前置拒绝 |
+| `rg` | `args` | 用模型编写的参数行运行打包的 ripgrep，并返回其原始 stdout 行，用于 `grep` 未暴露的 ripgrep 功能（计数、文件列表、上下文行、类型过滤、反向匹配、多行搜索）；参数按原样透传 |
 
 常规预算不进入面向模型的 schema：需要周边上下文的模型用 `read` 读取匹配文件，需要后续结果的模型遵循返回的 spill locator 检索提示。
+
+### `rg` 的参数行
+
+`rg` 只接受一个 `args` 字符串——标志、模式与路径，写法与 ripgrep 本身一致，例如 `-n -g *.ts pattern src` 或 `--files -g *.ts`。该行按空白拆分，引号把一段字符合并为一个 token，不存在 shell 层、转义处理或变量展开；见 [`src/rg.ts`](src/rg.ts)。这些 token 原样成为 ripgrep 的 argv，因此模型拿到的是 ripgrep 自己的参数字汇，参数错误也由 ripgrep 报出。有两种形态在这里属于普通参数错误，因为本次 spawn 永远无法满足它们：空参数行，以及位置参数 `-`（它要求 ripgrep 从本工具并不提供的 stdin 读取模式）。
+
+参数面就是 ripgrep 自己的参数面。本次 spawn 尚未经过沙箱接缝，因此会运行其他程序（`--pre`，对每个匹配文件运行预处理器）或读取其他文件（`-f`/`--file`、`--ignore-file`）的标志会在那道围栏之外执行；同时前置 `--no-config`，使宿主配置文件无法贡献模型没有写下的参数。更早的一版只接受只读白名单；当沙箱接线覆盖到本次 spawn 时，那道边界会回来。
 
 ### 配置
 
@@ -60,6 +67,7 @@ kind: "package-reference"
 | `globMaxResults` | `100` | 一次 `glob` 调用内联展示的最大路径数 |
 | `grepMaxMatches` | `250` | 一次 `grep` 调用内联保留的最大平铺匹配数；后续匹配写入格式化 spill 产物 |
 | `grepMaxLineBytes` | `2000` | 每条匹配行预览的字节上限，保留 UTF-8 边界 |
+| `rgMaxLines` | `200` | 一次 `rg` 调用内联保留的最大输出行数；后续行写入格式化 spill 产物 |
 | `rawOutputMaxBytes` | `20000000` | 搜索将解析的完整原始 `rg` stdout 上限；更大的原始输出以 `SEARCH_RAW_OUTPUT_OVERFLOW` 失败 |
 | `timeoutMs` | `30000` | 附加到两个工具的协作式工具调用预算，通过 `exec.signal` 强制执行 |
 | `graceMs` | `3000` | subprocess seam 在 `timeoutMs` 之外授予的终止升级宽限期 |
@@ -97,6 +105,7 @@ Node 部署在受支持的 macOS、Linux 与 Windows 目标上获得 `@vscode/ri
 | [`src/index.ts`](src/index.ts) | 插件入口：`Config`、工具组合、上限校验 |
 | [`src/glob.ts`](src/glob.ts) | `glob` schema、argv、解析、内联采样、格式化 |
 | [`src/grep.ts`](src/grep.ts) | `grep` schema、argv、`--json` 解析、预览保留、格式化 |
+| [`src/rg.ts`](src/rg.ts) | `rg` schema、标志允许列表、惰性 argv 改写、原始行保留、格式化 |
 | [`src/search-core.ts`](src/search-core.ts) | 共享 spawn 助手、`SEARCH_*` 错误、spill 交接、工作目录相对展示 |
 | [`src/presentation.ts`](src/presentation.ts) | 搜索卡片元数据投影 |
 | [`src/direct-call.ts`](src/direct-call.ts) | spill 后处理的直接调用结果接受 |
@@ -134,7 +143,7 @@ Node 部署在受支持的 macOS、Linux 与 Windows 目标上获得 `@vscode/ri
 
 #### 模型看到的内容
 
-组装时，每个段落通过 `ctx.tools.get(name, scope)` 检查对应工具，仅在其可见时输出。grep 段落仅在 read 可见时包含后续使用 read 的句子。同一受支持工具集合下，原文和段落顺序保持不变，包括通过 `run_code` 暴露的 PTC 能力。 这种按 scope 选择文本的机制适用于系统提示词段落。工具 schema 描述仍是注册时的文本；具体而言，即使 scope 隐藏了 read，grep 的 schema 仍会推荐 read。尚未实现按 scope 改变 schema 措辞。
+组装时，每个段落通过 `ctx.tools.get(name, scope)` 检查对应工具，仅在其可见时输出。grep 段落仅在 read 可见时包含后续使用 read 的句子。同一受支持工具集合下，原文和段落顺序保持不变，包括通过 `run_code` 暴露的 PTC 能力。 这种按 scope 选择文本的机制适用于系统提示词段落。工具 schema 描述仍是注册时的文本；具体而言，即使 scope 隐藏了 read，grep 的 schema 仍会推荐 read。尚未实现按 scope 改变 schema 措辞。`rg` 工具不贡献任何段落；其标志范围由工具描述承载。
 
 ##### 启用 `sampleOverCapGlobResults: true` 时的 Glob 指导
 
@@ -166,7 +175,7 @@ Use the grep tool — not shell grep or rg — to search file contents. Use read
 
 #### 模型看到的内容
 
-glob 描述声明了配置的超过上限排序方式。生成的 [`glob` 和 `grep` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-fs-search) 使用 `sampleOverCapGlobResults: true`；工具无条件注册。
+glob 描述声明了配置的超过上限排序方式，rg 描述声明了配置的内联行数上限。生成的 [`glob`、`grep` 与 `rg` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-fs-search) 使用 `sampleOverCapGlobResults: true`；工具无条件注册。
 
 #### Token 影响
 
@@ -180,11 +189,11 @@ glob 描述声明了配置的超过上限排序方式。生成的 [`glob` 和 `g
 
 #### 模型看到的内容
 
-`glob` 每行返回一个路径；`grep` 在每个路径下分组展示 `Line <line>: <preview>` 匹配。空搜索返回 `No files found` 或 `No matches found`。达到上限的结果以省略计数结尾，并附 spill locator 与后端检索提示，或说明完整结果无法保存。启用 `sampleOverCapGlobResults: true` 时，超过上限的 `glob` 页面按实际搜索根正下方的条目轮转取路径，页脚说明采样依据及其覆盖的顶层条目数；`false` 时页面是按修改时间排序的前部，并保留普通的上限结果页脚。spill 产物始终持有按修改时间排序的完整列表。
+`glob` 每行返回一个路径；`grep` 在每个路径下分组展示 `Line <line>: <preview>` 匹配。空搜索返回 `No files found` 或 `No matches found`。达到上限的结果以省略计数结尾，并附 spill locator 与后端检索提示，或说明完整结果无法保存。启用 `sampleOverCapGlobResults: true` 时，超过上限的 `glob` 页面按实际搜索根正下方的条目轮转取路径，页脚说明采样依据及其覆盖的顶层条目数；`false` 时页面是按修改时间排序的前部，并保留普通的上限结果页脚。spill 产物始终持有按修改时间排序的完整列表。`rg` 原样返回 ripgrep 自身的 stdout 行，零结果搜索返回 `No matches found`；达到上限时页脚同样携带省略计数以及 spill locator 或完整输出无法保存的说明。
 
 #### Token 影响
 
-内联路径与匹配受 `globMaxResults`、`grepMaxMatches` 与 `grepMaxLineBytes` 约束；调用及其保留结果在压缩（compaction）前留在历史中。
+内联路径与匹配受 `globMaxResults`、`grepMaxMatches` 与 `grepMaxLineBytes` 约束；`rg` 输出行受 `rgMaxLines` 约束；调用及其保留结果在压缩（compaction）前留在历史中。
 
 #### KV Cache 影响
 
@@ -213,8 +222,9 @@ glob 描述声明了配置的超过上限排序方式。生成的 [`glob` 和 `g
 
 - **搜索与文件访问没有共享工作区证明**——只有当工作目录与文件系统根目录指向同一工作区时，返回路径才可继续读取；本包不执行运行时跨服务校验。
 - **打包二进制固定在依赖版本上**——Node 部署使用 `@vscode/ripgrep` 选择的版本；Python 单文件运行时将对应目标的原生版本复制为必需的 `-rg` 伴随文件。不支持的平台或损坏的安装会以 `SEARCH_FAILED` 使调用失败，Python 运行时包则会在启动前拒绝缺少伴随文件的安装。远程或虚拟文件系统需要共置的工作区或另一个搜索消费方。
-- **schema 只暴露一个有界页面**——偏移分页、大小写开关、替代输出模式与提供方支撑的发现仍不在本包范围内；达到上限的完整输出需要 spill 后端。
+- **结构化 schema 只暴露一个有界页面**——`glob` 与 `grep` 既不提供偏移分页，也不提供替代输出模式；更广的 ripgrep 输出面只能通过 `rg` 的标志允许列表使用；达到上限的完整输出需要 spill 后端。
 - **启用采样时仅按搜索根正下方的第一段路径分组**——超过上限的 `glob` 页面在这些顶层条目之间平衡，因此集中在更深处的结果在该层级之下仍会呈现不均；递归平衡被延期。
+- **`rg` 的标志面是允许列表而非透传**——列表之外的标志（尤其是 `--pre`、`-z`/`--search-zip`、`--hostname-bin` 以及模式/忽略文件读取器）会按名称拒绝；需要这些标志的工作流必须改用其他受限的搜索路径。
 
 <a id="dev-note"></a>
 ### 开发备注

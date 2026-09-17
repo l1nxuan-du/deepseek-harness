@@ -4,9 +4,11 @@
 export type AgentPresetSettingsKey =
   | 'error' | 'userTrust' | 'seatHint' | 'headerHint'
   | 'nav' | 'sectionIntro' | 'builtIn' | 'setDefault' | 'view'
-  | 'presetStandardName' | 'presetStandardDescription'
+  | 'presetS1mpleName' | 'presetS1mpleDescription'
+  | 'presetAnchoredStandardName' | 'presetAnchoredStandardDescription'
+  | 'presetCodexV5Name' | 'presetCodexV5Description'
+  | 'presetCodexV6Name' | 'presetCodexV6Description'
   | 'presetPtcName' | 'presetPtcDescription'
-  | 'presetMinimalName' | 'presetMinimalDescription'
   | 'presetCordisName' | 'presetCordisDescription'
   | 'duplicate' | 'duplicateUnavailable' | 'delete' | 'presetId' | 'presetIdPlaceholder' | 'copyOf'
   | 'displayName' | 'displayNamePlaceholder'
@@ -33,18 +35,24 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   builtIn: 'Built-in',
   setDefault: 'Set as default',
   view: 'View',
-  presetStandardName: 'Standard mode',
-  presetStandardDescription:
-    'Full coding agent with file editing, shell, file and web search, skills, planning, goals, subagents, and workflows.',
+  presetS1mpleName: 'S1mple mode',
+  presetS1mpleDescription:
+    'Full tool set with no opening system prompt: an empty persona and runtime-context injection suppressed.',
+  presetAnchoredStandardName: 'Anchored Standard (experimental)',
+  presetAnchoredStandardDescription:
+    'Starts on the Minimal condition with a persistent shell and str_replace_editor, suppresses workspace and skill context, then opens the Standard catalog and unlocks heavy tools on demand.',
+  presetCodexV5Name: 'Codex V5',
+  presetCodexV5Description:
+    'The GPT-5 Codex instructions ported to DSH, with one persistent shell per agent, apply_patch editing, grep/glob search, jobs, planning, goals, subagents, and present.',
+  presetCodexV6Name: 'Codex V6',
+  presetCodexV6Description:
+    'The GPT-6/Astra Codex instructions ported to DSH with the same tool set as Codex V5; only the persona and identity copy differ.',
   presetPtcName: 'PTC mode',
   presetPtcDescription:
     'Full coding agent without the workflow tool; other tools are exposed through the PTC mode SDK so the model can combine multi-step operations in one TypeScript program.',
-  presetMinimalName: 'Minimal mode',
-  presetMinimalDescription:
-    'Single-tool coding agent with a persistent shell.',
   presetCordisName: 'Creator mode',
   presetCordisDescription:
-    'Built for creating custom agent presets, with all Standard mode capabilities plus runtime inspection, plugin experiments, and preset-authoring guidance.',
+    'Built for creating custom agent presets, with the full tool set plus runtime inspection, plugin experiments, and preset-authoring guidance.',
   duplicate: 'Duplicate',
   duplicateUnavailable: 'This deployment has no writable preset directory',
   delete: 'Delete',
@@ -86,7 +94,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   showPicker: 'Allow switching Agent modes',
   showPickerBeta: 'Beta',
   showPickerDescription:
-    'When enabled, new tasks can choose Standard, PTC, Creator, Minimal, and custom modes. When disabled, all new tasks use the default mode (Standard by default; configurable). Only affects new tasks.',
+    'When enabled, new tasks can choose S1mple, Anchored Standard, PTC, Creator, Codex V5, Codex V6, and custom modes. When disabled, all new tasks use the default mode (S1mple mode by default; configurable). Only affects new tasks.',
   enablePickerToSetDefault: 'Turn on Agent mode selection to choose a default',
   enablePickerToCreate: 'Turn on Agent mode selection to start Creator mode',
 }
@@ -102,14 +110,18 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   builtIn: '内置',
   setDefault: '设为默认',
   view: '查看',
-  presetStandardName: '标准模式',
-  presetStandardDescription: '功能完整的编码 Agent，支持文件编辑、Shell、文件与网页检索、Skills、计划、目标、子代理和工作流。',
+  presetS1mpleName: '飞猪模式',
+  presetS1mpleDescription: '完整工具集，开场不带系统提示词：persona 为空并屏蔽运行时上下文注入。',
+  presetAnchoredStandardName: 'Anchored Standard (实验性)',
+  presetAnchoredStandardDescription: '首轮使用 Minimal 条件的持久 shell 与 str_replace_editor，并屏蔽工作区和技能上下文；会话晋升后开放标准工具集，重工具按需解锁。',
+  presetCodexV5Name: 'Codex V5',
+  presetCodexV5Description: 'GPT-5 版 Codex 基础指令集移植到 DSH：每代理一个持久 shell、apply_patch 编辑、grep/glob 检索、jobs、计划与目标、子代理与 present 交付。',
+  presetCodexV6Name: 'Codex V6',
+  presetCodexV6Description: 'GPT-6 / Astra 版 Codex 指令集移植到 DSH，工具集与 Codex V5 相同，差异只在 persona 文本与身份表述。',
   presetPtcName: 'PTC 模式',
   presetPtcDescription: '功能完整的编码 Agent，但默认不提供 workflow 工具；其他工具通过 PTC 模式 SDK 呈现，让模型用一个 TypeScript 程序组合多步操作。',
-  presetMinimalName: '极简模式',
-  presetMinimalDescription: '仅提供持久 shell 的单工具编码 Agent。',
   presetCordisName: '创造模式',
-  presetCordisDescription: '用于创建自定义 Agent preset：具备标准模式的全部能力，并提供运行时检查、插件实验和 preset 创作指导。',
+  presetCordisDescription: '用于创建自定义 Agent preset：具备完整工具集，并提供运行时检查、插件实验和 preset 创作指导。',
   duplicate: '复制',
   duplicateUnavailable: '此部署未配置可写的预设目录',
   delete: '删除',
@@ -147,7 +159,7 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   deleting: '正在删除…',
   showPicker: '允许切换agent模式',
   showPickerBeta: 'beta',
-  showPickerDescription: '开启后，新任务可选择标准、PTC、创造、极简及自定义模式；关闭后统一使用默认模式（默认为标准模式，可自定义）。仅影响新任务。',
+  showPickerDescription: '开启后，新任务可选择飞猪、Anchored Standard (实验性)、PTC、创造、Codex V5/V6 及自定义模式；关闭后统一使用默认模式（默认为飞猪模式，可自定义）。仅影响新任务。',
   enablePickerToSetDefault: '请先开启 Agent 模式选择，再设置默认模式',
   enablePickerToCreate: '请先开启 Agent 模式选择，再启动创造模式',
 }

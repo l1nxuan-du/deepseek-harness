@@ -2,7 +2,7 @@
   - navigation "Session hierarchy":
     - button "Use the bash tool to" [disabled]
   - img
-  - text: Minimal mode
+  - text: Anchored Standard (experimental)
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -14,18 +14,18 @@
   - img
   - img
   - text: System prompt
-- text: "Use the bash tool to run exactly: printf 'MINIMAL_BASH_CARD_OK\\n'. Then reply exactly MINIMAL_PRESET_REQUEST_OK and stop. {{clock}}"
+- text: "Use the bash tool to run exactly: printf 'ANCHORED_STANDARD_BASH_CARD_OK\\n'. Then reply exactly ANCHORED_STANDARD_REQUEST_OK and stop. {{clock}}"
 - button "Copy":
   - img
 - button "1 tool call" [expanded]:
   - text: 1 tool call
   - img
-- button "Bash printf 'MINIMAL_BASH_CARD_OK\\n'" [expanded]:
+- button "Bash printf 'ANCHORED_STANDARD_BASH_CARD_OK\\n'" [expanded]:
   - img
-  - text: Bash printf 'MINIMAL_BASH_CARD_OK\n'
-- text: "IN { \"command\": \"printf 'MINIMAL_BASH_CARD_OK\\\\n'\" } OUT MINIMAL_BASH_CARD_OK [Command finished with exit code 0]"
+  - text: Bash printf 'ANCHORED_STANDARD_BASH_CARD_OK\n'
+- text: "IN { \"command\": \"printf 'ANCHORED_STANDARD_BASH_CARD_OK\\\\n'\" } OUT ANCHORED_STANDARD_BASH_CARD_OK [Command finished with exit code 0]"
 - button "Inspect"
-- paragraph: MINIMAL_PRESET_REQUEST_OK
+- paragraph: ANCHORED_STANDARD_REQUEST_OK
 - button "Copy":
   - img
 - button "Good response":

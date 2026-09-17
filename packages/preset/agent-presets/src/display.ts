@@ -9,9 +9,11 @@
 
 /** Dictionary keys carrying one shipped preset's display copy. */
 export type BuiltInPresetCopyKey =
-  | 'presetStandardName' | 'presetStandardDescription'
+  | 'presetS1mpleName' | 'presetS1mpleDescription'
+  | 'presetAnchoredStandardName' | 'presetAnchoredStandardDescription'
+  | 'presetCodexV5Name' | 'presetCodexV5Description'
+  | 'presetCodexV6Name' | 'presetCodexV6Description'
   | 'presetPtcName' | 'presetPtcDescription'
-  | 'presetMinimalName' | 'presetMinimalDescription'
   | 'presetCordisName' | 'presetCordisDescription'
 
 /** Preset roster fields needed to resolve display copy. */
@@ -40,9 +42,11 @@ interface PresetLocaleKeys {
 }
 
 const BUILT_IN_PRESET_KEYS: Readonly<Partial<Record<string, PresetLocaleKeys>>> = {
-  standard: { name: 'presetStandardName', description: 'presetStandardDescription' },
+  's1mple-mode': { name: 'presetS1mpleName', description: 'presetS1mpleDescription' },
+  'anchored-standard': { name: 'presetAnchoredStandardName', description: 'presetAnchoredStandardDescription' },
+  'codex-v5': { name: 'presetCodexV5Name', description: 'presetCodexV5Description' },
+  'codex-v6': { name: 'presetCodexV6Name', description: 'presetCodexV6Description' },
   ptc: { name: 'presetPtcName', description: 'presetPtcDescription' },
-  minimal: { name: 'presetMinimalName', description: 'presetMinimalDescription' },
   cordis: { name: 'presetCordisName', description: 'presetCordisDescription' },
 }
 

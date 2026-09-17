@@ -2,7 +2,7 @@
   - navigation "Session hierarchy":
     - button "Use the bash tool to" [disabled]
   - img
-  - text: Standard mode
+  - text: Creator mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -24,6 +24,10 @@
   - img
   - img
   - text: Context injection @deepseek-ai/dsh-system-prompt
+- button "Context injection skill-catalog":
+  - img
+  - img
+  - text: Context injection skill-catalog
 - button "Think The user wants me to run a simple bash command and reply with \"DONE\".":
   - img
   - img

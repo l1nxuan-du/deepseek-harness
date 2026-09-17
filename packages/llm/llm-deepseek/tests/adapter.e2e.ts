@@ -26,6 +26,7 @@ import * as PluginPackageInventoryDeepSeek from '@deepseek-ai/dsh-plugin-package
 import * as SessionLogDeepSeek from '@deepseek-ai/dsh-session-log-deepseek'
 import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
 import type { Config } from '@deepseek-ai/dsh-llm-deepseek'
+import { APPLY_PATCH_LARK } from '@deepseek-ai/dsh-tool-apply-patch'
 import type { WireMessage, WireRequest } from '../src/protocols/chat-completions/types.ts'
 import { assemble, type AssembledResult } from './assemble.ts'
 
@@ -466,4 +467,46 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('llm-deepseek e2e (real API)', ()
     // usage precedes finish (deferred-emit contract)
     expect(kinds.indexOf('usage')).toBeLessThan(kinds.indexOf('finish'))
   })
+
+  it(
+    'responses: a grammar-backed tool returns a custom call whose raw text arrives intact',
+    async () => {
+      // The shipped default wire offers a tool carrying a grammar as a provider
+      // custom tool, so the model writes the patch itself instead of
+      // JSON-escaping it. This is the only real-API acceptance of that offer:
+      // the endpoint must accept the `custom` tool, and the stream must deliver
+      // its freeform input, which the harness parses back as the code-fenced
+      // envelope the upstream parser already pins.
+      const ctx = await harness(FLASH, { protocol: 'responses', thinking: 'disabled' })
+      const patchTool: ToolSchema = {
+        name: 'apply_patch',
+        description: 'Apply a Codex-style multi-file patch to the workspace.',
+        parameters: {
+          type: 'object',
+          properties: { patch: { type: 'string', description: 'The complete Codex-style patch envelope.' } },
+          required: ['patch'],
+        },
+        format: { type: 'grammar', syntax: 'lark', definition: APPLY_PATCH_LARK },
+      }
+
+      const result = await assemble(ctx, {
+        model: FLASH,
+        messages: ask('Create the file notes.txt whose only line is hello, using the apply_patch tool.'),
+        tools: [patchTool],
+        maxTokens: 2000,
+      })
+      expect(
+        result.finish.kind,
+        `DeepSeek Flash custom-tool turn finished as ${JSON.stringify(result.finish)}`,
+      ).toBe('tool-calls')
+      const call = result.message.content.find(block => block.type === 'tool-call')
+      expect(call).toBeDefined()
+      expect(call!.name).toBe('apply_patch')
+      // A custom call carries the model's raw text; only a JSON function call
+      // would arrive wrapped in braces and quotes.
+      expect(call!.arguments.startsWith('*** Begin Patch')).toBe(true)
+      expect(call!.arguments.trimEnd().endsWith('*** End Patch')).toBe(true)
+      expect(call!.arguments).toContain('notes.txt')
+    },
+  )
 })

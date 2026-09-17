@@ -1642,14 +1642,15 @@ describe('DeepSeekAdapter against a mock server', () => {
 })
 
 describe('plugin registration and config', () => {
-  it('defaults to Messages and resolves the selected protocol endpoint without rewriting overrides', () => {
-    expect(resolveAdapterOptions({})).toMatchObject({ protocol: 'messages', baseURL: 'https://api.deepseek.com/anthropic' })
+  it('defaults to Responses and resolves the selected protocol endpoint without rewriting overrides', () => {
+    expect(resolveAdapterOptions({})).toMatchObject({ protocol: 'responses', baseURL: 'https://api.deepseek.com' })
     expect(resolveAdapterOptions({ protocol: 'chat-completions' })).toMatchObject({ protocol: 'chat-completions', baseURL: 'https://api.deepseek.com' })
     expect(resolveAdapterOptions({ protocol: 'messages' })).toMatchObject({ protocol: 'messages', baseURL: 'https://api.deepseek.com/anthropic' })
+    expect(resolveAdapterOptions({ protocol: 'responses' })).toMatchObject({ protocol: 'responses', baseURL: 'https://api.deepseek.com' })
     for (const baseURL of ['https://gateway.example/custom/v1', 'https://gateway.example/v1/messages']) {
       expect(resolveAdapterOptions({ protocol: 'messages', baseURL }).baseURL).toBe(baseURL)
     }
-    expect(() => resolveAdapterOptions({ protocol: 'responses' } as unknown as LlmDeepSeek.Config)).toThrow(/protocol/)
+    expect(() => resolveAdapterOptions({ protocol: 'completions' } as unknown as LlmDeepSeek.Config)).toThrow(/protocol/)
   })
 
   it('keeps wire helpers off the package root', () => {

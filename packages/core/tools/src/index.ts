@@ -214,6 +214,13 @@ export interface ToolOutputDefinition {
 
 /** A registered tool: its schema plus the execution function. */
 export interface ToolDefinition extends ToolSchema {
+  /**
+   * Optional grammar presentation of this tool's single input. A wire that
+   * supports grammar-constrained custom tools presents the tool as freeform
+   * text and the model's text reaches execution as {@link ToolFreeformDefinition.parameter};
+   * every other wire uses {@link ToolSchema.parameters} and the JSON call shape.
+   */
+  readonly freeform?: ToolFreeformDefinition
   /** Mandatory canonical output declaration. */
   readonly output: ToolOutputDefinition
   /**
@@ -243,7 +250,7 @@ export interface ToolDefinition extends ToolSchema {
    * Cooperative tool-call timeout budget in milliseconds. Omit for no deadline.
    * Enforced by `@deepseek-ai/dsh-tool-call-timeout-policy` (a `tools/execute` wrapper); it
    * is NEVER sent to the model — `schemas()` whitelists only name/description/
-   * parameters. Declaring it asserts this tool forwards `exec.signal` to a
+   * parameters/format. Declaring it asserts this tool forwards `exec.signal` to a
    * cooperative implementation that can reach quiescence when the signal aborts.
    */
   timeoutMs?: number
@@ -279,6 +286,16 @@ export interface ToolDefinition extends ToolSchema {
    * for the same replay reason.
    */
   presentResult?(args: unknown, result: ToolResult): ToolResultView | undefined
+}
+
+/** Grammar-backed freeform presentation of one tool. */
+export interface ToolFreeformDefinition {
+  /** Grammar language the provider constrains the input with. */
+  syntax: 'lark'
+  /** Complete grammar definition text, as the provider receives it. */
+  definition: string
+  /** Parameter that receives the model's raw text when the call arrives freeform. */
+  parameter: string
 }
 
 /** The completed outcome handed to {@link ToolDefinition.presentResult}. */
@@ -1260,7 +1277,7 @@ export class ToolRuntime extends Service {
 
   /** Project one definition onto the model-facing schema fields. */
   private schemaOf(definition: ToolDefinition, detachParameters: boolean): ToolSchema {
-    const { name, description, parameters } = definition
+    const { name, description, parameters, freeform } = definition
     const detached = detachParameters ? snapshotJsonValue(parameters) : parameters
     if (detached === undefined) {
       throw new Error(`tool "${name}" parameters must be lossless JSON before schema projection`)
@@ -1269,6 +1286,9 @@ export class ToolRuntime extends Service {
       name,
       description,
       parameters: detached,
+      ...freeform === undefined ? {} : {
+        format: { type: 'grammar' as const, syntax: freeform.syntax, definition: freeform.definition },
+      },
     }
   }
 
@@ -1416,7 +1436,13 @@ export class ToolRuntime extends Service {
     const finalizerFor = (): ToolDefinition['finalizeContent'] | undefined =>
       collapsed && !signal.aborted ? undefined : capturedFinalizer
     try {
-      const detached = snapshotJsonValue(exec.arguments)
+      // A grammar-backed tool's call arrives as the model's raw text (the wire's
+      // custom-tool input), because it is not JSON; deliver it as the parameter
+      // the definition declared so the body reads the same shape on every wire.
+      const incoming = visible?.freeform !== undefined && typeof exec.arguments === 'string'
+        ? { [visible.freeform.parameter]: exec.arguments }
+        : exec.arguments
+      const detached = snapshotJsonValue(incoming)
       if (detached === undefined) {
         throw new TypeError('tool execution arguments must be losslessly JSON-serializable')
       }

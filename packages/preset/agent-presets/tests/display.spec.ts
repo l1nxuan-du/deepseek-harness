@@ -9,10 +9,17 @@ import { presetDisplayText, type BuiltInPresetCopyKey } from '../src/display.ts'
 const t = (key: BuiltInPresetCopyKey): string => `t:${key}`
 
 describe('presetDisplayText', () => {
-  it('resolves a shipped preset through its dictionary keys', () => {
-    expect(presetDisplayText({ id: 'standard', trust: 'system', name: '标准模式' }, t)).toEqual({
-      name: 't:presetStandardName',
-      description: 't:presetStandardDescription',
+  it.each([
+    ['s1mple-mode', 'presetS1mpleName', 'presetS1mpleDescription'],
+    ['anchored-standard', 'presetAnchoredStandardName', 'presetAnchoredStandardDescription'],
+    ['codex-v5', 'presetCodexV5Name', 'presetCodexV5Description'],
+    ['codex-v6', 'presetCodexV6Name', 'presetCodexV6Description'],
+    ['ptc', 'presetPtcName', 'presetPtcDescription'],
+    ['cordis', 'presetCordisName', 'presetCordisDescription'],
+  ] as const)('resolves the shipped %s preset through its dictionary keys', (id, nameKey, descriptionKey) => {
+    expect(presetDisplayText({ id, trust: 'system', name: 'file name' }, t)).toEqual({
+      name: `t:${nameKey}`,
+      description: `t:${descriptionKey}`,
     })
   })
 

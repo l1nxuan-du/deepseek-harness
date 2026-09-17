@@ -106,6 +106,7 @@
     "@deepseek-ai/dsh-tool-cordis": "workspace:^",
     "@deepseek-ai/dsh-tool-present": "workspace:^",
     "@deepseek-ai/dsh-tool-fs": "workspace:^",
+    "@deepseek-ai/dsh-tool-apply-patch": "workspace:^",
     "@deepseek-ai/dsh-tool-fs-search": "workspace:^",
     "@deepseek-ai/dsh-tool-goal": "workspace:^",
     "@deepseek-ai/dsh-tool-jobs": "workspace:^",

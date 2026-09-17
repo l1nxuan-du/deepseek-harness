@@ -2,7 +2,7 @@
   - navigation "Session hierarchy":
     - button "Reply with the single word" [disabled]
   - img
-  - text: Standard mode
+  - text: S1mple mode
   - button "More actions":
     - img
   - button "Open right sidebar":
@@ -10,20 +10,12 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- button "System prompt":
-  - img
-  - img
-  - text: System prompt
 - text: Reply with the single word LIGHTHOUSE and stop. {{clock}}
 - button "Copy":
   - img
 - button "Thought for a while" [expanded]:
   - text: Thought for a while
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
-  - img
-  - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
 - button "Think The user wants me to reply with a single word. Let me comply.":
   - img
   - img

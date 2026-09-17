@@ -28,7 +28,8 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-pwsh-persistent` | `pwsh` | `ctx.tools`, `ctx.terminals`, `an owning Agent at execution time` | `tool/call`, `PTY shell state`, `tool/result` | - | One owner-isolated persistent pwsh tool, the Windows counterpart of the persistent bash tool; deployment composition supplies a pwsh-dialect PTY backend and may override the model-facing environment description. |
 | `@deepseek-ai/dsh-tool-str-replace-editor` | `str_replace_editor` | `ctx.tools`, `ctx.fs` | `tool/call`, `fs/observed after view presence/absence, edit absence, or successful mutation`, `tool/result` | - | Standalone view/create/unique literal replace/line insert tool over the filesystem seam; it composes with any shell or terminal API. |
 | `@deepseek-ai/dsh-tool-fs` | `edit`, `read`, `read_image`, `write` | `ctx.tools`, `ctx.fs`, `ctx.systemPrompt`, `ctx.attachments (image-tool registration)`, `ctx.llm + an image-capable route (image-tool execution)` | `tool/call`, `fs/write-intent or fs/edit-intent for mutations`, `fs/observed after read presence/absence or successful file operation`, `durable attachment (read_image)`, `tool/result` | - | The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input. |
-| `@deepseek-ai/dsh-tool-fs-search` | `glob`, `grep` | `ctx.tools`, `ctx.subprocess`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments. |
+| `@deepseek-ai/dsh-tool-apply-patch` | `apply_patch` | `ctx.tools`, `ctx.fs` | `tool/call`, `fs/write-intent or fs/edit-intent for mutations`, `fs/observed after read presence/absence or successful file operation`, `tool/result` | - | Applies a Codex-style multi-file patch envelope over the filesystem seam: every hunk is checked against its file before anything is written, and the tool composes with any shell or terminal API. A wire that supports grammar-constrained custom tools receives the envelope as freeform input, so the model writes the patch without JSON escaping it. |
+| `@deepseek-ai/dsh-tool-fs-search` | `glob`, `grep`, `rg` | `ctx.tools`, `ctx.subprocess`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | glob, grep, and rg are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments. |
 | `@deepseek-ai/dsh-tool-terminal` | `terminal_close`, `terminal_list`, `terminal_open`, `terminal_read`, `terminal_send`, `terminal_signal` | `ctx.tools`, `ctx.terminals`, `ctx.systemPrompt`, `ctx.jobs at call time for run_in_background` | `tool/call`, `tool/result` | - | The six terminal tools are opt-in and complement one-shot shell/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.jobs`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema. |
 | `@deepseek-ai/dsh-tool-goal` | `create_goal`, `get_goal`, `update_goal` | `ctx.tools`, `ctx.agents`, `ctx.goals`, `ctx.systemPrompt`, `a calling Agent in an authorized open turn` | `tool/call`, `goal/change for mutations`, `tool/result` | - | create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds. |
 | `@deepseek-ai/dsh-schedule` | `schedule_create`, `schedule_delete`, `schedule_list` | `ctx.tools`, `ctx.sessions`, `Session persistence`, `a future live root Agent` | `tool/call`, `schedule/change create or delete`, `tool/result` | - | Registered only inside live root Agent scopes created after the opt-in Schedule plugin loads. Version 1 accepts after_seconds, explicit absolute at, and bounded fixed-rate every_seconds, and discloses session-local delivery; management reads and mutations require the shared Session persistence barrier. |
@@ -1166,6 +1167,55 @@ Source: [`packages/fs/tool-fs/src/index.ts`](../packages/fs/tool-fs/src/index.ts
 
 The read-before-write/edit policy is added by `@deepseek-ai/dsh-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input.
 
+<a id="deepseek-aidsh-tool-apply-patch"></a>
+
+## `@deepseek-ai/dsh-tool-apply-patch`
+
+### `apply_patch`
+
+Apply a Codex-style multi-file patch to the workspace.
+
+The patch must use the Codex envelope:
+
+~~~text
+*** Begin Patch
+*** Add File: path
++content
+*** Update File: path
+@@
+ context
+-old
++new
+*** Move to: new-path
+*** Delete File: path
+*** End Patch
+~~~
+
+Paths may be absolute or relative to the session working directory. Every hunk is checked against its file before anything is written, so a patch whose anchor lines are missing is declined whole; a failure that only the write itself can report — a file that changed since it was read, a sandbox denial — leaves the operations before it applied.
+
+Updates match whole lines and apply at the first run that matches: exactly, then ignoring surrounding whitespace, then ignoring the difference between plain ASCII and typographic punctuation. A hunk that removes and keeps nothing is inserted at the end of the file, and a `*** End of File` line anchors its hunk there. Line endings of untouched lines are kept, inserted lines take the file's own ending, and an updated file ends with a newline.
+
+`*** Add File: ` writes over an existing path, `*** Move to: ` writes over an existing destination, and removing a path that is not a regular file is refused.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "patch": {
+      "type": "string",
+      "description": "The complete Codex-style patch envelope."
+    }
+  },
+  "required": [
+    "patch"
+  ]
+}
+```
+
+Source: [`packages/fs/tool-apply-patch/src/index.ts`](../packages/fs/tool-apply-patch/src/index.ts)
+
+Applies a Codex-style multi-file patch envelope over the filesystem seam: every hunk is checked against its file before anything is written, and the tool composes with any shell or terminal API. A wire that supports grammar-constrained custom tools receives the envelope as freeform input, so the model writes the patch without JSON escaping it.
+
 <a id="deepseek-aidsh-tool-fs-search"></a>
 
 ## `@deepseek-ai/dsh-tool-fs-search`
@@ -1224,7 +1274,28 @@ Search file contents with a ripgrep regular expression. Returns matching lines w
 
 Source: [`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-search/src/index.ts)
 
-glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments.
+### `rg`
+
+Run the packaged ripgrep with your own flags and return its raw output. Use it for ripgrep features the grep tool does not expose: counts, file lists, context lines, type filters, inverted matches, multiline search. The argument line reaches ripgrep verbatim — quotes group a token, and no shell expansion applies — so ripgrep reports its own argument errors. Use `--files` to list paths instead of matching content. Keeps the first 200 output lines inline; a capped result reports where the complete output was saved.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "args": {
+      "type": "string",
+      "description": "The ripgrep arguments: flags then the pattern and paths, e.g. \"-n -g *.ts pattern src\". Quotes group a token; no shell expansion applies."
+    }
+  },
+  "required": [
+    "args"
+  ]
+}
+```
+
+Source: [`packages/fs/tool-fs-search/src/index.ts`](../packages/fs/tool-fs-search/src/index.ts)
+
+glob, grep, and rg are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments.
 
 <a id="deepseek-aidsh-tool-terminal"></a>
 
