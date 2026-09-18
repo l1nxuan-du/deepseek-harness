@@ -1,0 +1,3 @@
+name: LINX Mode
+description: 以 linx.md 为基础的完整编码 Agent；预设内置 .agent 与 docs 参考，并在提示词中提供实际安装路径。
+order: 7

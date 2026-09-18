@@ -23,7 +23,7 @@
   - heading "Agent 预设" [level=2]
   - paragraph: 预设即一个会话的 Agent 所运行的插件组装 —— 它的工具、提示词与能力。复制一份既有预设改成自己的，或用「创造模式」让 Agent 帮你创建。
   - text: 允许切换agent模式 beta
-  - paragraph: 开启后，新任务可选择飞猪、Anchored Standard (实验性)、PTC、创造、Codex V5/V6 及自定义模式；关闭后统一使用默认模式（默认为飞猪模式，可自定义）。仅影响新任务。
+  - paragraph: 开启后，新任务可选择飞猪、Anchored Standard (实验性)、PTC、创造、Codex V5/V6、林克斯模式及自定义模式；关闭后统一使用默认模式（默认为飞猪模式，可自定义）。仅影响新任务。
   - switch "允许切换agent模式" [checked]
   - heading "内置" [level=3]
   - list:
@@ -85,6 +85,16 @@
         - img
         - text: 查看
       - 'button "复制: Codex V6"':
+        - img
+        - text: 复制
+    - listitem:
+      - 'button "设为默认: 林克斯模式"':
+        - text: 林克斯模式 内置 以 linx.md 为基础提示词的完整编码 Agent；内置 .agent 与 docs 参考目录，并解析为实际预设安装路径。
+        - code: linx-mode
+      - 'button "查看: 林克斯模式"':
+        - img
+        - text: 查看
+      - 'button "复制: 林克斯模式"':
         - img
         - text: 复制
   - heading "自定义" [level=3]

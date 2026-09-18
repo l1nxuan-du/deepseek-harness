@@ -16,6 +16,7 @@ describe('presetDisplayText', () => {
     ['codex-v6', 'presetCodexV6Name', 'presetCodexV6Description'],
     ['ptc', 'presetPtcName', 'presetPtcDescription'],
     ['cordis', 'presetCordisName', 'presetCordisDescription'],
+    ['linx-mode', 'presetLinxModeName', 'presetLinxModeDescription'],
   ] as const)('resolves the shipped %s preset through its dictionary keys', (id, nameKey, descriptionKey) => {
     expect(presetDisplayText({ id, trust: 'system', name: 'file name' }, t)).toEqual({
       name: `t:${nameKey}`,

@@ -255,7 +255,7 @@ describe('the shipped Web composition', () => {
     const listed = await ctx.agentPresets.list()
 
     expect(listed.map(preset => preset.id).sort())
-      .toEqual(['anchored-standard', 'codex-v5', 'codex-v6', 'cordis', 'ptc', 's1mple-mode'])
+      .toEqual(['anchored-standard', 'codex-v5', 'codex-v6', 'cordis', 'linx-mode', 'ptc', 's1mple-mode'])
     expect(listed.every(preset => preset.trust === 'system')).toBe(true)
     expect(ctx.agentPresets.defaultId).toBe('s1mple-mode')
   })
@@ -335,6 +335,27 @@ describe('the shipped Web composition', () => {
       ]))
       // The one-shot shell row stays out; the persistent tool owns that name.
       expect(assembly.tools.filter(tool => tool.name === MINIMAL_SHELL)).toHaveLength(1)
+    } finally {
+      await handle.dispose()
+    }
+  })
+
+  it('composes the LINX Mode prompt with its installed reference paths', async () => {
+    const handle = await ctx.agents.create({
+      sessionId: SessionId(`preset-linx-mode-${randomUUID()}`),
+      setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'linx-mode').then(() => undefined),
+    })
+    try {
+      const assembly = await ctx.systemPrompt.assemble(assembleContextFor(handle.agent))
+      const persona = assembly.sections.find(section => section.name === 'deployment:persona-prefix')
+      const root = join(SHIPPED_PRESET_ROOT, 'linx-mode').replaceAll('\\', '/').replace(/\/+$/, '')
+      expect(persona?.text).toContain('# Do')
+      expect(persona?.text).toContain(`${root}/.agent/AGENTS.md`)
+      expect(persona?.text).toContain(`${root}/docs/development.md`)
+      expect(persona?.text).not.toContain('__DSH_LINX_ROOT__')
+      expect(assembly.tools.map(tool => tool.name)).toEqual(expect.arrayContaining([
+        'apply_patch', 'present', 'read', 'skill', 'todo_write', 'write', MINIMAL_SHELL,
+      ]))
     } finally {
       await handle.dispose()
     }
@@ -1057,7 +1078,7 @@ describe('a composition that configures its own preset roots', () => {
 
     const listed = await rootsCtx.agentPresets.list()
     expect(listed.map(preset => preset.id).sort())
-      .toEqual(['anchored-standard', 'codex-v5', 'codex-v6', 'cordis', 'ptc', 's1mple-mode', 'team-spec'])
+      .toEqual(['anchored-standard', 'codex-v5', 'codex-v6', 'cordis', 'linx-mode', 'ptc', 's1mple-mode', 'team-spec'])
     expect(listed.every(preset => preset.broken === undefined)).toBe(true)
     // The shipped root comes first: a configured directory claiming a shipped
     // id is shadowed, never the other way around.

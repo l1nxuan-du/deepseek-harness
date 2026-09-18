@@ -10,6 +10,7 @@ export type AgentPresetSettingsKey =
   | 'presetCodexV6Name' | 'presetCodexV6Description'
   | 'presetPtcName' | 'presetPtcDescription'
   | 'presetCordisName' | 'presetCordisDescription'
+  | 'presetLinxModeName' | 'presetLinxModeDescription'
   | 'duplicate' | 'duplicateUnavailable' | 'delete' | 'presetId' | 'presetIdPlaceholder' | 'copyOf'
   | 'displayName' | 'displayNamePlaceholder'
   | 'inUse' | 'selectionOffDefault' | 'noDescription' | 'builtInGroup' | 'customGroup'
@@ -53,6 +54,9 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   presetCordisName: 'Creator mode',
   presetCordisDescription:
     'Built for creating custom agent presets, with the full tool set plus runtime inspection, persistent plugin management, and preset-authoring guidance.',
+  presetLinxModeName: 'LINX Mode',
+  presetLinxModeDescription:
+    'Full coding agent with linx.md as its base prompt; the bundled .agent and docs references resolve to the installed preset directory.',
   duplicate: 'Duplicate',
   duplicateUnavailable: 'This deployment has no writable preset directory',
   delete: 'Delete',
@@ -94,7 +98,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   showPicker: 'Allow switching Agent modes',
   showPickerBeta: 'Beta',
   showPickerDescription:
-    'When enabled, new tasks can choose S1mple, Anchored Standard, PTC, Creator, Codex V5, Codex V6, and custom modes. When disabled, all new tasks use the default mode (S1mple mode by default; configurable). Only affects new tasks.',
+    'When enabled, new tasks can choose S1mple, Anchored Standard, PTC, Creator, Codex V5, Codex V6, LINX Mode, and custom modes. When disabled, all new tasks use the default mode (S1mple mode by default; configurable). Only affects new tasks.',
   enablePickerToSetDefault: 'Turn on Agent mode selection to choose a default',
   enablePickerToCreate: 'Turn on Agent mode selection to start Creator mode',
 }
@@ -122,6 +126,8 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   presetPtcDescription: '功能完整的编码 Agent，但默认不提供 workflow 工具；其他工具通过 PTC 模式 SDK 呈现，让模型用一个 TypeScript 程序组合多步操作。',
   presetCordisName: '创造模式',
   presetCordisDescription: '用于创建自定义 Agent preset：具备完整工具集，并提供运行时检查、持久化插件管理和 preset 创作指导。',
+  presetLinxModeName: '林克斯模式',
+  presetLinxModeDescription: '以 linx.md 为基础提示词的完整编码 Agent；内置 .agent 与 docs 参考目录，并解析为实际预设安装路径。',
   duplicate: '复制',
   duplicateUnavailable: '此部署未配置可写的预设目录',
   delete: '删除',
@@ -159,7 +165,7 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   deleting: '正在删除…',
   showPicker: '允许切换agent模式',
   showPickerBeta: 'beta',
-  showPickerDescription: '开启后，新任务可选择飞猪、Anchored Standard (实验性)、PTC、创造、Codex V5/V6 及自定义模式；关闭后统一使用默认模式（默认为飞猪模式，可自定义）。仅影响新任务。',
+  showPickerDescription: '开启后，新任务可选择飞猪、Anchored Standard (实验性)、PTC、创造、Codex V5/V6、林克斯模式及自定义模式；关闭后统一使用默认模式（默认为飞猪模式，可自定义）。仅影响新任务。',
   enablePickerToSetDefault: '请先开启 Agent 模式选择，再设置默认模式',
   enablePickerToCreate: '请先开启 Agent 模式选择，再启动创造模式',
 }

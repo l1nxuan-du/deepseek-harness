@@ -7,4 +7,5 @@
   - menuitem "Creator mode Built for creating custom agent presets, with the full tool set plus runtime inspection, persistent plugin management, and preset-authoring guidance."
   - menuitem "Codex V5 The GPT-5 Codex instructions ported to DSH, with one persistent shell per agent, apply_patch editing, grep/glob search, jobs, planning, goals, subagents, and present."
   - menuitem "Codex V6 The GPT-6/Astra Codex instructions ported to DSH with the same tool set as Codex V5; only the persona and identity copy differ."
+  - menuitem "LINX Mode Full coding agent with linx.md as its base prompt; the bundled .agent and docs references resolve to the installed preset directory."
   - menuitem "Refusing mode Resolves, then refuses to start."

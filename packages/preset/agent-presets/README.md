@@ -27,7 +27,7 @@ Use `dsh-agent-presets` to give each session the tools, prompt sections, and ski
 
 Mount this package in a composition that should give each agent session its own tools, prompt sections, and skills from a preset file. Every session names a preset — explicitly or through the configured default — and is composed from it; without the package, sessions fall back to whatever the host composition mounts.
 
-The shipped Web `s1mple-mode`, `anchored-standard`, `codex-v5`, `codex-v6`, `ptc`, and `cordis` presets include [explicit file delivery](../../client/ui-deliverables/README.md#explicit-deliveries). `anchored-standard` deliberately composes only its bootstrap pair and the discovery tools until a session promotes.
+The shipped Web `s1mple-mode`, `anchored-standard`, `codex-v5`, `codex-v6`, `ptc`, `cordis`, and `linx-mode` presets include [explicit file delivery](../../client/ui-deliverables/README.md#explicit-deliveries). `anchored-standard` deliberately composes only its bootstrap pair and the discovery tools until a session promotes.
 
 ### What a preset gives a session
 

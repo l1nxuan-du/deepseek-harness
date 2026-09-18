@@ -15,6 +15,7 @@ export type BuiltInPresetCopyKey =
   | 'presetCodexV6Name' | 'presetCodexV6Description'
   | 'presetPtcName' | 'presetPtcDescription'
   | 'presetCordisName' | 'presetCordisDescription'
+  | 'presetLinxModeName' | 'presetLinxModeDescription'
 
 /** Preset roster fields needed to resolve display copy. */
 export interface PresetDisplaySource {
@@ -48,6 +49,7 @@ const BUILT_IN_PRESET_KEYS: Readonly<Partial<Record<string, PresetLocaleKeys>>> 
   'codex-v6': { name: 'presetCodexV6Name', description: 'presetCodexV6Description' },
   ptc: { name: 'presetPtcName', description: 'presetPtcDescription' },
   cordis: { name: 'presetCordisName', description: 'presetCordisDescription' },
+  'linx-mode': { name: 'presetLinxModeName', description: 'presetLinxModeDescription' },
 }
 
 /**

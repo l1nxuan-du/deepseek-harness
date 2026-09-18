@@ -9,12 +9,13 @@
  * suite: the derived writable root is resolved in the constructor.
  */
 
+import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
-import Loader from '@deepseek-ai/cordis-plugin-loader'
+import Loader, { evaluate } from '@deepseek-ai/cordis-plugin-loader'
 import Include, { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import * as yaml from 'js-yaml'
@@ -85,12 +86,42 @@ async function shippedEntries(id: string): Promise<unknown[]> {
 }
 
 describe('the shipped preset root', () => {
+  it('rewrites linx-mode prompt references to the installed preset directory', async () => {
+    const entries = await shippedEntries('linx-mode')
+    const persona = findEntry(entries, 'persona')
+    const prefix = (persona?.config as { prefix?: unknown } | undefined)?.prefix
+    if (typeof prefix !== 'object' || prefix === null || !('__jsExpr' in prefix)) {
+      throw new TypeError('linx-mode persona prefix must be a !!js expression')
+    }
+    const presetDir = join(SHIPPED_PRESET_ROOT, 'linx-mode')
+    const prompt = evaluate(
+      { baseUrl: pathToFileURL(join(presetDir, 'agent.cordis.yml')).href },
+      (prefix as { __jsExpr: string }).__jsExpr,
+    ) as string
+    const root = presetDir.replaceAll('\\', '/')
+    expect(prompt).toContain('# Do')
+    expect(prompt).toContain(`${root}/.agent/AGENTS.md`)
+    expect(prompt).toContain(`${root}/docs/development.md`)
+    expect(prompt).not.toContain('__DSH_LINX_ROOT__')
+
+    const sourcePrompt = await readFile(join(presetDir, 'linx.md'), 'utf8')
+    const references = [...sourcePrompt.matchAll(/__DSH_LINX_ROOT__\/([^`\s]+)/g)]
+      .flatMap(match => match[1] === undefined ? [] : [match[1]])
+    expect(references.length).toBeGreaterThan(0)
+    for (const reference of references) {
+      expect(existsSync(join(presetDir, ...reference.split('/'))), reference).toBe(true)
+    }
+    const bundledInstructions = await readFile(join(presetDir, '.agent', 'AGENTS.md'), 'utf8')
+    expect(bundledInstructions).toContain('`../docs/AGENTS.md`')
+    expect(bundledInstructions).not.toContain('linx-mode\\docs')
+  })
+
   it('supplies the built-in presets from a bare roster, healthy and system-trusted', async () => {
     const ctx = await roster({ includeUserRoot: false })
 
     const listed = await ctx.agentPresets.list()
     expect(listed.map(preset => preset.id).sort())
-      .toEqual(['anchored-standard', 'codex-v5', 'codex-v6', 'cordis', 'ptc', 's1mple-mode'])
+      .toEqual(['anchored-standard', 'codex-v5', 'codex-v6', 'cordis', 'linx-mode', 'ptc', 's1mple-mode'])
     expect(listed.every(preset => preset.trust === 'system')).toBe(true)
     // Not `broken === undefined`: health asks whether each row's package is
     // installed above the base, and the shipped rows name packages the
@@ -134,7 +165,7 @@ describe('the shipped preset root', () => {
   })
 
   it('enables web_fetch in each tool-bearing Web app preset', async () => {
-    for (const id of ['cordis', 'ptc', 's1mple-mode']) {
+    for (const id of ['cordis', 'linx-mode', 'ptc', 's1mple-mode']) {
       const entries = await shippedEntries(id)
       const toolWeb: unknown = entries.find((entry: unknown) =>
         typeof entry === 'object' && entry !== null && 'id' in entry && entry.id === 'tool-web')
@@ -151,7 +182,7 @@ describe('the shipped preset root', () => {
     expect(findEntry(ptc, 'tool-workflow')?.disabled).toBe(true)
     expect(findEntry(ptc, 'workflow-ptc')?.disabled).toBe(true)
 
-    for (const id of ['s1mple-mode', 'cordis']) {
+    for (const id of ['s1mple-mode', 'linx-mode', 'cordis']) {
       const entries = await shippedEntries(id)
       expect(findEntry(entries, 'tool-workflow')?.disabled, id).not.toBe(true)
       expect(findEntry(entries, 'workflow-ptc')?.disabled, id).not.toBe(true)
@@ -159,7 +190,7 @@ describe('the shipped preset root', () => {
   })
 
   it('disables the ralph tool in every shipped preset that carries it', async () => {
-    for (const id of ['cordis', 'ptc', 's1mple-mode', 'anchored-standard', 'codex-v5', 'codex-v6']) {
+    for (const id of ['cordis', 'linx-mode', 'ptc', 's1mple-mode', 'anchored-standard', 'codex-v5', 'codex-v6']) {
       expect(findEntry(await shippedEntries(id), 'tool-ralph')?.disabled, id).toBe(true)
     }
   })
