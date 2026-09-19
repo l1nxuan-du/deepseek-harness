@@ -210,11 +210,11 @@ describe('web e2e: interface skin', () => {
         bandImage: band.backgroundImage,
       }
     })
-    // The seat is a flat mica surface: the shipped fade and the reference
-    // skin's gradient band are both absent, and nothing reads through.
+    // The seat is clear: the card is the material, and the shipped fade plus
+    // any band stay off.
     expect(seat.backgroundImage).toBe('none')
-    expect(seat.backgroundColor).toBe('rgba(249, 248, 248, 0.94)')
-    expect(seat.blur).toBe('blur(12px)')
+    expect(seat.backgroundColor).toBe('rgba(0, 0, 0, 0)')
+    expect(seat.blur).toBe('none')
     expect(seat.bandImage).toBe('none')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
