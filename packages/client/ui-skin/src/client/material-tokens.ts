@@ -18,6 +18,10 @@ const SURFACE_DARK = 'rgba(255, 255, 255, 0.08)'
 const RAISED_LIGHT = 'rgba(255, 255, 255, 0.72)'
 const RAISED_DARK = 'rgba(32, 33, 36, 0.86)'
 
+/** Mica fill for the input card: a tinted film that bounds the card. */
+const MICA_LIGHT = 'rgba(255, 255, 255, 0.88)'
+const MICA_DARK = 'rgba(43, 45, 49, 0.9)'
+
 /** The prototype's single interactive accent. */
 const ACCENT = '#4176e6'
 
@@ -46,6 +50,10 @@ export const MATERIAL_TOKEN_OVERRIDES: ThemeTokenOverrides = {
   '--dsw-alias-markdown-tag': { light: 'rgba(0, 0, 0, 0.05)', dark: 'rgba(255, 255, 255, 0.10)' },
   '--dsw-specific-sidebar-nav-item-active': { light: 'rgba(0, 0, 0, 0.06)', dark: 'rgba(255, 255, 255, 0.10)' },
   '--dsw-specific-sidebar-nav-item-hover': { light: 'rgba(0, 0, 0, 0.04)', dark: 'rgba(255, 255, 255, 0.07)' },
+  // The composer card's own fill token: the shipped card rule consumes it, so
+  // the input and the other card surfaces (attachment rail, approval and
+  // question panels) move together instead of drifting apart.
+  '--dsw-specific-input-major': { light: MICA_LIGHT, dark: MICA_DARK },
   '--dsw-specific-bubble': { light: SURFACE_LIGHT, dark: SURFACE_DARK },
   '--dsw-specific-bubble-highlight': { light: RAISED_LIGHT, dark: RAISED_DARK },
   '--dsw-specific-menu': { light: RAISED_LIGHT, dark: RAISED_DARK },

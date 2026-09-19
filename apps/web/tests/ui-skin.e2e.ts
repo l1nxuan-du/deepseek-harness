@@ -142,10 +142,18 @@ describe('web e2e: interface skin', () => {
     const composer = await page.locator('[data-composer-card]').first().evaluate((card) => {
       const style = getComputedStyle(card)
       const frost = getComputedStyle(card, '::before')
-      return { background: style.backgroundColor, blur: style.backdropFilter, frost: frost.backdropFilter }
+      return {
+        background: style.backgroundColor,
+        border: style.borderTopWidth,
+        blur: style.backdropFilter,
+        frost: frost.backdropFilter,
+      }
     })
-    expect(composer.background).toBe('rgba(255, 255, 255, 0.5)')
-    // The blur rides the pseudo-element, never the card itself.
+    // The fill is the card's own token: mica, not the shipped acrylic.
+    expect(composer.background).toBe('rgba(255, 255, 255, 0.88)')
+    // Elevated surfaces take their boundary from the elevation shadow, never
+    // from a border, and the frost rides the pseudo-element.
+    expect(composer.border).toBe('0px')
     expect(composer.blur).toBe('none')
     expect(composer.frost).toBe('blur(16px) saturate(1.4)')
   })
@@ -199,14 +207,12 @@ describe('web e2e: interface skin', () => {
         backgroundImage: style.backgroundImage,
         backgroundColor: style.backgroundColor,
         bandImage: band.backgroundImage,
-        bandBlur: band.backdropFilter,
       }
     })
+    // No gradient behind the input: the shipped fade and any seat band are off.
     expect(seat.backgroundImage).toBe('none')
     expect(seat.backgroundColor).toBe('rgba(0, 0, 0, 0)')
-    // The composer's own paint is the blurred band on its seat.
-    expect(seat.bandImage).toContain('linear-gradient')
-    expect(seat.bandBlur).toBe('blur(14px) saturate(1.3)')
+    expect(seat.bandImage).toBe('none')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })
