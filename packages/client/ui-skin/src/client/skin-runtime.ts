@@ -62,6 +62,11 @@ export class SkinRuntime {
     this.variant = bootstrapVariant()
     this.snapshot = { variant: this.variant, revision: this.revision }
     this.ctx.effect(() => host.subscribe(() => { this.adopt() }), 'ui-skin: settings scope adoption')
+    // The flow pattern carries its own palette, so the field follows the
+    // resolved colour scheme instead of only the stylesheet's tokens.
+    this.ctx.effect(() => this.ctx.on('theme/change', (snapshot) => {
+      this.field?.setColorScheme(snapshot.active.colorScheme)
+    }), 'ui-skin: field colour scheme')
     // Project the default before the durable value arrives: a scope that is
     // still loading, exposed as memory-only, or absent entirely must still
     // render the product default.
@@ -133,6 +138,6 @@ export class SkinRuntime {
       return
     }
     this.tokens ??= this.ctx.theme.overrideTokens(TOKEN_SOURCE, MATERIAL_TOKEN_OVERRIDES)
-    this.field ??= createFieldBackdrop()
+    this.field ??= createFieldBackdrop(this.ctx.theme.getTheme().active.colorScheme)
   }
 }

@@ -51,7 +51,13 @@ async function bench() {
   events.$host = { home: undefined, isLoopback: true }
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
   const overrideTokens = vi.fn((_source: string, _tokens: ThemeTokenOverrides) => () => {})
-  ctx.provide('theme', { overrideTokens } as never)
+  ctx.provide('theme', {
+    overrideTokens,
+    getTheme: () => ({
+      preference: 'light', fontSize: 14, themes: [], revision: 0,
+      active: { id: 'light', colorScheme: 'light', tokens: {} },
+    }),
+  } as never)
   return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, mutate, overrideTokens }
 }
 

@@ -127,6 +127,16 @@ describe('web e2e: interface skin', () => {
     })
     expect(insetPane.radius).toBe('24px')
     expect(insetPane.backdrop).toContain('blur')
+    // The field is the wash plus the flow pattern: no lattice, and the pattern
+    // canvas is sized and visible wherever the browser renders WebGL2.
+    await expect.poll(() => page.locator('[data-dsh-field-layer="grid"]').count()).toBe(0)
+    const pattern = await page.locator('[data-dsh-field-layer="pattern"]').evaluate((canvas) => {
+      const element = canvas as HTMLCanvasElement
+      return { hidden: element.hidden, width: element.width, height: element.height }
+    })
+    expect(pattern.hidden).toBe(false)
+    expect(pattern.width).toBeGreaterThan(0)
+    expect(pattern.height).toBeGreaterThan(0)
   })
 
   it('moves to the classic chrome from Settings and back', async () => {

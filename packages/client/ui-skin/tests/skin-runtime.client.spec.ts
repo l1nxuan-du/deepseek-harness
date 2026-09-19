@@ -27,15 +27,23 @@ function bench(initial?: SkinSettings) {
   const disposeTokens = vi.fn()
   const overrideTokens = vi.fn(() => disposeTokens)
   const disposers: (() => void)[] = []
+  const themeListeners = new Set<(snapshot: unknown) => void>()
   const ctx = {
     effect: (run: () => (() => void) | undefined) => {
       const disposer = run()
       if (typeof disposer === 'function') disposers.push(disposer)
       return () => { disposer?.() }
     },
-    theme: { overrideTokens },
+    on: (_event: string, listener: (snapshot: unknown) => void) => {
+      themeListeners.add(listener)
+      return () => { themeListeners.delete(listener) }
+    },
+    theme: {
+      overrideTokens,
+      getTheme: () => ({ active: { id: 'light', colorScheme: 'light', tokens: {} }, preference: 'light', fontSize: 14, themes: [], revision: 0 }),
+    },
   } as unknown as ClientContext
-  return { ctx, host, set, overrideTokens, disposeTokens, listeners, disposers }
+  return { ctx, host, set, overrideTokens, disposeTokens, listeners, disposers, themeListeners }
 }
 
 afterEach(() => {
@@ -124,6 +132,19 @@ describe('skin runtime', () => {
     for (const listener of [...b.listeners]) listener()
     expect(runtime.getSkin()).toEqual({ variant: 'classic', revision: 1 })
     expect(document.documentElement.getAttribute(SKIN_ATTRIBUTE)).toBe('classic')
+  })
+
+  it('follows the theme service into the field pattern', () => {
+    const b = bench()
+    const runtime = new SkinRuntime(b.ctx, b.host)
+    expect(b.themeListeners.size).toBe(1)
+    for (const listener of [...b.themeListeners]) {
+      listener({ active: { colorScheme: 'dark' } })
+    }
+    expect(b.themeListeners.size).toBe(1)
+    runtime.setSkin('classic')
+    for (const listener of [...b.themeListeners]) listener({ active: { colorScheme: 'light' } })
+    runtime.dispose()
   })
 
   it('retracts the token layer, the field, and the scope listener on dispose', () => {

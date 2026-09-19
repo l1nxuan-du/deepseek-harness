@@ -18,7 +18,6 @@ html[data-dsh-skin='material'] {
     radial-gradient(200% 62% at 50% -18%, color-mix(in oklab, #9cc1e7 42%, transparent) 0%, color-mix(in oklab, #9cc1e7 19%, transparent) 55%, transparent 92%),
     linear-gradient(180deg, #e6edf7 0%, #e9eef7 50%, #f6f8fb 100%);
   --dsh-field-mask: linear-gradient(to right, rgb(0 0 0 / 0.35) 0%, rgb(0 0 0 / 0.85) 16%, rgb(0 0 0 / 0.92) 40%, rgb(0 0 0 / 0.92) 100%);
-  --dsh-field-grid: rgb(0 0 0 / 0.035);
   --dsh-surface-glass: rgb(255 255 255 / 0.3);
   --dsh-surface-acrylic: rgb(255 255 255 / 0.5);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
@@ -40,7 +39,6 @@ html[data-dsh-skin='material'] {
   --dsh-pane-gap: 5px;
   --dsh-sheen: inset 0 1px 0 rgb(255 255 255 / 0.85);
   --dsh-pane-shadow: 0 10px 30px rgb(31 45 84 / 0.08);
-  --dsh-field-grid: rgb(0 0 0 / 0.035);
 }
 
 html[data-dsh-skin='material'] body[data-ds-dark-theme] {
@@ -59,7 +57,6 @@ html[data-dsh-skin='material'] body[data-ds-dark-theme] {
   --dsh-border-acrylic: rgb(255 255 255 / 0.12);
   --dsh-accent-ink: #a9c4ff;
   --dsh-sheen: inset 0 1px 0 rgb(255 255 255 / 0.08);
-  --dsh-field-grid: rgb(255 255 255 / 0.05);
   --dsh-pane-shadow: 0 10px 30px rgb(0 0 0 / 0.34);
 }
 
@@ -89,11 +86,10 @@ html[data-dsh-skin='material'] body {
   transition: background 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-[data-dsh-field-layer='grid'] {
-  background-image:
-    linear-gradient(to right, var(--dsh-field-grid) 0.5px, transparent 0.5px),
-    linear-gradient(to bottom, var(--dsh-field-grid) 0.5px, transparent 0.5px);
-  background-size: 90px 90px;
+[data-dsh-field-layer='pattern'] {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 [data-dsh-field]::after {
