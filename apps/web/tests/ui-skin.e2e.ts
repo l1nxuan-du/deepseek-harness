@@ -137,6 +137,14 @@ describe('web e2e: interface skin', () => {
     expect(pattern.hidden).toBe(false)
     expect(pattern.width).toBeGreaterThan(0)
     expect(pattern.height).toBeGreaterThan(0)
+    // The input is mica: a mostly opaque fill under a short blur, so transcript
+    // rows scrolling behind it cannot be read through the card.
+    const composer = await page.locator('[data-composer-card]').first().evaluate((card) => {
+      const style = getComputedStyle(card)
+      return { background: style.backgroundColor, blur: style.backdropFilter }
+    })
+    expect(composer.background).toBe('rgba(255, 255, 255, 0.78)')
+    expect(composer.blur).toBe('blur(12px)')
   })
 
   it('moves to the classic chrome from Settings and back', async () => {

@@ -22,6 +22,9 @@ html[data-dsh-skin='material'] {
   --dsh-surface-acrylic: rgb(255 255 255 / 0.5);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
   --dsh-surface-button: rgb(255 255 255 / 0.4);
+  --dsh-surface-mica: rgb(255 255 255 / 0.78);
+  --dsh-surface-mica-hover: rgb(255 255 255 / 0.87);
+  --dsh-border-mica: rgb(0 0 0 / 0.06);
   --dsh-surface-hover: rgb(0 0 0 / 0.04);
   --dsh-surface-active: rgb(0 0 0 / 0.07);
   --dsh-border-subtle: rgb(0 0 0 / 0.06);
@@ -50,6 +53,9 @@ html[data-dsh-skin='material'] body[data-ds-dark-theme] {
   --dsh-surface-acrylic: rgb(255 255 255 / 0.08);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.14);
   --dsh-surface-button: rgb(255 255 255 / 0.08);
+  --dsh-surface-mica: rgb(30 31 34 / 0.82);
+  --dsh-surface-mica-hover: rgb(38 39 43 / 0.86);
+  --dsh-border-mica: rgb(255 255 255 / 0.10);
   --dsh-surface-hover: rgb(255 255 255 / 0.08);
   --dsh-surface-active: rgb(255 255 255 / 0.12);
   --dsh-border-subtle: rgb(255 255 255 / 0.08);
@@ -278,18 +284,20 @@ html[data-dsh-skin='material'] [data-slot='conversation.view'] [class*='_bubble'
 
 /* --- composer ------------------------------------------------------------ */
 
+/* The input is mica rather than the study's acrylic: transcript rows scroll
+ * under it, and acrylic's 8% fill lets them read through the card. */
 html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card'] {
-  border: 0.5px solid var(--dsh-border-acrylic);
+  border: 0.5px solid var(--dsh-border-mica);
   border-radius: var(--dsh-radius-input);
-  background: var(--dsh-surface-acrylic);
-  -webkit-backdrop-filter: var(--dsh-acrylic);
-  backdrop-filter: var(--dsh-acrylic);
+  background: var(--dsh-surface-mica);
+  -webkit-backdrop-filter: var(--dsh-mica);
+  backdrop-filter: var(--dsh-mica);
   box-shadow: var(--dsh-sheen), 0 10px 30px rgb(31 45 84 / 0.12);
   corner-shape: round;
 }
 
 html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card']:hover {
-  background: var(--dsh-surface-acrylic-hover);
+  background: var(--dsh-surface-mica-hover);
 }
 
 html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_dock'] {
