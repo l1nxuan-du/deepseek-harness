@@ -123,10 +123,12 @@ describe('web e2e: interface skin', () => {
     await expect.poll(() => page.locator(FIELD_SELECTOR).count()).toBe(1)
     const insetPane = await page.locator('[class*="_centerCol"]').evaluate((pane) => {
       const style = getComputedStyle(pane)
-      return { radius: style.borderTopLeftRadius, backdrop: style.backdropFilter }
+      return { radius: style.borderTopLeftRadius, backdrop: style.backdropFilter, background: style.backgroundColor }
     })
     expect(insetPane.radius).toBe('24px')
     expect(insetPane.backdrop).toContain('blur')
+    // Light keeps the study's mica film.
+    expect(insetPane.background).toBe('rgba(255, 255, 255, 0.3)')
     // The field is the wash plus the flow pattern: no lattice, and the pattern
     // canvas is sized and visible wherever the browser renders WebGL2.
     await expect.poll(() => page.locator('[data-dsh-field-layer="grid"]').count()).toBe(0)

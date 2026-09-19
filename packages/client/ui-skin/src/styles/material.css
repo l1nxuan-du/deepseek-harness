@@ -19,6 +19,8 @@ html[data-dsh-skin='material'] {
     linear-gradient(180deg, #e6edf7 0%, #e9eef7 50%, #f6f8fb 100%);
   --dsh-field-mask: linear-gradient(to right, rgb(0 0 0 / 0.35) 0%, rgb(0 0 0 / 0.85) 16%, rgb(0 0 0 / 0.92) 40%, rgb(0 0 0 / 0.92) 100%);
   --dsh-surface-glass: rgb(255 255 255 / 0.3);
+  --dsh-pane-surface: rgb(255 255 255 / 0.3);
+  --dsh-pane-filter: blur(12px);
   --dsh-surface-acrylic: rgb(255 255 255 / 0.5);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
   --dsh-surface-button: rgb(255 255 255 / 0.4);
@@ -48,6 +50,11 @@ html[data-dsh-skin='material'] body[data-ds-dark-theme] {
     radial-gradient(200% 62% at 50% -18%, color-mix(in oklab, #2f4c8f 58%, transparent) 0%, color-mix(in oklab, #2f4c8f 27%, transparent) 55%, transparent 92%),
     linear-gradient(180deg, #1b1d24 0%, #17181d 50%, #121214 100%);
   --dsh-surface-glass: rgb(255 255 255 / 0.06);
+  /* Dark panes are acrylic, not mica: the field's flow pattern reads through a
+   * 6% mica fill, so the conversation and the right panel get a thicker tinted
+   * film under a larger, saturating blur. */
+  --dsh-pane-surface: rgb(30 32 36 / 0.55);
+  --dsh-pane-filter: blur(24px) saturate(1.6);
   --dsh-surface-acrylic: rgb(255 255 255 / 0.08);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.14);
   --dsh-surface-button: rgb(255 255 255 / 0.08);
@@ -127,9 +134,9 @@ html[data-dsh-skin='material'] [class*='_centerCol'] {
   position: relative;
   border: 0.5px solid var(--dsh-border-subtle);
   border-radius: var(--dsh-radius-card);
-  background: var(--dsh-surface-glass);
-  -webkit-backdrop-filter: var(--dsh-mica);
-  backdrop-filter: var(--dsh-mica);
+  background: var(--dsh-pane-surface);
+  -webkit-backdrop-filter: var(--dsh-pane-filter);
+  backdrop-filter: var(--dsh-pane-filter);
   box-shadow: var(--dsh-pane-shadow);
   overflow: hidden;
 }
@@ -310,9 +317,9 @@ html[data-dsh-skin='material'] [data-slot='rightbar.session'] [class*='_panel'][
   box-sizing: border-box;
   border: 0.5px solid var(--dsh-border-subtle);
   border-radius: var(--dsh-radius-card);
-  background: var(--dsh-surface-glass);
-  -webkit-backdrop-filter: var(--dsh-mica);
-  backdrop-filter: var(--dsh-mica);
+  background: var(--dsh-pane-surface);
+  -webkit-backdrop-filter: var(--dsh-pane-filter);
+  backdrop-filter: var(--dsh-pane-filter);
   box-shadow: var(--dsh-pane-shadow);
   overflow: hidden;
 }
