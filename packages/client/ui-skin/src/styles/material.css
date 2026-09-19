@@ -92,32 +92,15 @@ html[data-dsh-skin='material'] body {
   height: 100%;
 }
 
-[data-dsh-field]::after {
-  content: '';
-  position: absolute;
-  top: var(--dsh-field-y, 50%);
-  left: var(--dsh-field-x, 50%);
-  width: 420px;
-  height: 420px;
-  margin: -210px 0 0 -210px;
-  border-radius: 50%;
-  corner-shape: round;
-  background: radial-gradient(circle, color-mix(in oklab, var(--dsh-accent) 26%, transparent) 0%, transparent 68%);
-  opacity: 0;
-  transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-[data-dsh-field][data-dsh-field-pointer]::after {
-  opacity: 1;
-}
-
-@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
-  [data-dsh-field]::after {
-    display: none;
-  }
-}
-
 /* --- frame --------------------------------------------------------------- */
+
+/* The shipped composer seat fades the transcript into the page fill over a
+ * 36px band; on the material chrome that band is a gradient behind the input
+ * and it hides the field, so the seat stays transparent. */
+html[data-dsh-skin='material'] [class*='_composerSeat'] {
+  background: none;
+}
+
 
 html[data-dsh-skin='material'] [data-slot='root'] {
   position: relative;

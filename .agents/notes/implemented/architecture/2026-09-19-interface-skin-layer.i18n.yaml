@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-19-interface-skin-layer.md
-2026-09-19-interface-skin-layer.md: 174232f80e2a5a4dfb05c78ff56de40cfac81c86
-2026-09-19-interface-skin-layer.zh.md: 451b40a74bfacb1a6fe806e6af31ebaa3b6447e3
+2026-09-19-interface-skin-layer.md: b0ab35fc4f5739c5e583b74fd4ba4d697c20e25b
+2026-09-19-interface-skin-layer.zh.md: f04603358364d52f9fc339080a157c2d64e3af89

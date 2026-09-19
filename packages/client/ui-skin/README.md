@@ -49,7 +49,7 @@ The Host half embeds the durable variant in each index response. A body script p
 
 - the `data-dsh-skin` attribute on `document.documentElement`, which states the selection and gates every rule in the material stylesheet;
 - one alias-token layer through `ctx.theme.overrideTokens`, covering the palette axes the shipped components already consume (page, layered surfaces, labels, borders, link, interactive fills, the sidebar fill, bubbles, menus);
-- the field backdrop, a fixed element prepended to the body: a wash, the WebGL2 flow pattern, and a pointer glow.
+- the field backdrop, a fixed element prepended to the body: a wash under the WebGL2 flow pattern.
 
 Selecting `classic` retracts the token layer and the backdrop and leaves the attribute naming the classic chrome, so the shipped chrome renders exactly as it does without this plugin. The plugin provides no service; the row reaches the variant through its registration's inject face, and reads changes through a store the runtime writes.
 
@@ -59,7 +59,7 @@ The material sheet is global, and every selector requires the root attribute; an
 
 ### The field
 
-The backdrop is plain DOM, not React: one fixed element with a wash layer, a WebGL2 canvas running the flow pattern, and a pointer glow expressed as CSS. Pointer positions coalesce into one animation frame and land as two custom properties; the glow is a radial gradient the stylesheet switches on an attribute. The field carries no product state.
+The backdrop is plain DOM, not React: one fixed element with a wash layer under a WebGL2 canvas running the flow pattern. The field carries no product state; the pattern owns its own animation loop.
 
 </details>
 
@@ -87,7 +87,7 @@ None; this package neither assembles nor sends a provider request.
 <a id="known-limitations-and-deferred-work"></a>
 
 - **The sheet couples to the shipped chrome's DOM** — it selects slot seats and stable class-name suffixes, so renaming one of those components needs a matching sheet update; the browser e2e scenario fails when a selector stops matching.
-- **The lattice is deliberately absent** — the study's 90px grid is dropped; the field is the wash, the flow pattern, and the pointer glow.
+- **The lattice and the pointer glow are deliberately absent** — the study's 90px grid and its cursor-following glow are dropped; the field is the wash and the flow pattern.
 - **The flow pattern needs WebGL2** — a browser without it (or a driver that rejects the program) keeps the wash and draws no pattern, and the frame cap means the pattern runs at the capped device pixel ratio rather than the display's own.
 - **Two layers can set the same alias token** — a registered theme and this skin both write alias tokens, and the later layer wins per token; the material palette is not a theme registration.
 - **The material sheet arrives with the plugin bundle** — a cold load publishes the selection and paints the canvas color before the shell mounts, but the chrome stays classic until that bundle lands.

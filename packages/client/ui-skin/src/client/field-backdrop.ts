@@ -1,8 +1,7 @@
 /**
- * Field backdrop presenter: the material chrome sits on a fixed gradient field
- * — a wash, the WebGL flow pattern, and a pointer-following glow. Plain DOM
- * writes: the backdrop carries no product state, only the pointer position it
- * renders and the pattern's own animation loop.
+ * Field backdrop presenter: the material chrome sits on a fixed field — a wash
+ * under the WebGL flow pattern. Plain DOM writes: the backdrop carries no
+ * product state, only the pattern's own animation loop.
  */
 import { createFieldPattern, type FieldColorScheme, type FieldPattern } from './field-pattern.ts'
 
@@ -11,15 +10,6 @@ export const FIELD_ATTRIBUTE = 'data-dsh-field'
 
 /** Marks one painted layer of the field. */
 export const FIELD_LAYER_ATTRIBUTE = 'data-dsh-field-layer'
-
-/** Custom property carrying the pointer x position, in px. */
-export const FIELD_X_VARIABLE = '--dsh-field-x'
-
-/** Custom property carrying the pointer y position, in px. */
-export const FIELD_Y_VARIABLE = '--dsh-field-y'
-
-/** Attribute present while the pointer is over the document. */
-export const FIELD_POINTER_ATTRIBUTE = 'data-dsh-field-pointer'
 
 /** One mounted backdrop and its release. */
 export interface FieldBackdrop {
@@ -33,7 +23,6 @@ export interface FieldBackdrop {
 
 /**
  * Mount the backdrop as the body's first child so it paints under the frame.
- * Pointer positions coalesce into one animation frame; the glow itself is CSS.
  * A browser without WebGL2 keeps the wash and simply draws no pattern.
  * @param scheme - colour preset the pattern opens on.
  * @returns the mounted backdrop.
@@ -57,33 +46,12 @@ export function createFieldBackdrop(scheme: FieldColorScheme): FieldBackdrop {
   const onReducedMotion = (): void => { flow?.setReducedMotion(reducedQuery?.matches === true) }
   reducedQuery?.addEventListener('change', onReducedMotion)
 
-  let frame: number | null = null
-  let x = 0
-  let y = 0
-  const paint = (): void => {
-    frame = null
-    element.style.setProperty(FIELD_X_VARIABLE, `${x}px`)
-    element.style.setProperty(FIELD_Y_VARIABLE, `${y}px`)
-  }
-  const onMove = (event: PointerEvent): void => {
-    x = event.clientX
-    y = event.clientY
-    element.setAttribute(FIELD_POINTER_ATTRIBUTE, '')
-    frame ??= requestAnimationFrame(paint)
-  }
-  const onLeave = (): void => { element.removeAttribute(FIELD_POINTER_ATTRIBUTE) }
-
-  window.addEventListener('pointermove', onMove, { passive: true })
-  document.addEventListener('pointerleave', onLeave)
   return {
     element,
     setColorScheme(next) {
       flow?.setColorScheme(next)
     },
     dispose() {
-      if (frame !== null) cancelAnimationFrame(frame)
-      window.removeEventListener('pointermove', onMove)
-      document.removeEventListener('pointerleave', onLeave)
       reducedQuery?.removeEventListener('change', onReducedMotion)
       flow?.dispose()
       flow = null
