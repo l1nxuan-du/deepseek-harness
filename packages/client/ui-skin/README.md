@@ -31,6 +31,10 @@ Users switch the interface from the Interface row in Settings (General section);
 
 The row offers two cubes. `material` is the default and adds the glass surfaces, the inset conversation pane, and the field the chrome floats on; `classic` renders the shipped chrome with the frame's own geometry. Each accepted change writes through the Host settings API, so a rejected write reloads the durable value.
 
+### The strength row
+
+A second row next to it — material strength, 0 to 100 in steps of ten, 60 by default — sets how dense the material is. The runtime publishes it as `--dsh-skin-strength` on the root element, and the sheet derives the conversation pane's and the right panel's fill and blur from it: at the 60 default they are the study's mica in light (30% white, 12px blur) and the acrylic film in dark (55%, 24px blur at 1.6 saturation), and both scale up or down with the setting.
+
 ### Selecting the chrome before the shell mounts
 
 The Host half embeds the durable variant in each index response. A body script publishes it as `html[data-dsh-skin]` before the application module runs, a head style paints the material canvas, and the browser runtime adopts the published value as its starting point — so the chrome the page painted and the chrome the runtime projects agree.

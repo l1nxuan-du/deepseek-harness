@@ -5,18 +5,19 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-settings'
 import { bootSkinInjections } from './boot-skin.ts'
 import {
-  DEFAULT_SKIN_VARIANT, SKIN_SETTINGS_NAMESPACE, SkinSettingsSchema, type SkinSettings,
+  DEFAULT_SKIN_VARIANT, DEFAULT_STRENGTH, SKIN_SETTINGS_NAMESPACE, SkinSettingsSchema, type SkinSettings,
 } from './skin-settings.ts'
 
 export {
-  CLASSIC_SKIN_VARIANT, DEFAULT_SKIN_VARIANT, SKIN_ATTRIBUTE, SKIN_SETTINGS_NAMESPACE, SKIN_VARIANT_FIELD, SKIN_VARIANTS,
+  CLASSIC_SKIN_VARIANT, DEFAULT_SKIN_VARIANT, DEFAULT_STRENGTH, SKIN_ATTRIBUTE, SKIN_SETTINGS_NAMESPACE,
+  SKIN_VARIANT_FIELD, SKIN_VARIANTS, STRENGTH_FIELD, STRENGTH_MAX, STRENGTH_MIN,
   SkinSettingsSchema, isSkinVariant,
   type SkinSettings, type SkinVariant,
 } from './skin-settings.ts'
 
 /** Read the registered skin section, or the schema default without a settings provider. */
 function readSection(ctx: Context): SkinSettings {
-  const fallback: SkinSettings = { variant: DEFAULT_SKIN_VARIANT }
+  const fallback: SkinSettings = { variant: DEFAULT_SKIN_VARIANT, strength: DEFAULT_STRENGTH }
   const settings = ctx.get('settings')
   if (settings === undefined) return fallback
   return (settings.get(SKIN_SETTINGS_NAMESPACE) as SkinSettings | undefined) ?? fallback

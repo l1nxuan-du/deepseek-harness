@@ -21,22 +21,26 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { SkinSettings, SkinVariant } from '../skin-settings.ts'
 import type { SkinKey } from './locales.ts'
 import { SkinRow, type SkinRowInjected } from './SkinRow.tsx'
+import { StrengthRow, type StrengthRowInjected } from './StrengthRow.tsx'
 import { en, zh } from './locales.ts'
-import { createSkinRowStore } from './settings-store.ts'
+import { createSkinRowStore, createStrengthRowStore } from './settings-store.ts'
 import { SkinRuntime, type SkinSnapshot } from './skin-runtime.ts'
 import { installSkinStyles } from './styles.ts'
 import { SKIN_SETTINGS_NAMESPACE } from '../skin-settings.ts'
 
 export type { SkinRowComponentProps, SkinRowInjected } from './SkinRow.tsx'
-export type { SkinRowState } from './settings-store.ts'
+export type { StrengthRowComponentProps, StrengthRowInjected } from './StrengthRow.tsx'
+export type { SkinRowState, StrengthRowState } from './settings-store.ts'
 export type { SkinSnapshot } from './skin-runtime.ts'
 export type { FieldBackdrop } from './field-backdrop.ts'
 export type { SkinKey } from './locales.ts'
 export {
-  CLASSIC_SKIN_VARIANT, DEFAULT_SKIN_VARIANT, SKIN_ATTRIBUTE, SKIN_SETTINGS_NAMESPACE, SKIN_VARIANT_FIELD, SKIN_VARIANTS,
+  CLASSIC_SKIN_VARIANT, DEFAULT_SKIN_VARIANT, DEFAULT_STRENGTH, SKIN_ATTRIBUTE, SKIN_SETTINGS_NAMESPACE,
+  SKIN_VARIANT_FIELD, SKIN_VARIANTS, STRENGTH_FIELD, STRENGTH_MAX, STRENGTH_MIN, STRENGTH_STEP,
   isSkinVariant,
   type SkinSettings, type SkinVariant,
 } from '../skin-settings.ts'
+export { STRENGTH_VARIABLE } from './skin-runtime.ts'
 
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.skin'
@@ -67,9 +71,12 @@ export function apply(ctx: ClientContext): void {
   })
 
   const store = createSkinRowStore()
+  const strengthStore = createStrengthRowStore()
   let bound: BoundActions<typeof store> | undefined
+  let strengthBound: BoundActions<typeof strengthStore> | undefined
   const skin = new SkinRuntime(ctx, host, (snapshot: SkinSnapshot) => {
     bound?.sync(snapshot.variant, snapshot.revision)
+    strengthBound?.sync(snapshot.strength, snapshot.revision)
   })
   ctx.effect(() => () => { skin.dispose() }, 'ui-skin: document projection')
 
@@ -93,4 +100,21 @@ export function apply(ctx: ClientContext): void {
     locale: SETTINGS_NS,
     inject: injected,
   }, SkinRow))
+
+  const strengthInjected = (actions: BoundActions<typeof strengthStore>): StrengthRowInjected => {
+    strengthBound = actions
+    const snapshot = skin.getSkin()
+    actions.sync(snapshot.strength, snapshot.revision)
+    return {
+      setStrength: (percent: number) => { skin.setStrength(percent) },
+    }
+  }
+  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+    name: 'settings.general.item',
+    id: 'interface-strength',
+    order: 13,
+    store: strengthStore,
+    locale: SETTINGS_NS,
+    inject: strengthInjected,
+  }, StrengthRow))
 }

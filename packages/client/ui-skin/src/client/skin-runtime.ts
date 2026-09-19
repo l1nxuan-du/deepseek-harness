@@ -11,7 +11,8 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
-  CLASSIC_SKIN_VARIANT, DEFAULT_SKIN_VARIANT, SKIN_ATTRIBUTE, SKIN_VARIANT_FIELD, isSkinVariant,
+  CLASSIC_SKIN_VARIANT, DEFAULT_SKIN_VARIANT, DEFAULT_STRENGTH, SKIN_ATTRIBUTE, SKIN_VARIANT_FIELD,
+  STRENGTH_FIELD, STRENGTH_MAX, STRENGTH_MIN, isSkinVariant,
   type SkinSettings, type SkinVariant,
 } from '../skin-settings.ts'
 import { createFieldBackdrop, type FieldBackdrop } from './field-backdrop.ts'
@@ -21,12 +22,17 @@ import { MATERIAL_TOKEN_OVERRIDES } from './material-tokens.ts'
 export interface SkinSnapshot {
   /** The selected interface skin. */
   variant: SkinVariant
+  /** Material strength in percent within STRENGTH_MIN..STRENGTH_MAX. */
+  strength: number
   /** Monotonic change counter. */
   revision: number
 }
 
 /** Alias-token layer source; one live layer at a time. */
 const TOKEN_SOURCE = 'ui-skin'
+
+/** Root variable the material sheet derives its surface fills and blurs from. */
+export const STRENGTH_VARIABLE = '--dsh-skin-strength'
 
 /**
  * Read the selection the Host boot script published on the root element, so
@@ -44,6 +50,7 @@ function bootstrapVariant(): SkinVariant {
 /** Applies the material chrome; one instance per plugin fiber. */
 export class SkinRuntime {
   private variant: SkinVariant
+  private strength: number
   private revision = 0
   private snapshot: SkinSnapshot
   private tokens: (() => void) | undefined
@@ -60,7 +67,8 @@ export class SkinRuntime {
     private readonly onChange: (snapshot: SkinSnapshot) => void = () => {},
   ) {
     this.variant = bootstrapVariant()
-    this.snapshot = { variant: this.variant, revision: this.revision }
+    this.strength = DEFAULT_STRENGTH
+    this.snapshot = { variant: this.variant, strength: this.strength, revision: this.revision }
     this.ctx.effect(() => host.subscribe(() => { this.adopt() }), 'ui-skin: settings scope adoption')
     // The flow pattern carries its own palette, so the field follows the
     // resolved colour scheme instead of only the stylesheet's tokens.
@@ -101,8 +109,26 @@ export class SkinRuntime {
     this.publish()
   }
 
+  /**
+   * Change the material strength — the density of the surfaces the sheet
+   * derives. The write goes through the settings scope; out-of-range or
+   * fractional values throw.
+   * @param percent - integer percent within STRENGTH_MIN..STRENGTH_MAX.
+   */
+  setStrength(percent: number): void {
+    if (!Number.isInteger(percent) || percent < STRENGTH_MIN || percent > STRENGTH_MAX) {
+      throw new Error(`material strength ${percent} is outside ${STRENGTH_MIN}..${STRENGTH_MAX}`)
+    }
+    if (this.strength === percent) return
+    this.strength = percent
+    void this.host.set(STRENGTH_FIELD, percent)
+    this.publish()
+  }
+
   /** Retract every document-level write this runtime installed. */
   dispose(): void {
+    /* v8 ignore next 2 -- needs a documentless run (node e2e booting the client tree), not constructible under jsdom */
+    if (typeof document !== 'undefined') document.documentElement.style.removeProperty(STRENGTH_VARIABLE)
     this.tokens?.()
     this.tokens = undefined
     this.field?.dispose()
@@ -112,14 +138,16 @@ export class SkinRuntime {
   /** Adopt the scope's accepted durable variant without writing it back. */
   private adopt(): void {
     const section = this.host.getSnapshot().value
-    if (section === undefined || section.variant === this.variant) return
+    if (section === undefined) return
+    if (section.variant === this.variant && section.strength === this.strength) return
     this.variant = section.variant
+    this.strength = section.strength
     this.publish()
   }
 
   private publish(): void {
     this.revision += 1
-    this.snapshot = { variant: this.variant, revision: this.revision }
+    this.snapshot = { variant: this.variant, strength: this.strength, revision: this.revision }
     this.project()
     this.onChange(this.snapshot)
   }
@@ -130,6 +158,7 @@ export class SkinRuntime {
     if (typeof document === 'undefined') return
     const root = document.documentElement
     root.setAttribute(SKIN_ATTRIBUTE, this.variant)
+    root.style.setProperty(STRENGTH_VARIABLE, String(this.strength))
     if (this.variant === CLASSIC_SKIN_VARIANT) {
       this.tokens?.()
       this.tokens = undefined

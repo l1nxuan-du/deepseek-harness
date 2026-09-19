@@ -179,6 +179,19 @@ describe('web e2e: interface skin', () => {
     await expect.poll(() => page.getAttribute('html', SKIN_ATTRIBUTE), { timeout: 10_000 }).toBe('material')
     await expect.poll(() => page.locator(FIELD_SELECTOR).count()).toBe(1)
 
+    // The strength row scales the material, and the root variable it writes is
+    // what the sheet derives the panes' fill and blur from.
+    await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
+      .toBe('60')
+    await dialog.getByRole('button', { name: 'Strengthen the material' }).click()
+    await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
+      .toBe('70')
+    const scaled = await page.locator('[class*="_centerCol"]').evaluate(pane => getComputedStyle(pane).backgroundColor)
+    expect(scaled).toBe('rgba(255, 255, 255, 0.35)')
+    await dialog.getByRole('button', { name: 'Weaken the material' }).click()
+    await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
+      .toBe('60')
+
     await dialog.getByRole('button', { name: 'Close' }).last().click()
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])

@@ -9,7 +9,8 @@ import { TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import type { ThemeTokenOverrides } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SkinRow, type SkinRowInjected } from '../src/client/SkinRow.tsx'
-import { createSkinRowStore } from '../src/client/settings-store.ts'
+import { StrengthRow, type StrengthRowInjected } from '../src/client/StrengthRow.tsx'
+import { createSkinRowStore, createStrengthRowStore } from '../src/client/settings-store.ts'
 import { apply, inject, SETTINGS_NS } from '../src/client/index.ts'
 import { FIELD_ATTRIBUTE } from '../src/client/field-backdrop.ts'
 import { SKIN_ATTRIBUTE, SKIN_SETTINGS_NAMESPACE, SkinSettingsSchema } from '../src/skin-settings.ts'
@@ -29,7 +30,7 @@ async function bench() {
   const locale = new LocaleRuntime(ctx)
   locale.setLocale('zh')
   ctx.provide('locale', locale)
-  const section: Record<string, unknown> = { variant: 'material' }
+  const section: Record<string, unknown> = { variant: 'material', strength: 60 }
   const namespace = () => ({
     ns: SKIN_SETTINGS_NAMESPACE,
     schema: SkinSettingsSchema.toJSON(),
@@ -99,6 +100,9 @@ describe('ui-skin apply', () => {
     const { entry } = faceOf(b.slots)
     expect(entry.options).toMatchObject({ id: 'interface', order: 12 })
     expect(entry.locale).toBe(SETTINGS_NS)
+    const strengthEntry = b.slots.entries(SLOT).find(e => e.component === StrengthRow)!
+    expect(strengthEntry.options).toMatchObject({ id: 'interface-strength', order: 13 })
+    expect(strengthEntry.locale).toBe(SETTINGS_NS)
     await fiber.dispose()
     expect(document.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(0)
   })
@@ -124,5 +128,21 @@ describe('ui-skin apply', () => {
     await Promise.resolve()
     expect(document.documentElement.getAttribute(SKIN_ATTRIBUTE)).toBe('material')
     expect(document.querySelector(`[${FIELD_ATTRIBUTE}]`)).not.toBeNull()
+  })
+
+  it('routes the strength row write back through the runtime', async () => {
+    const b = await bench()
+    declareItems(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const entry = b.slots.entries(SLOT).find(e => e.component === StrengthRow)!
+    const handle = entry.store as ReturnType<typeof createStrengthRowStore>
+    const instance = handle.create()
+    const face = (entry.inject as unknown as (a: typeof instance.actions) => StrengthRowInjected)(instance.actions)
+    expect(instance.getSnapshot()).toEqual({ strength: 60, revision: 0 })
+    face.setStrength(30)
+    await Promise.resolve()
+    expect(b.mutate).toHaveBeenCalled()
+    expect(instance.getSnapshot()).toMatchObject({ strength: 30 })
+    expect(document.documentElement.style.getPropertyValue('--dsh-skin-strength')).toBe('30')
   })
 })

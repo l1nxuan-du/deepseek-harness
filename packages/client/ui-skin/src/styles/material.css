@@ -19,8 +19,11 @@ html[data-dsh-skin='material'] {
     linear-gradient(180deg, #e6edf7 0%, #e9eef7 50%, #f6f8fb 100%);
   --dsh-field-mask: linear-gradient(to right, rgb(0 0 0 / 0.35) 0%, rgb(0 0 0 / 0.85) 16%, rgb(0 0 0 / 0.92) 40%, rgb(0 0 0 / 0.92) 100%);
   --dsh-surface-glass: rgb(255 255 255 / 0.3);
-  --dsh-pane-surface: rgb(255 255 255 / 0.3);
-  --dsh-pane-filter: blur(12px);
+  /* Surfaces scale with the Interface row's strength setting: light film
+   * 0.5 alpha and 16px blur at 100, the study's 0.3 and 12px at the 60
+   * default. */
+  --dsh-pane-surface: rgb(255 255 255 / calc(var(--dsh-skin-strength, 60) / 200));
+  --dsh-pane-filter: blur(calc(6px + var(--dsh-skin-strength, 60) * 0.1px));
   --dsh-surface-acrylic: rgb(255 255 255 / 0.5);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
   --dsh-surface-button: rgb(255 255 255 / 0.4);
@@ -52,9 +55,9 @@ html[data-dsh-skin='material'] body[data-ds-dark-theme] {
   --dsh-surface-glass: rgb(255 255 255 / 0.06);
   /* Dark panes are acrylic, not mica: the field's flow pattern reads through a
    * 6% mica fill, so the conversation and the right panel get a thicker tinted
-   * film under a larger, saturating blur. */
-  --dsh-pane-surface: rgb(30 32 36 / 0.55);
-  --dsh-pane-filter: blur(24px) saturate(1.6);
+   * film under a larger, saturating blur. The strength setting scales both. */
+  --dsh-pane-surface: rgb(30 32 36 / calc(var(--dsh-skin-strength, 60) / 110));
+  --dsh-pane-filter: blur(calc(12px + var(--dsh-skin-strength, 60) * 0.2px)) saturate(1.6);
   --dsh-surface-acrylic: rgb(255 255 255 / 0.08);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.14);
   --dsh-surface-button: rgb(255 255 255 / 0.08);
