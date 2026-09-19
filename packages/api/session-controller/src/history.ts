@@ -406,7 +406,37 @@ function paginate(
       break
     }
   }
-  return { events: events.slice(cut, end), hasMore: cut > 0 }
+  const alignedCut = turnStartCut(events, cut, end)
+  return { events: events.slice(alignedCut, end), hasMore: alignedCut > 0 }
+}
+
+/**
+ * Move a message-aligned cut back to the Turn containing that message. A page
+ * that starts inside a Turn cannot reconstruct the Turn's process counts or
+ * its answer boundary, so Chat would have to defer folding until a second page
+ * arrived.
+ * @param events - complete durable log.
+ * @param cut - message-aligned first sequence currently selected.
+ * @param end - exclusive end sequence of the page.
+ * @returns the selected cut or the latest Turn start at or before it.
+ */
+function turnStartCut(
+  events: readonly SessionEvent[],
+  cut: SessionLogOffsetType,
+  end: SessionLogOffsetType,
+): SessionLogOffsetType {
+  if (cut === 0) return cut
+  let containingTurnStart: SessionLogOffsetType | undefined
+  for (let index = Math.min(cut, end - 1); index >= 0; index--) {
+    const event = events[index]
+    if (event?.type === 'turn/start') {
+      containingTurnStart = SessionLogOffset(event.seq)
+      break
+    }
+  }
+  return containingTurnStart !== undefined && containingTurnStart < cut
+    ? containingTurnStart
+    : cut
 }
 
 /** Translate current logical Session metadata to the browser wire. */

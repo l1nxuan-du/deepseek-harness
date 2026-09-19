@@ -32,7 +32,7 @@ Choose one provider and mount the shared registration service.
 ## Related documentation
 
 - [Browser use](../../docs/subsystems/browser-use.md) — capability ownership and provider choices.
-- [Experimental packages](../experimental/README.md) — Playwright MCP, Chrome DevTools MCP, and Stagehand providers.
+- [Experimental packages](../experimental/README.md) — Playwright native, Playwright MCP, Chrome DevTools MCP, and Stagehand providers.
 
 <a id="dev-note"></a>
 ## Dev Note

@@ -32,7 +32,7 @@ kind: "package-group"
 ## 相关文档
 
 - [浏览器操作](../../docs/subsystems/browser-use.zh.md) — 能力所有权与 提供方 选择。
-- [实验包](../experimental/README.zh.md) — Playwright MCP、Chrome DevTools MCP 与 Stagehand 提供方。
+- [实验包](../experimental/README.zh.md) — Playwright 原生、Playwright MCP、Chrome DevTools MCP 与 Stagehand 提供方。
 
 <a id="dev-note"></a>
 ## 开发备注

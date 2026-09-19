@@ -138,6 +138,7 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
       dshBin,
       '--profile', 'web',
       '--patch', fixture.patch,
+      '--host', '127.0.0.1',
       '--no-open',
       '--port', '0',
     ], {
@@ -217,6 +218,7 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
         dshBin,
         '--profile', 'web',
         '--patch', fixture.patch,
+        '--host', '127.0.0.1',
         '--no-open',
         '--port', '0',
       ], {
@@ -270,6 +272,7 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
       const result = await execa(process.execPath, [
         dshBin,
         '--profile', 'web',
+        '--host', '127.0.0.1',
         '--no-open',
         '--port', String(address.port),
       ], {
@@ -351,6 +354,7 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
         dshBin,
         '--profile', 'web',
         '--patch', fixture.patch,
+        '--host', '127.0.0.1',
         '--no-open',
         '--port', '0',
       ], {

@@ -10,6 +10,7 @@
 
 | 提供方 | 集成方式 |
 |---|---|
+| [Playwright 原生](../../packages/experimental/browser-use-playwright-native/README.zh.md) | 通过 CDP 使用由提供方持有的 Playwright Chromium |
 | [Playwright MCP](../../packages/experimental/browser-use-playwright-mcp/README.zh.md) | Playwright 的浏览器控制 MCP 工具 |
 | [Chrome DevTools MCP](../../packages/experimental/browser-use-chrome-devtools-mcp/README.zh.md) | 通过 MCP 进行 Chrome DevTools 检查与控制 |
 | [Stagehand](../../packages/experimental/browser-use-stagehand-native/README.zh.md) | 原生浏览器操作，支持 AI（人工智能）辅助的动作、观测与提取 |

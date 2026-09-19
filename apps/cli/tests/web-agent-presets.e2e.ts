@@ -349,7 +349,7 @@ describe('the shipped Web composition', () => {
       const assembly = await ctx.systemPrompt.assemble(assembleContextFor(handle.agent))
       const persona = assembly.sections.find(section => section.name === 'deployment:persona-prefix')
       const root = join(SHIPPED_PRESET_ROOT, 'linx-mode').replaceAll('\\', '/').replace(/\/+$/, '')
-      expect(persona?.text).toContain('# Do')
+      expect(persona?.text).toContain('# Personality')
       expect(persona?.text).toContain(`${root}/.agent/AGENTS.md`)
       expect(persona?.text).toContain(`${root}/docs/development.md`)
       expect(persona?.text).not.toContain('__DSH_LINX_ROOT__')

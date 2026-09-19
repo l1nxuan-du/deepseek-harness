@@ -6,10 +6,11 @@ Browser use lets a model inspect and operate web pages through a configured back
 
 ## Choose a provider
 
-Mount [`dsh-browser-use`](../../packages/browser-use/browser-use/README.md) and one provider in the same composition. The providers are experimental public npm packages and require explicit activation. Their initial browser engine is Chromium.
+Mount [`dsh-browser-use`](../../packages/browser-use/browser-use/README.md) and one provider in the same composition. Providers require explicit activation and currently target Chromium. The native Playwright, MCP, and Stagehand integrations are experimental.
 
 | Provider | Integration |
 |---|---|
+| [Playwright native](../../packages/experimental/browser-use-playwright-native/README.md) | Provider-owned Playwright Chromium through CDP |
 | [Playwright MCP](../../packages/experimental/browser-use-playwright-mcp/README.md) | Playwright's browser-control MCP tools |
 | [Chrome DevTools MCP](../../packages/experimental/browser-use-chrome-devtools-mcp/README.md) | Chrome DevTools inspection and control through MCP |
 | [Stagehand](../../packages/experimental/browser-use-stagehand-native/README.md) | Native browser operations with AI-assisted actions, observation, and extraction |

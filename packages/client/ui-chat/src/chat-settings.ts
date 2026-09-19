@@ -1,29 +1,29 @@
-/** Chat transcript preferences stored in the Host user-settings document. */
+/** Legacy Chat settings retained so existing user-settings documents continue to load. */
 
 import z from '@deepseek-ai/schemastery'
 
-/** Settings namespace owned by the Chat target. */
+/** Legacy Chat settings namespace. */
 export const CHAT_SETTINGS_NAMESPACE = 'ui-chat'
 
-/** Field carrying the completed-Turn transcript presentation mode. */
+/** Legacy field retained for settings-document compatibility; runtime uses Normal. */
 export const TRANSCRIPT_VIEW_FIELD = 'transcriptView'
 
-/** Transcript presentation modes accepted at settings boundaries. */
+/** Legacy values accepted at the settings boundary; neither changes the fixed Normal UI. */
 export const TRANSCRIPT_VIEW_MODES = ['normal', 'compact'] as const
 
-/** Completed-Turn transcript presentation. */
+/** Legacy completed-Turn presentation value. */
 export type TranscriptViewMode = typeof TRANSCRIPT_VIEW_MODES[number]
 
-/** Default preserves the compact process disclosure introduced by Chat. */
-export const DEFAULT_TRANSCRIPT_VIEW_MODE: TranscriptViewMode = 'compact'
+/** Legacy default; Chat always presents collapsed process summaries with inline expansion. */
+export const DEFAULT_TRANSCRIPT_VIEW_MODE: TranscriptViewMode = 'normal'
 
-/** Durable Chat section shared by the Host schema and browser scope. */
+/** Legacy durable Chat section accepted by the Host schema. */
 export interface ChatSettings {
-  /** Presentation mode for completed Turn process content. */
+  /** Legacy presentation value ignored by the fixed Normal UI. */
   transcriptView: TranscriptViewMode
 }
 
-/** Durable Chat schema; also the wire envelope the browser scope validates against. */
+/** Legacy durable Chat schema kept for settings-document compatibility. */
 export const ChatSettingsSchema: z<ChatSettings> = z.object({
   [TRANSCRIPT_VIEW_FIELD]: z.union([...TRANSCRIPT_VIEW_MODES]).default(DEFAULT_TRANSCRIPT_VIEW_MODE),
 })

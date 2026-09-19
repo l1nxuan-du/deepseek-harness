@@ -145,8 +145,8 @@ const SERVICE_ROLES: ServiceRole[] = [
     pkg: 'browser-use',
     title: 'Browser-use provider registration',
     mode: 'seam',
-    implementations: ['experimental-browser-use-playwright-mcp', 'experimental-browser-use-chrome-devtools-mcp', 'experimental-browser-use-stagehand-native'],
-    consumers: ['experimental-browser-use-playwright-mcp', 'experimental-browser-use-chrome-devtools-mcp', 'experimental-browser-use-stagehand-native'],
+    implementations: ['experimental-browser-use-playwright-native', 'experimental-browser-use-playwright-mcp', 'experimental-browser-use-chrome-devtools-mcp', 'experimental-browser-use-stagehand-native'],
+    consumers: ['experimental-browser-use-playwright-native', 'experimental-browser-use-playwright-mcp', 'experimental-browser-use-chrome-devtools-mcp', 'experimental-browser-use-stagehand-native'],
     note: 'One provider-owned name per service instance. Providers own their tools and browser resources per live Session; the shared service has no browser operation API.',
   },
   {

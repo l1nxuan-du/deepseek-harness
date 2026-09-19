@@ -624,7 +624,10 @@ export interface RouteCatalogRequest {
   provider: string
   /** Wire protocol override; absent defers to each catalog model's own API. */
   api?: string
-  /** Endpoint override; absent defers to the catalog model, then the catalog provider. */
+  /**
+   * Endpoint override; absent defers to the catalog model, catalog provider,
+   * then the one endpoint shared by catalog siblings speaking the selected API.
+   */
   baseURL?: string
   /** Configured catalog; absent means the whole installed catalog for this route. */
   models?: readonly PiAiModelProfile[]
@@ -660,6 +663,24 @@ function sharedCatalogApi(defaults: ReadonlyMap<string, Model<Api>>): string | u
   const apis = new Set<string>()
   for (const model of defaults.values()) apis.add(model.api)
   return apis.size === 1 ? [...apis][0] : undefined
+}
+
+/**
+ * The one endpoint shared by catalog models speaking a selected wire protocol.
+ * A mixed-protocol route often keeps one endpoint per protocol even though the
+ * catalog has no provider-level endpoint, so a new model can inherit that
+ * endpoint after it names the protocol. Disagreement keeps the endpoint
+ * required, because no catalog sibling identifies which one the model uses.
+ * @param defaults - the installed catalog models for the route.
+ * @param api - the wire protocol selected for the new model.
+ * @returns the shared endpoint, or undefined when the catalog does not select one.
+ */
+function sharedCatalogBaseUrl(defaults: ReadonlyMap<string, Model<Api>>, api: string): string | undefined {
+  const urls = new Set<string>()
+  for (const model of defaults.values()) {
+    if (model.api === api) urls.add(model.baseUrl)
+  }
+  return urls.size === 1 ? [...urls][0] : undefined
 }
 
 /** The reasoning fields one materialized model carries. */
@@ -890,7 +911,7 @@ export function resolveRouteModels(
       invalid(provider, `model "${entry.id}" needs an api; the installed catalog does not describe it, so set the`
         + ' route\'s api to the wire protocol its endpoint speaks')
     }
-    const baseUrl = request.baseURL ?? base?.baseUrl ?? providerBaseUrl
+    const baseUrl = request.baseURL ?? base?.baseUrl ?? providerBaseUrl ?? sharedCatalogBaseUrl(defaults, api)
     if (baseUrl === undefined) {
       invalid(provider, `model "${entry.id}" needs a baseURL; the installed catalog does not describe this route`)
     }

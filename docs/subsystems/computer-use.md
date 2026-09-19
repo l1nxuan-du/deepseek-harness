@@ -6,7 +6,7 @@ Computer use lets a model observe and operate the local desktop through a config
 
 ## Choose a provider
 
-Mount [`dsh-computer-use`](../../packages/computer-use/computer-use/README.md) and one provider in the same composition. Both Cua Driver providers are experimental public npm packages and require explicit activation.
+The shipped base composition mounts [`dsh-computer-use`](../../packages/computer-use/computer-use/README.md) with the native Cua Driver provider by default. The MCP provider remains an explicit alternative; deployments without desktop access can disable the default native row.
 
 | Provider | Runtime |
 |---|---|

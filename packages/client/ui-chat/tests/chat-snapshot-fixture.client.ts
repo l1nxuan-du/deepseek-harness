@@ -275,6 +275,8 @@ export function chatSnapshotFixture(input: {
   readonly runningCalls?: readonly RunningToolCall[]
   readonly turnTimings?: LegacyConversationSlice['turnTimings']
   readonly turnEnds?: LegacyConversationSlice['turnEnds']
+  /** Turns whose beginning predates the loaded window. */
+  readonly missingTurnStarts?: ReadonlySet<number>
   /** Per-turn usage buckets; production derives these from session events. */
   readonly turnUsages?: ReadonlyMap<number, TurnTokenUsage> | undefined
 } = {}, previous?: ChatSnapshot): ChatSnapshot {
@@ -296,16 +298,17 @@ export function chatSnapshotFixture(input: {
   for (const turn of [...turnNumbers].sort((left, right) => left - right)) {
     const timing = legacy.turnTimings.get(turn)
     const endSeq = legacy.turnEnds.get(turn)
+    const startMissing = input.missingTurnStarts?.has(turn) === true
     const previousData = previous?.timeline.turns.get(turn)?.data
     const data = previousData instanceof FixtureTurnDataStore ? previousData : new FixtureTurnDataStore()
     turnData.set(turn, data)
     turns.set(turn, {
       turn,
-      start: timing === undefined ? undefined : {
-        type: 'turn/start', seq: Math.max(0, (endSeq ?? 1) - 1), time: timing.startTime, turn,
+      start: startMissing || timing === undefined && endSeq === undefined ? undefined : {
+        type: 'turn/start', seq: Math.max(0, (endSeq ?? 1) - 1), time: timing?.startTime ?? 0, turn,
       } as never,
-      end: timing?.endTime === undefined || endSeq === undefined ? undefined : {
-        type: 'turn/end', seq: endSeq, time: timing.endTime, turn, reason: 'completed',
+      end: endSeq === undefined ? undefined : {
+        type: 'turn/end', seq: endSeq, time: timing?.endTime ?? 0, turn, reason: 'completed',
       } as never,
       status: endSeq === undefined ? 'open' : 'closed',
       steps: EMPTY,

@@ -17,8 +17,9 @@ function samePresentation(
     && left.spec === right.spec
     && left.turn === right.turn
     && left.turnClosed === right.turnClosed
+    && left.turnFullyLoaded === right.turnFullyLoaded
     && left.hasExternalProcess === right.hasExternalProcess
-    && left.compactAnswer === right.compactAnswer)
+    && left.foldedAnswer === right.foldedAnswer)
 }
 
 function derivePresentation(
@@ -45,14 +46,14 @@ function derivePresentation(
   }
 
   let hasExternalProcess = false
-  let compactAnswer = true
+  let foldedAnswer = true
   for (const key of keys) {
     const node = nodes.get(key) as ChatNode | undefined
     if (node === undefined || node.kind === 'turn-process') continue
     if ((node.kind === 'user' || node.kind === 'steering')
       && (openingHumanAnchor === undefined || node.anchorSeq > openingHumanAnchor)
       && (spec.answerAnchorSeq === null || node.anchorSeq < spec.answerAnchorSeq)) {
-      compactAnswer = false
+      foldedAnswer = false
     }
     if (TURN_PROCESS_INDEPENDENT_KINDS.has(node.kind)
       || node.anchorSeq < spec.processStartSeq
@@ -65,8 +66,9 @@ function derivePresentation(
     turn,
     spec,
     turnClosed: location.turn.status === 'closed',
+    turnFullyLoaded: location.turn.start !== undefined && location.turn.end !== undefined,
     hasExternalProcess,
-    compactAnswer,
+    foldedAnswer,
   }
 }
 

@@ -12,8 +12,6 @@ interface ChatNodeSeatProps extends ChatNodeOwnerProps {
   readonly nodeKey: string
   readonly useChatNode: ChatViewSlotProps['useChatNode']
   readonly useChatNodeProcess: ChatViewSlotProps['useChatNodeProcess']
-  readonly historyIncomplete: boolean
-  readonly compactTranscript: boolean
   readonly useStore: ChatViewSlotProps['useStore']
   readonly actions: ChatViewSlotProps['actions']
   readonly renderSlot: ChatViewSlotProps['renderSlot']
@@ -36,7 +34,7 @@ function turnOf(node: ChatNode | undefined): number | undefined {
 
 /** Subscribe, apply Turn-process visibility, and dispatch one stable Context key. */
 export const ChatNodeSeat = memo(function ChatNodeSeat({
-  nodeKey, useChatNode, useChatNodeProcess, historyIncomplete, compactTranscript,
+  nodeKey, useChatNode, useChatNodeProcess,
   cwd, openFile, openSkill, inspectCall, forkAt,
   loadImage, renderMessageImages, fileMentions, useStore, actions, renderSlot, t,
 }: ChatNodeSeatProps) {
@@ -61,11 +59,10 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
   }, [actions, processSpec])
   const processWindowReady = processSpec !== undefined
     && processPresentation !== undefined
-    && compactTranscript
     && processSpec.answerAnchorSeq !== null
     && processPresentation.turn === processSpec.turn
     && processPresentation.turnClosed
-    && !historyIncomplete
+    && processPresentation.turnFullyLoaded
   const processMember = routedNode !== undefined
     && processWindowReady
     && !TURN_PROCESS_INDEPENDENT_KINDS.has(routedNode.kind)
@@ -91,9 +88,9 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
   ])
   const controllerInactive = routedNode?.kind === 'turn-process'
     && !foldable
-  const compactAnswer = processAnswer
+  const foldedAnswer = processAnswer
     && foldable
-    && processPresentation.compactAnswer
+    && processPresentation.foldedAnswer
     && !processOpen
   const processHidden = controllerInactive || (foldable && processMember && !processOpen)
   const revealProcess = useCallback(() => {
@@ -132,7 +129,7 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
       data-chat-turn={turn}
       data-turn-process-member={processMember || undefined}
       data-turn-process-hidden={processHidden || undefined}
-      data-turn-process-answer={compactAnswer || undefined}
+      data-turn-process-answer={foldedAnswer || undefined}
     >
       {renderSlot('conversation.chat.node', routedOwner, {
         entryKey: routedNode.kind,

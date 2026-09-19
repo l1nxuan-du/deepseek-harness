@@ -867,6 +867,9 @@ describe('dsh-tool-subagent background mode', () => {
   it('returns a job id immediately and the answer is collected through job_output', async () => {
     const ctx = await backgroundSetup({ provider: 'mock' }, { reply: 'background answer' })
     const parent = await ownerAgent(ctx, 'sess-parent')
+    const schema = ctx.tools.schemas().find(s => s.name === 'subagent')!
+    expect(schema.description).toContain('Do not use shell sleep or busy-polling')
+    expect(schema.description).toContain('job_output` (use `wait: true` only when blocked)')
 
     const start = await callSubagent(ctx, { description: 'deep research', prompt: 'dig in', run_in_background: true }, { agent: parent })
     expect(start.isError).toBe(false)
@@ -1220,14 +1223,16 @@ describe('dsh-tool-subagent continuable background mode', () => {
     expect(schema.description).toContain('steers the child\'s nearest step while it is running')
     expect(schema.description).not.toContain('send_message` starts a later turn')
     expect(schema.description).toContain('runs in the background by default')
-    expect(schema.description).not.toContain('never poll or wait on it')
+    expect(schema.description).toContain('Do not use shell sleep or busy-polling')
     const properties = (schema.parameters as {
       properties: Record<string, { description?: string }>
     }).properties
     expect(properties.run_in_background?.description).toContain('Defaults to true')
+    expect(properties.run_in_background?.description).toContain('do not use shell sleep or busy-polling')
     const assembly = await ctx.systemPrompt.assemble(assembleContextFor(parent))
     const guidance = assembly.sections.find(section => section.name === 'tool:subagent')
     expect(guidance?.text).toContain('Use subagent in the background by default')
+    expect(guidance?.text).toContain('Do not use shell sleep or busy-polling')
     expect(guidance?.text).toContain('runtime sends you a notice containing its outcome')
 
     const started = await callSubagent(

@@ -55,9 +55,10 @@ export interface ProviderEditorProps {
   /**
    * Whether the adapter reports this route as hand-declared — absent from its
    * installed catalog. Such a route carries its own wire protocol, chosen when
-   * it was created and editable here for the same reason; a catalog route's
-   * models each carry theirs, so a route-level protocol there could only
-   * override every one of them and the card does not offer it.
+   * it was created and editable here for the same reason. A catalog route also
+   * exposes the optional protocol so a model the installed catalog does not
+   * describe can be added to a mixed-protocol route; leaving it unset preserves
+   * each catalog model's own protocol.
    */
   declared?: boolean
   /** The owning namespace view (schema, layers, secrets). */
@@ -332,10 +333,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
    * renders the hint instead and never reaches this body.
    */
   const curatedFields = (family: 'deepseek' | 'pi-ai'): ReactNode => {
-    // What a hand-declared route names for itself and nothing else can supply.
-    // A whole-section `llm-deepseek` profile is a composition fact with no
-    // per-route identity for its schema to carry, hence the family test.
-    const ownsIdentity = family === 'pi-ai' && props.declared === true
+    // The display name belongs only to a hand-declared route. A whole-section
+    // `llm-deepseek` profile is a composition fact with no per-route identity
+    // for its schema to carry, hence the family test.
+    const ownsDisplayName = family === 'pi-ai' && props.declared === true
     const customModels = schema.getPath(draft, ['models'])
     const modelsOverridden = schema.hasPath(draft, ['models'])
     const models = modelDrafts(modelsOverridden ? customModels : inheritedModels())
@@ -380,10 +381,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
         {props.credentialOnly === true ? null : <details className={styles['customized']}>
           <summary className={styles['customizedSummary']}>{t('customized')}</summary>
           <div className={styles['customizedBody']}>
-            {/* The name and the protocol are the create card's two remaining
-                profile fields; a route the adapter ships defaults both from
-                its catalog entry and neither belongs on its card. */}
-            {ownsIdentity
+            {/* A shipped route takes its name from catalog metadata, while the
+                optional protocol remains editable for a route-wide override or
+                a model id the installed catalog does not describe. */}
+            {ownsDisplayName
               ? (
                 <div className={styles['field']}>
                   <span className={styles['fieldLabel']}>{t('customDisplayName')}</span>
@@ -426,8 +427,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
               {family === 'deepseek' ? <span id={`${props.provider}-endpoint-hint`} className={styles['advancedHint']}>{t('deepSeekEndpointHint')}</span> : null}
             </div>
             {/* The protocol sits beside the endpoint it describes, as it does
-                on the create card. */}
-            {ownsIdentity
+                on the create card. A catalog route can leave it unset and keep
+                each model's protocol, or set it to serve custom model ids. */}
+            {family === 'pi-ai'
               ? (
                 <div className={styles['field']}>
                   <span className={styles['fieldLabel']}>{t('customApi')}</span>

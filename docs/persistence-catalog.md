@@ -47,7 +47,7 @@ The [format references](persistence-changes/historical-formats/README.md) cover 
 | `event:permission/preset` | event | `5c45bf4c544a7211dcd8ba6ba7e5f1bc39b49e7a9df9d5cbdc8e87c22771b37b` | [`event:permission/preset`](#persistence-type-eventpermissionpreset) |
 | `event:plan/mode` | event | `a7cf43ce7c2a4c038feed1885cd7a00d5c6ee2d90a7e0d56b46f78a3e1ca327f` | [`event:plan/mode`](#persistence-type-eventplanmode) |
 | `event:request/context` | event | `37cbc9cf06d494cfe5c67f078af1605eacb8e4c2c853e9e26455b73de0ee7ccf` | [`event:request/context`](#persistence-type-eventrequestcontext) |
-| `event:request/header` | event | `8ea13bcd983eab596dbfd41c5c2b62a0b318b71cd2a987a6fd752c6ced7e4489` | [`event:request/header`](#persistence-type-eventrequestheader) |
+| `event:request/header` | event | `abe25cc34a156ee155b3775d439ae0b15db275ac4c1e689d95839c3dc7117d89` | [`event:request/header`](#persistence-type-eventrequestheader) |
 | `event:sandbox/mode` | event | `516da4cdd6d2f1e5ce488e648578ca51f40e458f707b803e5b24de870e799415` | [`event:sandbox/mode`](#persistence-type-eventsandboxmode) |
 | `event:schedule/change` | event | `2a7f86849ae54b3398ee49661a757c4fcb59a6192b7036ee2ff514617e13fb42` | [`event:schedule/change`](#persistence-type-eventschedulechange) |
 | `event:session-log-deepseek/delivery-accepted` | event | `d63b8b8ffad9c02fd80c43a17df4f240c1fe8118ecca9de34f9d5871838ab5b9` | [`event:session-log-deepseek/delivery-accepted`](#persistence-type-eventsession-log-deepseekdelivery-accepted) |
@@ -1802,9 +1802,9 @@ SHA-256: `0ddab4577db37a3e0d9e3a91761735c8ef6f5629d526ab8ecaeeea19c097c8f8`
 | `kind` | required | `"plugin"` |
 | `plugin` | required | `string` |
 
-<a id="persistence-type-eventagentinboxspliceddatainserted0source11"></a>
+<a id="persistence-type-eventagentinboxspliceddatainserted0source13"></a>
 
-### `event:agent/inbox/spliced.data.inserted[0].source[11]`
+### `event:agent/inbox/spliced.data.inserted[0].source[13]`
 
 SHA-256: `6a4f72e2e179e17b922f2a9392c0e1c8f8c707f32494372454850a3eb184a6e7`
 
@@ -2997,7 +2997,7 @@ SHA-256: `37cbc9cf06d494cfe5c67f078af1605eacb8e4c2c853e9e26455b73de0ee7ccf`
 
 ### `event:request/header`
 
-SHA-256: `8ea13bcd983eab596dbfd41c5c2b62a0b318b71cd2a987a6fd752c6ced7e4489`
+SHA-256: `abe25cc34a156ee155b3775d439ae0b15db275ac4c1e689d95839c3dc7117d89`
 
 | Property | Presence | Type |
 |---|---|---|
@@ -3011,7 +3011,7 @@ SHA-256: `8ea13bcd983eab596dbfd41c5c2b62a0b318b71cd2a987a6fd752c6ced7e4489`
 
 ### `event:request/header.data`
 
-SHA-256: `2f0aefb72ab453c4bf21a6687f436775d359dc6f8f10410fd4c0615b20bd9d76`
+SHA-256: `d1f91be3f54a7c812149a8d6ac8b267e221ed2d9b2299c484af5992c0be87542`
 
 Sources: [`packages/core/session/src/types.ts:370`](../packages/core/session/src/types.ts)
 
@@ -3025,7 +3025,7 @@ Sources: [`packages/core/session/src/types.ts:370`](../packages/core/session/src
 
 ### `event:request/header.data.header.tools`
 
-SHA-256: `6d63f25a28b70801937a46b1058be5f52d4efbaf3516141470463ae469b59c23`
+SHA-256: `357bdef9a329058146f26ffac40e70a9772ab281a44622f36a41d29dde170624`
 
 Array of [`packages/llm/llm/src/types.ts#ToolSchema`](#persistence-type-packagesllmllmsrctypeststoolschema).
 
@@ -4159,6 +4159,14 @@ SHA-256: `237c004c73b6b288246816e0d7fde16e09c63a47aa3b1227383d7afe58666163`
 
 `"goal/change"`
 
+<a id="persistence-type-grammar"></a>
+
+### `"grammar"`
+
+SHA-256: `6e768deff44709ac44bbc7660a7e8ca4ba9f270fc2c272a63c360ba931e61d21`
+
+`"grammar"`
+
 <a id="persistence-type-hook"></a>
 
 ### `"hook"`
@@ -4280,6 +4288,14 @@ SHA-256: `fee1caf8ab6a65c1bc981f5a1730164490f22a2a89ffa3d0b76f1f432c44c8b5`
 SHA-256: `69d238a6e9b08d67f601b1825962963d8d3523cb69ebf6208c697dc5d058c199`
 
 `"interrupted"`
+
+<a id="persistence-type-lark"></a>
+
+### `"lark"`
+
+SHA-256: `e2b0287d8ddd938b5f8ed8a7cf4ff4f94abd0eb97ee8a4478c35e72516f94939`
+
+`"lark"`
 
 <a id="persistence-type-legacy"></a>
 
@@ -4548,7 +4564,7 @@ One of:
 
 ### `packages/core/session/src/types.ts#EpochHeader`
 
-SHA-256: `c55a891c7aac496de6ee64c91c1fb65728c977314013033e42c863428aada854`
+SHA-256: `210bff478646fbef1de1ac502695ade27029d31dea8a2c3c0b92012f94a593d1`
 
 Sources: [`packages/core/session/src/types.ts:232`](../packages/core/session/src/types.ts)
 
@@ -4660,7 +4676,7 @@ One of:
 
 SHA-256: `3cfc3a56502da1f8c6153c2c56657bab4b749056968634dd0991d325ec1c919f`
 
-Sources: [`packages/core/tools/src/index.ts:682`](../packages/core/tools/src/index.ts)
+Sources: [`packages/core/tools/src/index.ts:702`](../packages/core/tools/src/index.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -5172,7 +5188,7 @@ One of:
 
 - [`packages/context/agent-instructions/src/state.ts#AgentInstructionSource`](#persistence-type-packagescontextagent-instructionssrcstatetsagentinstructionsource)
 - [`packages/llm/llm/src/message.ts#ToolMessageSource`](#persistence-type-packagesllmllmsrcmessagetstoolmessagesource)
-- [`event:agent/inbox/spliced.data.inserted[0].source[11]`](#persistence-type-eventagentinboxspliceddatainserted0source11)
+- [`event:agent/inbox/spliced.data.inserted[0].source[13]`](#persistence-type-eventagentinboxspliceddatainserted0source13)
 - [`event:agent/inbox/spliced.data.inserted[0].source[19]`](#persistence-type-eventagentinboxspliceddatainserted0source19)
 - [`packages/skill/tool-skill/src/index.ts#SkillCatalogSource`](#persistence-type-packagesskilltool-skillsrcindextsskillcatalogsource)
 - [`packages/skill/skill/src/index.ts#SkillInvocationSource`](#persistence-type-packagesskillskillsrcindextsskillinvocationsource)
@@ -5434,6 +5450,20 @@ Sources: [`packages/llm/llm/src/types.ts:104`](../packages/llm/llm/src/types.ts)
 | `name` | required | `string` |
 | `type` | required | `"tool-call"` |
 
+<a id="persistence-type-packagesllmllmsrctypeststoolgrammarformat"></a>
+
+### `packages/llm/llm/src/types.ts#ToolGrammarFormat`
+
+SHA-256: `688be16af4d9faac222410a408d788d64016686cfa868c42c9c83b411b15ded3`
+
+Sources: [`packages/llm/llm/src/types.ts:464`](../packages/llm/llm/src/types.ts)
+
+| Property | Presence | Type |
+|---|---|---|
+| `definition` | required | `string` |
+| `syntax` | required | `"lark"` |
+| `type` | required | `"grammar"` |
+
 <a id="persistence-type-packagesllmllmsrctypeststoolresultblock"></a>
 
 ### `packages/llm/llm/src/types.ts#ToolResultBlock`
@@ -5453,13 +5483,14 @@ Sources: [`packages/llm/llm/src/types.ts:114`](../packages/llm/llm/src/types.ts)
 
 ### `packages/llm/llm/src/types.ts#ToolSchema`
 
-SHA-256: `7f5f2a8618c2ece530a18b1358b890fb57fb8c35705e47b66bff2296f8c6e889`
+SHA-256: `4764d0aeac463418ac0e8d57853d1be126b997a957157a52fb946a4ccdf4b738`
 
 Sources: [`packages/llm/llm/src/types.ts:447`](../packages/llm/llm/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
 | `description` | required | `string` |
+| `format` | optional | [`packages/llm/llm/src/types.ts#ToolGrammarFormat`](#persistence-type-packagesllmllmsrctypeststoolgrammarformat) |
 | `name` | required | `string` |
 | `parameters` | required | [`event:request/header.data.header.tools[0].parameters`](#persistence-type-eventrequestheaderdataheadertools0parameters) |
 

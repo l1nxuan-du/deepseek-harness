@@ -25,6 +25,13 @@ interface ToolOutputDefinition {
 ```ts type-equiv
 /** A registered tool: its schema plus the execution function. */
 interface ToolDefinition extends ToolSchema {
+  /**
+   * Optional grammar presentation of this tool's single input. A wire that
+   * supports grammar-constrained custom tools presents the tool as freeform
+   * text and the model's text reaches execution as {@link ToolFreeformDefinition.parameter};
+   * every other wire uses {@link ToolSchema.parameters} and the JSON call shape.
+   */
+  readonly freeform?: ToolFreeformDefinition
   /** Mandatory canonical output declaration. */
   readonly output: ToolOutputDefinition
   /**
@@ -54,7 +61,7 @@ interface ToolDefinition extends ToolSchema {
    * Cooperative tool-call timeout budget in milliseconds. Omit for no deadline.
    * Enforced by `@deepseek-ai/dsh-tool-call-timeout-policy` (a `tools/execute` wrapper); it
    * is NEVER sent to the model — `schemas()` whitelists only name/description/
-   * parameters. Declaring it asserts this tool forwards `exec.signal` to a
+   * parameters/format. Declaring it asserts this tool forwards `exec.signal` to a
    * cooperative implementation that can reach quiescence when the signal aborts.
    */
   timeoutMs?: number

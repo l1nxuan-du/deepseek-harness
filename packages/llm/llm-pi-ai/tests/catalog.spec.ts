@@ -516,6 +516,25 @@ describe('catalog routes with per-model configuration', () => {
     expect(server.paths).toEqual(['/v1/chat/completions'])
   })
 
+  it('adds an undescribed model to a mixed catalog route when the route names api', () => {
+    const profile = resolveProfiles({
+      'opencode-go': {
+        api: 'openai-completions',
+        models: [{ id: 'deepseek-flash' }, { id: 'deepseek-v4-pro' }],
+      },
+    }).get('opencode-go')
+
+    expect(profile?.catalogError).toBeUndefined()
+    expect(profile?.piProvider?.getModels().map(model => ({
+      id: model.id,
+      api: model.api,
+      baseUrl: model.baseUrl,
+    }))).toEqual([
+      { id: 'deepseek-flash', api: 'openai-completions', baseUrl: 'https://opencode.ai/zen/go/v1' },
+      { id: 'deepseek-v4-pro', api: 'openai-completions', baseUrl: 'https://opencode.ai/zen/go/v1' },
+    ])
+  })
+
   it('fails an unconfigured model id before any provider request', async () => {
     const server = await mockServer([])
     const ctx = await harness({

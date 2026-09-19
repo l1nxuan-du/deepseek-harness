@@ -58,7 +58,7 @@ kind: "package-reference"
 
 `one-shot` 策略下，省略 `run_in_background` 会在前台等待并返回子 agent 的最终文本；`run_in_background: true` 会启动一个归父级所有的普通后台任务，并返回 `started background subagent job <id>`，可用 `job_output` 收集、用 `job_kill` 停止。
 
-`continuable` 策略下，省略或为 `true` 的 `run_in_background` 会启动一个持久化子 agent，并返回 `started subagent <childId>`，不等待结果；子 agent 的 Activation 结束时，运行时投递一条结算通知，可选的 `send_message` 工具会向它发送更多工作。把 `run_in_background` 设为 `false` 可在前台等待结果。
+`continuable` 策略下，省略或为 `true` 的 `run_in_background` 会启动一个持久化子 agent，并返回 `started subagent <childId>`，不等待结果；子 agent 的 Activation 结束时，运行时投递一条结算通知，可选的 `send_message` 工具会向它发送更多工作。把 `run_in_background` 设为 `false` 可在前台等待结果。模型会被告知不要用 shell sleep 或忙轮询等待；它应继续独立工作或结束当前轮次，结算通知会唤醒父级。
 
 `maxDepth` 限制递归深度（`0` 禁止委派）；省略时，每次委派读取 Host 当前的 `subagent.maxDepth` 设置，初始值为 `1`。数值深度要求提供方具备 `depthLimit` 能力；`'provider-managed'` 把预算留给进程外提供方。当提供方支持时，`persona` 与 `toolFilter` 会配置每个子 agent；工具在达到上限时仍然可见——每次尝试启动都会检查调用 agent 的当前深度，被拒绝时返回出错的工具结果。
 
@@ -157,12 +157,12 @@ Session 携带策略的 settings 控制实例会公开子级 LLM 选择字段与
 
 #### 模型看到什么
 
-当 `enableRunInBackground` 与 `backgroundMode: continuable` 同时设置时，模型还会读到 `tool:<toolName>` 系统提示词 section，指示它把相互独立的可继续委派一起启动，并在它们运行时继续工作。使用默认工具名 `subagent` 时，section 文本为：
+当 `enableRunInBackground` 与 `backgroundMode: continuable` 同时设置时，模型还会读到 `tool:<toolName>` 系统提示词 section，指示它把相互独立的可继续委派一起启动、在它们运行时继续工作，并避免 shell sleep 与忙轮询。使用默认工具名 `subagent` 时，section 文本为：
 
 ##### 工具指导 section
 
 ```markdown
-Use subagent in the background by default. Start independent delegations together in one assistant message and continue useful work while they run. Set `run_in_background: false` only when your next action depends on that subagent's result. When a background run settles, the runtime sends you a notice containing its outcome and any final assistant message.
+Use subagent in the background by default. Start independent delegations together in one assistant message and continue useful work while they run. Do not use shell sleep or busy-polling to wait for a background subagent; continue independent work or end your turn. Set `run_in_background: false` only when your next action depends on that subagent's result. When a background run settles, the runtime sends you a notice containing its outcome and any final assistant message.
 ```
 
 #### Token 影响

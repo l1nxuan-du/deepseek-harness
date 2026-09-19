@@ -39,6 +39,12 @@
         - text: 自定义设置 API 地址
         - textbox "API 地址":
           - /placeholder: 提供方默认
+        - text: API 协议
+        - combobox "API 协议":
+          - option "未选择" [selected]
+          - option "openai-completions"
+          - option "openai-responses"
+          - option "anthropic-messages"
         - region "模型目录":
           - text: 模型目录 已自定义模型目录
           - button "恢复默认模型"

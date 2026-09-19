@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-tool-apply-patch` provides a model-facing `apply_patch` tool over `ctx.fs`: one Codex-style envelope adds, updates, moves, and deletes several files in a single call, and its result is the reference implementation's `Success. Updated the following files:` summary with one `A`, `M`, or `D` line per path. Every hunk is checked against its file before anything is written; matching follows the reference tool's leniency (exact, then ignoring surrounding whitespace, then ignoring ASCII-versus-typographic punctuation), line endings of untouched lines survive while inserted lines take the file's own ending, and an updated file ends with a newline. Choose it when a deployment wants Codex-style multi-file patching; the `dsh-tool-fs` package provides the alternative `read`/`write`/`edit` suite.
+`dsh-tool-apply-patch` provides a model-facing `apply_patch` tool over `ctx.fs`: one Codex-style envelope adds, updates, moves, and deletes several files in one call, reporting `A`, `M`, or `D` per changed path. Every hunk is checked before anything is written; matching follows the reference tool's leniency (exact, then ignoring surrounding whitespace, then ignoring ASCII-versus-typographic punctuation), untouched line endings survive, inserted lines take the file's own ending, and updated files end with a newline. Choose it for Codex-style multi-file patching; `dsh-tool-fs` provides the alternative `read`/`write`/`edit` suite.
 
 ## Table of Contents
 

@@ -243,40 +243,6 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     expect(tripwire.warnings).toEqual([])
   }, 60_000)
 
-  it.skipIf(MODE === 'record')('switches a completed Turn between Compact and Normal', async () => {
-    await launch()
-    onTestFailed(() => saveFailureShot(page, 'web-e2e-turn-process-setting'))
-    const { settled } = await sendPrompt()
-    await settled
-    const process = page.locator('[data-turn-process]')
-    const tool = page.getByRole('button', { name: 'Bash Print alpha to stdout' })
-    await process.waitFor({ timeout: 10_000 })
-    expect(await process.getAttribute('aria-expanded')).toBe('false')
-    expect(await tool.isVisible()).toBe(false)
-
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Settings' })
-    await dialog.getByRole('button', { name: 'Compact', exact: true }).click()
-    await page.getByRole('menuitem', { name: 'Normal', exact: true }).click()
-    await page.keyboard.press('Escape')
-
-    await expect.poll(() => process.count(), { timeout: 10_000 }).toBe(0)
-    await tool.waitFor({ state: 'visible', timeout: 10_000 })
-    await expect.poll(async () => readFile(join(scaffold!.harnessHome, 'settings.yaml'), 'utf8'), { timeout: 5_000 })
-      .toMatch(/ui-chat:\n\s+transcriptView: normal/)
-
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
-    const restored = page.getByRole('dialog', { name: 'Settings' })
-    await restored.getByRole('button', { name: 'Normal', exact: true }).click()
-    await page.getByRole('menuitem', { name: 'Compact', exact: true }).click()
-    await page.keyboard.press('Escape')
-    await process.waitFor({ timeout: 10_000 })
-    expect(await process.getAttribute('aria-expanded')).toBe('false')
-    expect(await tool.isVisible()).toBe(false)
-    expect(tripwire.pageErrors).toEqual([])
-    expect(tripwire.warnings).toEqual([])
-  }, 60_000)
-
   it.skipIf(MODE === 'record')('keeps a focused process member open when the completed reply arrives', async () => {
     await launch(undefined, 200)
     onTestFailed(() => saveFailureShot(page, 'web-e2e-turn-tail-actions-focused'))

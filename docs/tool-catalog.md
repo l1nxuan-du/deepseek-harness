@@ -1896,7 +1896,7 @@ Source: [`packages/subagent/tool-subagent/src/list-models.ts`](../packages/subag
 
 ### `subagent`
 
-Delegate a self-contained task to a subagent (a separate agent that works in its own context) to offload focused, independent work — research, a scoped implementation, an analysis — so it does not consume this conversation's context. The subagent returns its result, not its intermediate steps. Give it a complete, standalone prompt: it does not see this conversation. This call waits for the result by default. Set `run_in_background: true` to return a job id; collect with `job_output` and stop with `job_kill`.
+Delegate a self-contained task to a subagent (a separate agent that works in its own context) to offload focused, independent work — research, a scoped implementation, an analysis — so it does not consume this conversation's context. The subagent returns its result, not its intermediate steps. Give it a complete, standalone prompt: it does not see this conversation. This call waits for the result by default. Set `run_in_background: true` to return a job id; collect with `job_output` (use `wait: true` only when blocked) and stop with `job_kill`. Do not use shell sleep or busy-polling to wait for it.
 
 ```json
 {
@@ -1912,7 +1912,7 @@ Delegate a self-contained task to a subagent (a separate agent that works in its
     },
     "run_in_background": {
       "type": "boolean",
-      "description": "Whether to run as a background job and return its id. Defaults to false; collect with job_output or stop with job_kill."
+      "description": "Whether to run as a background job and return its id. Defaults to false; collect with job_output (wait: true only when blocked) or stop with job_kill. Do not use shell sleep or busy-polling to wait."
     }
   },
   "required": [

@@ -10,7 +10,7 @@ import type {
   ChatViewSlotProps, CommandNode, CompactionSummaryNode, ContextMessageNode, ConversationNode,
   LegacyConversationSlice, ModelRetryNode, RunningToolCall, SteeringMessageNode,
   ToolCallBlock, ToolResultNode, TurnErrorNode, TurnMaxTokensNode, UseChatNodeTurnData,
-  TranscriptViewMode, UserMessageNode,
+  UserMessageNode,
 } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {
   SessionListState, SessionSnapshot,
@@ -106,6 +106,7 @@ function makeSessionSource(init: Partial<TestSessionSnapshot> = {}) {
 }
 
 type ChatSlice = Partial<LegacyConversationSlice> & {
+  readonly missingTurnStarts?: ReadonlySet<number>
   readonly turnUsages?: NonNullable<Parameters<typeof chatSnapshotFixture>[0]>['turnUsages']
 }
 type HarnessUpdate = ChatSlice & Partial<TestSessionSnapshot> & { readonly chat?: ChatSnapshot }
@@ -235,7 +236,7 @@ function makeHarness(
   chatSnapshot?: ChatSnapshot,
 ) {
   const {
-    chat: initialChat, nodes, partial, runningCalls, turnTimings, turnEnds, turnUsages,
+    chat: initialChat, missingTurnStarts, nodes, partial, runningCalls, turnTimings, turnEnds, turnUsages,
     ...sessionInit
   } = init
   const chatSlice: ChatSlice = {
@@ -244,6 +245,7 @@ function makeHarness(
     ...(runningCalls === undefined ? {} : { runningCalls }),
     ...(turnTimings === undefined ? {} : { turnTimings }),
     ...(turnEnds === undefined ? {} : { turnEnds }),
+    ...(missingTurnStarts === undefined ? {} : { missingTurnStarts }),
     ...(turnUsages === undefined ? {} : { turnUsages }),
   }
   const session = makeSessionSource({ ...sessionInit, ...sessionOverrides })
@@ -271,7 +273,6 @@ function makeHarness(
   const forkAt = vi.fn()
   // Rows and the harness must observe the same chat-store instance.
   const chat = createChatStore().create()
-  const transcriptView = createSnapshotStore<TranscriptViewMode>('compact')
   const t = makeTranslate(zh, commonZh)
   const toolOwners: Array<{
     callId: string
@@ -397,7 +398,6 @@ function makeHarness(
     },
     useStore: bindSnapshotSelector(chat),
     actions: chat.actions,
-    useTranscriptView: bindSnapshotSelector(transcriptView),
     renderSlot,
     SessionProvider: SessionProviderStub,
     viewRequest: null,
@@ -438,7 +438,6 @@ function makeHarness(
     openFile, openSkill, loadOlder, loadThrough, openView,
     setOutline: (value: unknown) => { outlineValue = value },
     chatScroll, forkAt, toolOwners,
-    setTranscriptView: (mode: TranscriptViewMode) => { transcriptView.set(mode) },
     setNodeRenderer: (renderer: React.ComponentProps<typeof ChatNodeSeat>['renderSlot']) => {
       nodeSlotOverride = renderer
     },
@@ -572,34 +571,6 @@ describe('Chat node rendering', () => {
 })
 
 describe('ChatView', () => {
-  it('leaves the turn rail unrendered when an unrelated Chat update commits', () => {
-    const snapshot = chatSnapshotFixture({
-      nodes: [
-        userInTurn(1, 'first prompt', 1),
-        assistant(2, 'first response', 1),
-        userInTurn(4, 'second prompt', 2),
-        assistant(5, 'second response', 2),
-      ],
-      turnEnds: new Map([[1, 3], [2, 6]]),
-    })
-    const h = makeHarness({}, {}, snapshot)
-    // The rail asks for its own accessible name once per render, so counting
-    // that key counts renders without reaching into the component.
-    let railRenders = 0
-    const translate = h.props.t
-    const counting = ((key: string, vars?: Record<string, unknown>) => {
-      if (key === 'chat.turnNavigation.label') railRenders += 1
-      return (translate as (k: string, v?: Record<string, unknown>) => string)(key, vars)
-    }) as ChatViewSlotProps['t']
-    render(<h.ChatView {...h.props} t={counting} />)
-    const afterMount = railRenders
-    expect(afterMount).toBeGreaterThan(0)
-
-    act(() => { h.setTranscriptView('compact') })
-
-    expect(railRenders).toBe(afterMount)
-  })
-
   it('projects loaded turns into prompt and response navigation previews', () => {
     const snapshot = chatSnapshotFixture({
       nodes: [
@@ -1569,27 +1540,6 @@ describe('ChatView', () => {
     expect(processRow.getAttribute('hidden')).toBe('until-found')
   })
 
-  it('switches completed Turns between the persisted Normal and Compact modes', () => {
-    const process = assistant(2, 'inspect', 1, 1)
-    const h = makeHarness({
-      nodes: [user(1, 'question'), process, assistant(4, 'final answer', 1, 2)],
-      turnEnds: new Map([[1, 5]]),
-    })
-    const view = render(<h.ChatView {...h.props} />)
-    const processRow = view.getByText('inspect').closest('[data-chat-flow-kind="assistant-step"]') as HTMLElement
-
-    expect(turnProcessControl(view.container)?.getAttribute('aria-expanded')).toBe('false')
-    expect(processRow.getAttribute('hidden')).toBe('until-found')
-
-    act(() => { h.setTranscriptView('normal') })
-    expect(turnProcessControl(view.container)).toBeNull()
-    expect(processRow.getAttribute('hidden')).toBeNull()
-
-    act(() => { h.setTranscriptView('compact') })
-    expect(turnProcessControl(view.container)?.getAttribute('aria-expanded')).toBe('false')
-    expect(processRow.getAttribute('hidden')).toBe('until-found')
-  })
-
   it('folds final-step reasoning under the fallback title when every summary count is zero', () => {
     const final = {
       ...assistant(3, 'final answer', 1, 1),
@@ -1687,7 +1637,7 @@ describe('ChatView', () => {
     expect(contextRow?.getAttribute('hidden')).toBe('until-found')
   })
 
-  it('keeps a foldable closed Turn fully visible while history is partial', () => {
+  it('folds a fully loaded closed Turn even while older history remains', () => {
     const h = makeHarness({
       nodes: [
         user(1, 'question'),
@@ -1701,13 +1651,9 @@ describe('ChatView', () => {
     const view = render(<h.ChatView {...h.props} />)
     const contextRow = view.container.querySelector<HTMLElement>('[data-chat-flow-kind="context"]')
 
-    expect(turnProcessControl(view.container)).toBeNull()
-    expect(contextRow?.getAttribute('hidden')).toBeNull()
-    expect(contextRow?.hasAttribute('data-turn-process-member')).toBe(false)
-
-    act(() => { h.set({ hasMore: false }) })
     const toggle = turnProcessControl(view.container)!
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(contextRow?.hasAttribute('data-turn-process-member')).toBe(true)
     expect(contextRow?.getAttribute('hidden')).toBe('until-found')
   })
 
@@ -1984,6 +1930,7 @@ describe('ChatView', () => {
     const h = makeHarness({
       nodes: [assistant(16, 'tail without trigger')],
       turnEnds: new Map([[1, 16]]),
+      missingTurnStarts: new Set([1]),
     })
     const view = render(<h.ChatView {...h.props} />)
     expect(view.queryByText(/用时/)).toBeNull()

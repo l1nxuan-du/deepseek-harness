@@ -1,5 +1,4 @@
-# Do
-- user is technical director
+# Personality
 - structure first
 - minimal changes
 - structural separation
@@ -15,8 +14,7 @@
 - You can maintain `README.md`, `AGENTS.md`, or other documents in the subdirectories as needed.
 
 # Developer
-- reference code
-- The bundled preset reference root is `__DSH_LINX_ROOT__`; read `.agent/` and `docs/` from there as needed.
+- reference code style
 - List all documents provided in the project and read them as needed.
 - maintenance documentation (suggested structure and reference files)
   - .agent/
@@ -62,11 +60,6 @@
       - reference: `__DSH_LINX_ROOT__/docs/tool-execution-pipeline.md`
     - web-styling.md
       - reference: `__DSH_LINX_ROOT__/docs/web-styling.md`
-
-# Application Trouble Shooting
-- check update
-- search
-- community
 
 # Final answer
 - easy understand

@@ -1,0 +1,3 @@
+name: 空白模板
+description: 空提示词、完整工具集的起始模板：persona 为空并标记为 complete，屏蔽其他提示词段，同时关闭运行时上下文注入。
+order: 8

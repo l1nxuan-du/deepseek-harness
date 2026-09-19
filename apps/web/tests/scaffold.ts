@@ -659,6 +659,9 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     ...options.deepSeekSearch === undefined
       ? []
       : [{
+        id: 'web',
+        config: { searchProvider: 'deepseek-official' },
+      }, {
         id: 'web-search-deepseek',
         config: {
           apiKeyEnv: options.deepSeekSearch.apiKeyEnv,

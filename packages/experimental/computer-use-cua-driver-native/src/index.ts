@@ -12,6 +12,7 @@ import type { CuaDriver as NativeDriver } from '@trycua/cua-driver'
 import type {} from '@deepseek-ai/dsh-computer-use'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
+import { SerialOperationQueue } from './queue.ts'
 
 /** Cordis plugin identity for the native Cua Driver provider. */
 export const name = 'experimental-computer-use-cua-driver-native'
@@ -36,7 +37,7 @@ const TOOL_NAME = /^[A-Za-z0-9_-]{1,64}$/u
 
 const GUIDANCE = `Cua Driver native computer-use tools operate the host desktop. Discover the exact app and window, then get a fresh window snapshot before acting. Use element_token from that snapshot, or coordinates from its screenshot. A new snapshot of that window invalidates its earlier element tokens. Select either target or the legacy pid/window_id fields; do not combine them.
 
-Prefer background delivery. A refusal does not authorize a foreground retry. Verify the requested outcome from fresh state after an action; a delivered click alone does not prove the outcome. After cancellation, inspect current state before retrying because completed input is not rolled back. Other sessions and applications may change the same desktop.
+Prefer background delivery. A refusal does not authorize a foreground retry. Verify the requested outcome from fresh state after an action; a delivered click alone does not prove the outcome. After cancellation, inspect current state before retrying because completed input is not rolled back. DSH serializes native calls in this process, but other DSH processes and applications may still change the same desktop between calls.
 
 On macOS, cursor-overlay operations may return facility_unavailable even when screenshots and input work.`
 
@@ -50,6 +51,7 @@ On macOS, cursor-overlay operations may return facility_unavailable even when sc
 export async function apply(ctx: Context): Promise<void> {
   const lifetime = new AbortController()
   const pending = new Set<Promise<unknown>>()
+  const operations = new SerialOperationQueue()
   let driver: NativeDriver | undefined
   // Cordis announces disposal before it awaits asynchronous plugin startup.
   ctx.on('internal/plugin', (fiber) => {
@@ -109,7 +111,10 @@ export async function apply(ctx: Context): Promise<void> {
         async call(args, execution) {
           const combined = AbortSignal.any([execution.signal, lifetime.signal])
           combined.throwIfAborted()
-          const result = await activeDriver.callTool(tool.name, JSON.stringify(args), { signal: combined })
+          const result = await operations.run(
+            () => activeDriver.callTool(tool.name, JSON.stringify(args), { signal: combined }),
+            combined,
+          )
           combined.throwIfAborted()
           return JSON.parse(result.rawJson) as unknown
         },

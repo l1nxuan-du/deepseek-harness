@@ -589,6 +589,30 @@ describe('endpoint interrogation', () => {
       api: 'openai-responses',
     })
   })
+  it('sets a route protocol for a catalog provider with an undescribed model', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        'opencode-go': {
+          baseURL: 'https://opencode.ai/zen/v1',
+          models: [{ id: 'deepseek-flash' }],
+        },
+      },
+    })
+    openEditor('opencode-go')
+    fireEvent.click(screen.getByText(en.customized))
+
+    const protocol = screen.getByLabelText<HTMLSelectElement>(en.customApi)
+    expect(protocol.value).toBe('')
+    fireEvent.change(protocol, { target: { value: 'openai-completions' } })
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(firstMutate(mutate)).toEqual({
+      ns: 'llm-pi-ai',
+      ops: [{ op: 'set', path: ['providers', 'opencode-go', 'api'], value: 'openai-completions' }],
+      expectedRevision: 3,
+    })
+  })
 
   it('adopts only the picked candidates, keeping a row the user already tuned', async () => {
     const discover = vi.fn(() => Promise.resolve(ok([
@@ -893,12 +917,12 @@ describe('hand-declared providers', () => {
     expect(fields()).toEqual([en.customRoute, en.customDisplayName, en.baseUrl, en.customApi, en.keyInput])
     cleanup()
 
-    // A shipped route's models each carry their own protocol, so its editor
-    // offers no route-level protocol to override them with.
+    // A shipped route exposes the optional route-level protocol so a model id
+    // absent from a mixed catalog can still be declared.
     await mountSection({ providers: { openai: { apiKeyEnv: 'OPENAI_API_KEY' } } })
     openEditor('openai')
     fireEvent.click(screen.getByText(en.customized))
-    expect(fields()).toEqual([en.keyInput, en.baseUrl])
+    expect(fields()).toEqual([en.keyInput, en.baseUrl, en.customApi])
     cleanup()
 
     // A hand-declared route named its own protocol at creation, so editing it

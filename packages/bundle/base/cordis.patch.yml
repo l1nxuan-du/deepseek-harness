@@ -441,6 +441,15 @@
         maxRounds: 64
 
     # Consecutive-repeat reminders on the tool chain.
+    # Computer use is available to every base-backed profile by default. The
+    # native Cua Driver runtime is loaded explicitly here; deployments without
+    # desktop permissions can disable this row or replace the provider.
+    - id: computer-use
+      name: '@deepseek-ai/dsh-computer-use'
+
+    - id: computer-use-cua-driver-native
+      name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native'
+
     - id: repeat-tool-reminder
       name: '@deepseek-ai/dsh-repeat-tool-reminder'
       config:
@@ -449,20 +458,20 @@
 
     # The shared base enables the stable model-facing web_search and web_fetch
     # tools. The Web app disables this host row and composes both tools per agent
-    # preset; products with a stricter network policy override tool-web. DeepSeek
-    # search resolves the same DEEPSEEK_API_KEY
-    # credential the Models page manages for chat, at each search; its Messages
-    # endpoint is separate from the chat-completions endpoint, so it takes its own
-    # base-URL override. Anonymous fetch accepts only public HTTP(S) destinations,
-    # resolves and validates every destination, and pins every actual connection.
-    # Search is a full auxiliary model request with server-side retrieval, so this
-    # shipped DeepSeek route gets 60s while the provider-neutral tool default
-    # remains 30s.
+    # preset; products with a stricter network policy override tool-web. Google
+    # is the default search route, with Bing used automatically when Google is
+    # unavailable or unparseable. DeepSeek search remains registered as an
+    # explicit alternative for deployments that prefer a model-backed route.
+    # Anonymous fetch accepts only public HTTP(S) destinations, resolves and
+    # validates every destination, and pins every actual connection.
     - id: web
       name: '@deepseek-ai/dsh-web'
       config:
-        searchProvider: deepseek-official
+        searchProvider: google-bing
         fetchProvider: http
+
+    - id: web-search-google-bing
+      name: '@deepseek-ai/dsh-web-search-google-bing'
 
     - id: web-search-deepseek
       name: '@deepseek-ai/dsh-web-search-deepseek'

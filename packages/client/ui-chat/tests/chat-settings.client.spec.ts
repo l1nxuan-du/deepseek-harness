@@ -1,9 +1,10 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import { SettingsProvider, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import { apply } from '../src/index.ts'
 import {
-  CHAT_SETTINGS_NAMESPACE, DEFAULT_TRANSCRIPT_VIEW_MODE, apply,
-} from '../src/index.ts'
+  CHAT_SETTINGS_NAMESPACE, DEFAULT_TRANSCRIPT_VIEW_MODE,
+} from '../src/chat-settings.ts'
 
 class MemorySettings extends SettingsProvider {
   readonly writable = true
@@ -14,7 +15,7 @@ class MemorySettings extends SettingsProvider {
 }
 
 describe('ui-chat Host settings', () => {
-  it('registers, validates, and disposes the transcript-view namespace', async () => {
+  it('loads legacy transcript values without exposing a runtime mode', async () => {
     const ctx = new Context()
     await ctx.plugin(MemorySettings).await()
     const fiber = ctx.plugin({ apply })
@@ -22,8 +23,8 @@ describe('ui-chat Host settings', () => {
     const ns = CHAT_SETTINGS_NAMESPACE
 
     expect(ctx.settings.get(ns)).toEqual({ transcriptView: DEFAULT_TRANSCRIPT_VIEW_MODE })
-    await ctx.settings.update(ns, { transcriptView: 'normal' })
-    expect(ctx.settings.get(ns)).toEqual({ transcriptView: 'normal' })
+    await ctx.settings.update(ns, { transcriptView: 'compact' })
+    expect(ctx.settings.get(ns)).toEqual({ transcriptView: 'compact' })
     await expect(ctx.settings.update(ns, { transcriptView: 'dense' })).rejects.toThrow()
 
     await fiber.dispose()

@@ -6,7 +6,7 @@
 
 ## 选择提供方
 
-在同一组合中挂载 [`dsh-computer-use`](../../packages/computer-use/computer-use/README.zh.md) 和一个提供方。两个 Cua Driver 提供方都是公开发布到 npm 的实验性包，均需显式启用。
+随包 base 组合默认挂载 [`dsh-computer-use`](../../packages/computer-use/computer-use/README.zh.md) 与原生 Cua Driver 提供方。MCP 提供方仍是显式替代方案；没有桌面权限的部署可以禁用默认的原生行。
 
 | 提供方 | 运行时 |
 |---|---|

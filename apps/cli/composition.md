@@ -166,10 +166,16 @@ flowchart LR
   cfg --> plugin_dsh_base_tool_goal
   plugin_dsh_base_tool_ralph["tool-ralph<br/>@deepseek-ai/dsh-tool-ralph"]
   cfg --> plugin_dsh_base_tool_ralph
+  plugin_dsh_base_computer_use["computer-use<br/>@deepseek-ai/dsh-computer-use"]
+  cfg --> plugin_dsh_base_computer_use
+  plugin_dsh_base_computer_use_cua_driver_native["computer-use-cua-driver-native<br/>@deepseek-ai/dsh-experimental-computer-use-cua-driver-native"]
+  cfg --> plugin_dsh_base_computer_use_cua_driver_native
   plugin_dsh_base_repeat_tool_reminder["repeat-tool-reminder<br/>@deepseek-ai/dsh-repeat-tool-reminder"]
   cfg --> plugin_dsh_base_repeat_tool_reminder
   plugin_dsh_base_web["web<br/>@deepseek-ai/dsh-web"]
   cfg --> plugin_dsh_base_web
+  plugin_dsh_base_web_search_google_bing["web-search-google-bing<br/>@deepseek-ai/dsh-web-search-google-bing"]
+  cfg --> plugin_dsh_base_web_search_google_bing
   plugin_dsh_base_web_search_deepseek["web-search-deepseek<br/>@deepseek-ai/dsh-web-search-deepseek"]
   cfg --> plugin_dsh_base_web_search_deepseek
   plugin_dsh_base_web_fetch_http["web-fetch-http<br/>@deepseek-ai/dsh-web-fetch-http"]
@@ -271,8 +277,11 @@ flowchart LR
 | `tool-todo` | `@deepseek-ai/dsh-tool-todo` |
 | `tool-goal` | `@deepseek-ai/dsh-tool-goal` |
 | `tool-ralph` | `@deepseek-ai/dsh-tool-ralph` |
+| `computer-use` | `@deepseek-ai/dsh-computer-use` |
+| `computer-use-cua-driver-native` | `@deepseek-ai/dsh-experimental-computer-use-cua-driver-native` |
 | `repeat-tool-reminder` | `@deepseek-ai/dsh-repeat-tool-reminder` |
 | `web` | `@deepseek-ai/dsh-web` |
+| `web-search-google-bing` | `@deepseek-ai/dsh-web-search-google-bing` |
 | `web-search-deepseek` | `@deepseek-ai/dsh-web-search-deepseek` |
 | `web-fetch-http` | `@deepseek-ai/dsh-web-fetch-http` |
 | `tool-web` | `@deepseek-ai/dsh-tool-web` |

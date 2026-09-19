@@ -173,8 +173,8 @@
     "gen-third-party-notices": "tsx scripts/gen-third-party-notices.ts",
     "verify-third-party-notices": "tsx scripts/gen-third-party-notices.ts --check",
     "gen-module-graph": "tsx scripts/gen-module-graph.ts",
-    "gen-scoped-events": "tsx scripts/gen-scoped-events.ts",
-    "verify-scoped-events": "tsx scripts/gen-scoped-events.ts --check",
+    "gen-scoped-events": "node --max-old-space-size=6144 --import tsx/esm scripts/gen-scoped-events.ts",
+    "verify-scoped-events": "node --max-old-space-size=6144 --import tsx/esm scripts/gen-scoped-events.ts --check",
     "verify-module-graph": "tsx scripts/gen-module-graph.ts --check",
     "constraints": "tsx scripts/check-workspace-constraints.ts",
     "doc-sync": "tsx scripts/run-gates.ts doc-sync",
@@ -196,6 +196,7 @@
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:^",
     "@deepseek-ai/dsh-browser-use": "workspace:^",
+    "@deepseek-ai/dsh-experimental-browser-use-playwright-native": "workspace:^",
     "@deepseek-ai/dsh-experimental-browser-use-runtime": "workspace:^",
     "@deepseek-ai/dsh-experimental-browser-use-playwright-mcp": "workspace:^",
     "@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp": "workspace:^",

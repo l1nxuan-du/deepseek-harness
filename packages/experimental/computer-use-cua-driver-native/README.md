@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use Cua Driver to inspect and operate desktop windows without installing its separate CLI or application. The native npm dependency runs inside the DSH host and exposes Cua Driver's own tools. Screenshots reach image-capable models through durable attachments. This published experimental package requires the launching host's desktop permissions and remains an explicit composition choice.
+Use Cua Driver to inspect and operate desktop windows without installing its separate CLI or application. The native npm dependency runs inside the DSH host and exposes Cua Driver's own tools. Screenshots reach image-capable models through durable attachments. This published experimental package serializes native calls across Sessions in one DSH process and requires the launching host's desktop permissions. The shipped base composition mounts it by default; deployments without desktop access can disable that row.
 
 ## Table of Contents
 
@@ -58,7 +58,7 @@ env -u NODE_USE_ENV_PROXY DSH_COMPUTER_USE_NATIVE_E2E=1 node node_modules/vitest
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The provider reserves the shared computer-use registration before loading native code. A child plugin owns discovery, model tools, guidance, and the native runtime. The parent retains the registration until child teardown has removed tools, interrupted native calls and image-capability admission, awaited settlement, and completed native shutdown. Cancellation does not undo input already delivered to an application.
+The provider reserves the shared computer-use registration before loading native code. A child plugin owns discovery, model tools, guidance, and the native runtime. A process-wide FIFO queue allows one native operation to run at a time across Sessions. The parent retains the registration until child teardown has removed tools, interrupted native calls and image-capability admission, awaited settlement, and completed native shutdown. Cancellation does not undo input already delivered to an application.
 
 | File | Role |
 |---|---|
@@ -94,7 +94,7 @@ The provider contributes the following computer-use guidance while its native to
 ```markdown
 Cua Driver native computer-use tools operate the host desktop. Discover the exact app and window, then get a fresh window snapshot before acting. Use element_token from that snapshot, or coordinates from its screenshot. A new snapshot of that window invalidates its earlier element tokens. Select either target or the legacy pid/window_id fields; do not combine them.
 
-Prefer background delivery. A refusal does not authorize a foreground retry. Verify the requested outcome from fresh state after an action; a delivered click alone does not prove the outcome. After cancellation, inspect current state before retrying because completed input is not rolled back. Other sessions and applications may change the same desktop.
+Prefer background delivery. A refusal does not authorize a foreground retry. Verify the requested outcome from fresh state after an action; a delivered click alone does not prove the outcome. After cancellation, inspect current state before retrying because completed input is not rolled back. DSH serializes native calls in this process, but other DSH processes and applications may still change the same desktop between calls.
 
 On macOS, cursor-overlay operations may return facility_unavailable even when screenshots and input work.
 ```
@@ -129,7 +129,7 @@ The package preserves the upstream driver's platform and application limits.
 
 - **Host permissions and graphics session** — npm installation does not grant desktop access or create a graphical session.
 - **Native cursor overlay** — a headless macOS Node host can receive `facility_unavailable` for overlay operations while screenshots and background input remain usable.
-- **Shared desktop** — the provider does not reserve windows or complete workflows for a Session. Other callers and applications can change the same desktop between calls.
+- **Shared desktop** — the provider serializes native calls inside one DSH process but does not reserve windows or complete workflows for a Session. Other DSH processes and applications can change the same desktop between calls.
 - **Cancellation** — an aborted call can have delivered input already; inspect fresh state before retrying. The provider waits for SDK shutdown during unload but does not promise native action rollback.
 - **Failed shutdown** — if native shutdown fails, the registration remains occupied. Restart the host before mounting another computer-use provider.
 - **Experimental release** — tool schemas follow the pinned upstream SDK and have no DSH stability promise.

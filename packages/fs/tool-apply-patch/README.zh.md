@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-tool-apply-patch` 提供基于 `ctx.fs` 的面向模型 `apply_patch` 工具：一个 Codex 风格信封在单次调用中新增、更新、移动与删除多个文件，结果为参考实现的 `Success. Updated the following files:` 摘要，每个路径一行 `A`、`M` 或 `D`。每个 hunk 都在写入任何内容之前对照其文件完成检查；匹配遵循参考工具的宽容度（先精确、再忽略首尾空白、最后忽略 ASCII 与排印标点的差异），未触碰行的行尾保持不变，插入行沿用文件自身的行尾，更新后的文件以换行结尾。当部署需要 Codex 风格的多文件补丁时选择它；`dsh-tool-fs` 包提供替代的 `read`/`write`/`edit` 套件。
+`dsh-tool-apply-patch` 提供基于 `ctx.fs` 的面向模型 `apply_patch` 工具：一个 Codex 风格信封在单次调用中新增、更新、移动与删除多个文件，并按变更路径报告 `A`、`M` 或 `D`。每个 hunk 都在写入任何内容之前对照其文件完成检查；匹配遵循参考工具的宽容度（先精确、再忽略首尾空白、最后忽略 ASCII 与排印标点的差异），未触碰行的行尾保持不变，插入行沿用文件自身的行尾，更新后的文件以换行结尾。需要 Codex 风格多文件补丁时选择它；`dsh-tool-fs` 提供替代的 `read`/`write`/`edit` 套件。
 
 ## 目录
 

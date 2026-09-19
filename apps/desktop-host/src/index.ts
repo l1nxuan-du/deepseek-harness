@@ -21,7 +21,8 @@ async function main(): Promise<void> {
     resolutionMode: process.argv[5] === 'runtime' ? 'runtime' : 'link',
     resolvedProfile: { profile, installAnchor },
     patchFiles: [],
-    args: ['--no-open', '--port', '19387'],
+    // Electron reaches the Host through loopback; it must not inherit Web's all-interfaces default.
+    args: ['--host', '127.0.0.1', '--no-open', '--port', '19387'],
     ...(process.argv[6] === undefined ? {} : {
       packageManager: {
         command: process.execPath,

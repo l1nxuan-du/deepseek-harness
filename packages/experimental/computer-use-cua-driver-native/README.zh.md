@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-使用 Cua Driver 检查和操作桌面窗口，无需安装其独立 CLI 或应用。原生 npm 依赖在 DSH 主机进程内运行，提供 Cua Driver 自己的工具。截图通过持久化附件传给支持图像的模型。此实验性软件包会发布到 npm，需要启动主机的桌面权限，并且必须在组合配置中显式启用。
+使用 Cua Driver 检查和操作桌面窗口，无需安装其独立 CLI 或应用。原生 npm 依赖在 DSH 主机进程内运行，提供 Cua Driver 自己的工具。截图通过持久化附件传给支持图像的模型。此实验性软件包会在同一 DSH 进程内跨 Session 串行化原生调用，并需要启动主机的桌面权限。随包 base 组合默认挂载它；没有桌面权限的部署可以禁用该行。
 
 ## 目录
 
@@ -58,7 +58,7 @@ env -u NODE_USE_ENV_PROXY DSH_COMPUTER_USE_NATIVE_E2E=1 node node_modules/vitest
 <details>
 <summary>实现内部——点击展开</summary>
 
-此提供者在加载原生代码前占用共享电脑操作注册名额。子插件拥有目录发现、模型工具、指导文本和原生运行时。父插件保留注册名额，直到子插件卸载完成工具移除、中断原生调用和图像能力准入、等待调用结束及原生关闭。取消不会撤销已经传给应用的输入。
+此提供者在加载原生代码前占用共享电脑操作注册名额。子插件拥有目录发现、模型工具、指导文本和原生运行时，并用进程级 FIFO 队列保证跨 Session 同时只运行一个原生操作。父插件保留注册名额，直到子插件卸载完成工具移除、中断原生调用和图像能力准入、等待调用结束及原生关闭。取消不会撤销已经传给应用的输入。
 
 | 文件 | 职责 |
 |---|---|
@@ -94,7 +94,7 @@ env -u NODE_USE_ENV_PROXY DSH_COMPUTER_USE_NATIVE_E2E=1 node node_modules/vitest
 ```markdown
 Cua Driver native computer-use tools operate the host desktop. Discover the exact app and window, then get a fresh window snapshot before acting. Use element_token from that snapshot, or coordinates from its screenshot. A new snapshot of that window invalidates its earlier element tokens. Select either target or the legacy pid/window_id fields; do not combine them.
 
-Prefer background delivery. A refusal does not authorize a foreground retry. Verify the requested outcome from fresh state after an action; a delivered click alone does not prove the outcome. After cancellation, inspect current state before retrying because completed input is not rolled back. Other sessions and applications may change the same desktop.
+Prefer background delivery. A refusal does not authorize a foreground retry. Verify the requested outcome from fresh state after an action; a delivered click alone does not prove the outcome. After cancellation, inspect current state before retrying because completed input is not rolled back. DSH serializes native calls in this process, but other DSH processes and applications may still change the same desktop between calls.
 
 On macOS, cursor-overlay operations may return facility_unavailable even when screenshots and input work.
 ```
@@ -129,7 +129,7 @@ On macOS, cursor-overlay operations may return facility_unavailable even when sc
 
 - **主机权限与图形会话**——npm 安装不会授予桌面访问权限或创建图形会话。
 - **原生光标覆盖层**——无界面的 macOS Node 主机可能对覆盖层操作返回 `facility_unavailable`，同时截图和后台输入仍可用。
-- **共享桌面**——此提供者不为某个 Session 预留窗口或完整工作流。其他调用方和应用可以在两次调用之间更改同一桌面。
+- **共享桌面**——此提供者会在一个 DSH 进程内串行化原生调用，但不为某个 Session 预留窗口或完整工作流。其他 DSH 进程和应用可以在两次调用之间更改同一桌面。
 - **取消**——被取消的调用可能已经传入输入；重试前必须检查新状态。卸载时提供者等待 SDK 关闭，但不承诺回滚原生操作。
 - **关闭失败**——如果原生关闭失败，注册名额保持占用。挂载其他电脑操作提供者之前必须重启主机。
 - **实验性发布**——工具 schema 跟随锁定的上游 SDK，不作 DSH 稳定性承诺。

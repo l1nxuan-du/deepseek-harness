@@ -75,8 +75,10 @@ export interface ChatTurnProcessPresentation {
   readonly turn: number
   readonly spec: TurnProcessSpec
   readonly turnClosed: boolean
+  /** The loaded window contains this Turn's start and end, so counts are complete. */
+  readonly turnFullyLoaded: boolean
   readonly hasExternalProcess: boolean
-  readonly compactAnswer: boolean
+  readonly foldedAnswer: boolean
 }
 
 /** Compatibility projection backing StatsPills and the legacy top-level snapshot fields. */

@@ -55,7 +55,7 @@ export async function newEnglishPage(browser: Browser, height = 1000): Promise<P
 /**
  * Expand every currently eligible Turn-process group so a Tool-focused
  * scenario can exercise the original row contract beneath product-default
- * compact Chat presentation.
+ * normal Chat presentation.
  * @param page - page containing the Chat view.
  */
 export async function expandTurnProcesses(page: Page): Promise<void> {

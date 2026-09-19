@@ -625,6 +625,37 @@ Depends on: `BrowserMcpConfig` (`@deepseek-ai/dsh-experimental-browser-use-runti
 
 Source: [`packages/experimental/browser-use-playwright-mcp/src/index.ts:15`](../packages/experimental/browser-use-playwright-mcp/src/index.ts)
 
+<a id="deepseek-aidsh-experimental-browser-use-playwright-native"></a>
+
+## `@deepseek-ai/dsh-experimental-browser-use-playwright-native`
+
+Requires: `browserUse` · `agents` · `tools` · `systemPrompt`
+
+```ts config-catalog
+/** Plugin configuration. */
+export interface Config {
+  /** Hide the browser window. Defaults to true. */
+  headless?: boolean
+  /** Preferred Chromium channel. Omitted probes Chrome, Edge, then bundled Chromium. */
+  channel?: BrowserChannel
+  /** Explicit Chromium executable path. */
+  executablePath?: string
+  /** Per-operation timeout in milliseconds. Defaults to 30000. */
+  timeoutMs?: number
+  /** Initial viewport width. Defaults to 1280. */
+  viewportWidth?: number
+  /** Initial viewport height. Defaults to 720. */
+  viewportHeight?: number
+  /** Optional product user agent. */
+  userAgent?: string
+}
+
+/** Chromium channel selected by the deployment. */
+export type BrowserChannel = 'chrome' | 'msedge' | 'chromium'
+```
+
+Source: [`packages/experimental/browser-use-playwright-native/src/index.ts:26`](../packages/experimental/browser-use-playwright-native/src/index.ts)
+
 <a id="deepseek-aidsh-experimental-browser-use-stagehand-native"></a>
 
 ## `@deepseek-ai/dsh-experimental-browser-use-stagehand-native`
@@ -3035,7 +3066,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/fs/tool-apply-patch/src/index.ts:108`](../packages/fs/tool-apply-patch/src/index.ts)
+Source: [`packages/fs/tool-apply-patch/src/index.ts:110`](../packages/fs/tool-apply-patch/src/index.ts)
 
 <a id="deepseek-aidsh-tool-bash"></a>
 
@@ -3256,7 +3287,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/shell/tool-pwsh-persistent/src/index.ts:472`](../packages/shell/tool-pwsh-persistent/src/index.ts)
+Source: [`packages/shell/tool-pwsh-persistent/src/index.ts:485`](../packages/shell/tool-pwsh-persistent/src/index.ts)
 
 <a id="deepseek-aidsh-tool-ralph"></a>
 
@@ -3523,7 +3554,7 @@ export interface Config {
 export type ToolPresentationMode = 'native' | 'ptc' | 'both'
 ```
 
-Source: [`packages/core/tools/src/index.ts:673`](../packages/core/tools/src/index.ts)
+Source: [`packages/core/tools/src/index.ts:676`](../packages/core/tools/src/index.ts)
 
 <a id="deepseek-aidsh-typert-loader"></a>
 
@@ -3695,6 +3726,30 @@ export interface Config {
 ```
 
 Source: [`packages/web/web-search-exa/src/index.ts:35`](../packages/web/web-search-exa/src/index.ts)
+
+<a id="deepseek-aidsh-web-search-google-bing"></a>
+
+## `@deepseek-ai/dsh-web-search-google-bing`
+
+Requires: `web`
+
+```ts config-catalog
+/** Plugin config for the two keyless HTML search endpoints. */
+export interface Config {
+  /** Google search endpoint. Defaults to the public Google Search page. */
+  googleBaseURL?: string
+  /** Bing fallback endpoint. Defaults to the public Bing Search page. */
+  bingBaseURL?: string
+  /** Browser-language preference sent to both engines. Defaults to en-US. */
+  language?: string
+  /** Explicit product user agent. Defaults to the harness identity. */
+  userAgent?: string
+  /** Maximum response bytes accepted per engine. Defaults to 2000000. */
+  maxResponseBytes?: number
+}
+```
+
+Source: [`packages/web/web-search-google-bing/src/index.ts:40`](../packages/web/web-search-google-bing/src/index.ts)
 
 <a id="deepseek-aidsh-web-search-perplexity"></a>
 

@@ -99,7 +99,7 @@ describe('the shipped preset root', () => {
       (prefix as { __jsExpr: string }).__jsExpr,
     ) as string
     const root = presetDir.replaceAll('\\', '/')
-    expect(prompt).toContain('# Do')
+    expect(prompt).toContain('# Personality')
     expect(prompt).toContain(`${root}/.agent/AGENTS.md`)
     expect(prompt).toContain(`${root}/docs/development.md`)
     expect(prompt).not.toContain('__DSH_LINX_ROOT__')
