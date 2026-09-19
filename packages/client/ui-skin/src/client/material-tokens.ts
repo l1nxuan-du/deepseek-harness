@@ -41,6 +41,9 @@ export const MATERIAL_TOKEN_OVERRIDES: ThemeTokenOverrides = {
   '--dsw-alias-button-primary-fill': { light: ACCENT, dark: ACCENT },
   '--dsw-alias-button-primary-hover': { light: '#3568d4', dark: '#5a8bf0' },
   '--dsw-specific-sidebar-fill': { light: 'transparent', dark: 'transparent' },
+  // Tag fills and the docking tab capsule are the same chip; both take the
+  // material surface instead of the opaque shipped tag fill.
+  '--dsw-alias-markdown-tag': { light: 'rgba(0, 0, 0, 0.05)', dark: 'rgba(255, 255, 255, 0.10)' },
   '--dsw-specific-sidebar-nav-item-active': { light: 'rgba(0, 0, 0, 0.06)', dark: 'rgba(255, 255, 255, 0.10)' },
   '--dsw-specific-sidebar-nav-item-hover': { light: 'rgba(0, 0, 0, 0.04)', dark: 'rgba(255, 255, 255, 0.07)' },
   '--dsw-specific-bubble': { light: SURFACE_LIGHT, dark: SURFACE_DARK },

@@ -15,9 +15,9 @@
 html[data-dsh-skin='material'] {
   --dsh-page: #f9f8f8;
   --dsh-field-wash:
-    radial-gradient(74% 62% at 72% -14%, color-mix(in oklab, #9cc1e7 40%, transparent) 0%, color-mix(in oklab, #9cc1e7 16%, transparent) 48%, transparent 82%),
+    radial-gradient(200% 62% at 50% -18%, color-mix(in oklab, #9cc1e7 42%, transparent) 0%, color-mix(in oklab, #9cc1e7 19%, transparent) 55%, transparent 92%),
     linear-gradient(180deg, #e6edf7 0%, #e9eef7 50%, #f6f8fb 100%);
-  --dsh-field-mask: linear-gradient(to left, rgb(0 0 0 / 0.95) 0%, rgb(0 0 0 / 0.72) 45%, rgb(0 0 0 / 0.25) 72%, rgb(0 0 0 / 0) 90%);
+  --dsh-field-mask: linear-gradient(to right, rgb(0 0 0 / 0.35) 0%, rgb(0 0 0 / 0.85) 16%, rgb(0 0 0 / 0.92) 40%, rgb(0 0 0 / 0.92) 100%);
   --dsh-field-grid: rgb(0 0 0 / 0.035);
   --dsh-surface-glass: rgb(255 255 255 / 0.3);
   --dsh-surface-acrylic: rgb(255 255 255 / 0.5);
@@ -46,7 +46,7 @@ html[data-dsh-skin='material'] {
 html[data-dsh-skin='material'] body[data-ds-dark-theme] {
   --dsh-page: #151517;
   --dsh-field-wash:
-    radial-gradient(74% 62% at 72% -14%, color-mix(in oklab, #2f4c8f 55%, transparent) 0%, color-mix(in oklab, #2f4c8f 24%, transparent) 48%, transparent 82%),
+    radial-gradient(200% 62% at 50% -18%, color-mix(in oklab, #2f4c8f 58%, transparent) 0%, color-mix(in oklab, #2f4c8f 27%, transparent) 55%, transparent 92%),
     linear-gradient(180deg, #1b1d24 0%, #17181d 50%, #121214 100%);
   --dsh-surface-glass: rgb(255 255 255 / 0.06);
   --dsh-surface-acrylic: rgb(255 255 255 / 0.08);
@@ -165,6 +165,13 @@ html[data-dsh-skin='material'] [class*='_frame']:not([data-rightbar-collapsed]):
 
 html[data-dsh-skin='material'] [class*='_handle'] {
   background: none;
+}
+
+/* The shipped conversation root paints the page fill as its own ground; the
+ * material pane supplies that ground, so the fill would hide the pane's glass
+ * and leave the conversation flatter than the panel beside it. */
+html[data-dsh-skin='material'] [data-slot='main.conversation'] > [class*='_root'] {
+  background: transparent;
 }
 
 /* --- sidebar ------------------------------------------------------------- */
