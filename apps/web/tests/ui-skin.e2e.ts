@@ -77,13 +77,16 @@ async function geometry(page: Page): Promise<{
 } | null> {
   return await page.evaluate(() => {
     const frame = document.querySelector<HTMLElement>('[class*="_frame"]')
-    const pane = document.querySelector<HTMLElement>('[class*="_centerCol"]')
+    const pane = document.querySelector<HTMLElement>('[data-conversation-pane]')
+    // The gap is the column's own right inset: the card inside it also pays the
+    // shipped scrollbar gutter, which the skin leaves alone.
+    const column = document.querySelector<HTMLElement>('[class*="_centerCol"]')
     const panel = document.querySelector<HTMLElement>('[data-sidebar-right-panel="push"]')
-    if (frame === null || pane === null || panel === null) return null
+    if (frame === null || pane === null || column === null || panel === null) return null
     if (!panel.hasAttribute('data-sidebar-right-open')) return null
     if (frame.hasAttribute('data-rightbar-collapsed')) return null
     if (getComputedStyle(panel).transform !== 'none') return null
-    const paneBox = pane.getBoundingClientRect()
+    const paneBox = column.getBoundingClientRect()
     const panelBox = panel.getBoundingClientRect()
     return {
       gap: Math.round((panelBox.left - paneBox.right) * 10) / 10,
@@ -121,7 +124,7 @@ describe('web e2e: interface skin', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-ui-skin-material'))
     await expect.poll(() => page.getAttribute('html', SKIN_ATTRIBUTE)).toBe('material')
     await expect.poll(() => page.locator(FIELD_SELECTOR).count()).toBe(1)
-    const insetPane = await page.locator('[class*="_centerCol"]').evaluate((pane) => {
+    const insetPane = await page.locator('[data-conversation-pane]').evaluate((pane) => {
       const style = getComputedStyle(pane)
       return { radius: style.borderTopLeftRadius, backdrop: style.backdropFilter, background: style.backgroundColor }
     })
@@ -167,7 +170,7 @@ describe('web e2e: interface skin', () => {
     await dialog.getByRole('button', { name: 'Strengthen the material' }).click()
     await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
       .toBe('90')
-    const scaled = await page.locator('[class*="_centerCol"]').evaluate(pane => getComputedStyle(pane).backgroundColor)
+    const scaled = await page.locator('[data-conversation-pane]').evaluate(pane => getComputedStyle(pane).backgroundColor)
     expect(scaled).toBe('rgba(255, 255, 255, 0.45)')
     await dialog.getByRole('button', { name: 'Weaken the material' }).click()
     await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))

@@ -58,6 +58,7 @@ html[data-dsh-skin='material'] body[data-ds-dark-theme] {
    * film under a larger, saturating blur. The strength setting scales both. */
   --dsh-pane-surface: rgb(30 32 36 / calc(var(--dsh-skin-strength, 60) / 110));
   --dsh-pane-filter: blur(calc(12px + var(--dsh-skin-strength, 60) * 0.2px)) saturate(1.6);
+  --dsh-input-frost: blur(24px) saturate(1.8);
   --dsh-surface-acrylic: rgb(255 255 255 / 0.08);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.14);
   --dsh-surface-button: rgb(255 255 255 / 0.08);
@@ -124,8 +125,15 @@ html[data-dsh-skin='material'] [class*='_sidebarCol'] {
   border-right: none;
 }
 
+/* The conversation's material box is the pane card, not the column: the pane
+ * carries the material and the composer seat sits outside it, so the input
+ * floats on the field instead of on the pane. */
 html[data-dsh-skin='material'] [class*='_centerCol'] {
   position: relative;
+  background: none;
+}
+
+html[data-dsh-skin='material'] [data-conversation-pane] {
   border: 0.5px solid var(--dsh-border-subtle);
   border-radius: var(--dsh-radius-card);
   background: var(--dsh-pane-surface);
@@ -277,6 +285,18 @@ html[data-dsh-skin='material'] [data-slot='conversation.view'] [class*='_bubble'
   backdrop-filter: var(--dsh-acrylic);
   box-shadow: var(--dsh-sheen), 0 4px 14px rgb(31 45 84 / 0.08);
   corner-shape: round;
+}
+
+/* --- composer ------------------------------------------------------------ */
+
+/* The input floats on the field — the pane's material stops above it — so the
+ * half-strength acrylic film and its 24px saturating blur finally have the
+ * field to act on. The blur rides the card itself, like the panes and the
+ * bubbles; the card holds no fixed-position descendants. */
+html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card'] {
+  border: 0;
+  -webkit-backdrop-filter: var(--dsh-input-frost);
+  backdrop-filter: var(--dsh-input-frost);
 }
 
 /* --- right panel --------------------------------------------------------- */

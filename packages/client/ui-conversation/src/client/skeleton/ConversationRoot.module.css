@@ -211,6 +211,13 @@
   background: var(--dsw-alias-state-business-primary);
 }
 
+.paneCard {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .viewArea {
   display: flex;
   flex: 1;
@@ -413,17 +420,6 @@
      composer stays above the pinned header on the extreme small-viewport
      overlap and the pinned header stays above the rail. */
   z-index: 7;
-  /* Input mask (figma 1205:27463): transcript fades out under a FIXED 36px
-     band at the seat's top (the figma 24% of the resting ~150px composer),
-     solid below — px stops, not %, so a growing draft only widens the solid
-     region and the fade band never stretches. The 0px stop is bg-base at
-     zero alpha (not white, which the figma export hardcodes) so both themes
-     fade from their own base. */
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--dsw-alias-bg-base) 0%, transparent) 0px,
-    var(--dsw-alias-bg-base) 36px
-  );
 }
 
 /* An open @/slash menu (data-trigger-menu, ui-input-trigger) renders inside
@@ -453,7 +449,7 @@
   scrollbar-gutter: auto;
 }
 
-.scrollBody:has([data-conversation-composer-overlay]) > :global([data-slot='conversation.session']) > .viewArea {
+.scrollBody:has([data-conversation-composer-overlay]) > .paneCard > :global([data-slot='conversation.session']) > .viewArea {
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
