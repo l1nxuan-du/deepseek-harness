@@ -23,6 +23,7 @@ html[data-dsh-skin='material'] {
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
   --dsh-surface-button: rgb(255 255 255 / 0.4);
   --dsh-mica-frost: blur(16px) saturate(1.4);
+  --dsh-composer-surface: rgb(249 248 248 / 0.94);
   --dsh-surface-hover: rgb(0 0 0 / 0.04);
   --dsh-surface-active: rgb(0 0 0 / 0.07);
   --dsh-border-subtle: rgb(0 0 0 / 0.06);
@@ -52,6 +53,7 @@ html[data-dsh-skin='material'] body[data-ds-dark-theme] {
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.14);
   --dsh-surface-button: rgb(255 255 255 / 0.08);
   --dsh-mica-frost: blur(16px) saturate(1.4);
+  --dsh-composer-surface: rgb(20 20 22 / 0.94);
   --dsh-surface-hover: rgb(255 255 255 / 0.08);
   --dsh-surface-active: rgb(255 255 255 / 0.12);
   --dsh-border-subtle: rgb(255 255 255 / 0.08);
@@ -96,14 +98,17 @@ html[data-dsh-skin='material'] body {
 
 /* --- frame --------------------------------------------------------------- */
 
-/* The shipped composer seat fades the transcript into the page fill over a
- * 36px band. On the material chrome that band is a gradient behind the input
- * and it hides the field, so the seat stays transparent. The shipped rule is
- * phase-scoped (`.root[data-phase='active'] .composerSeat`), so this override
- * carries the phase and the root attribute to outrank it. */
+/* The composer's own ground. The shipped rule fades the transcript into the
+ * page fill over a 36px gradient; the material chrome replaces that with a
+ * flat mica surface — no gradient behind the input, and the transcript cannot
+ * read through the seat either. The shipped rule is phase-scoped
+ * (`.root[data-phase='active'] .composerSeat`), so this override carries the
+ * phase and the root attribute to outrank it. */
 html[data-dsh-skin='material'] [class*='_root'][data-phase='active'] [class*='_composerSeat'],
 html[data-dsh-skin='material'] [class*='_embeddedBody'][data-content-phase='active'] [class*='_composerSeat'] {
-  background: none;
+  background: var(--dsh-composer-surface);
+  -webkit-backdrop-filter: var(--dsh-mica);
+  backdrop-filter: var(--dsh-mica);
 }
 
 
