@@ -55,7 +55,7 @@ Selecting `classic` retracts the token layer and the backdrop and leaves the att
 
 ### Styling scope
 
-The material sheet is global, and every selector requires the root attribute; an install therefore cannot restyle the classic chrome. Rules reach the shipped chrome through the slot seats it renders into (`[data-slot='sidebar']`, `[data-slot='conversation.composer.bar']`, …) plus the stable class-name suffixes of the components it restyles. Palette axes ride the alias-token layer instead of the sheet, so menus, popovers, and cards follow the material palette without a second copy of their styles. The input card is the one surface the study's acrylic recipe does not carry over: transcript rows scroll behind it, so it takes a mostly opaque mica fill (78% light, 82% dark) under a 12px blur instead.
+The material sheet is global, and every selector requires the root attribute; an install therefore cannot restyle the classic chrome. Rules reach the shipped chrome through the slot seats it renders into (`[data-slot='sidebar']`, `[data-slot='conversation.composer.bar']`, …) plus the stable class-name suffixes of the components it restyles. Palette axes ride the alias-token layer instead of the sheet, so menus, popovers, and cards follow the material palette without a second copy of their styles. The input card is the one surface the study's acrylic recipe does not carry over: transcript rows scroll behind it, so it takes a mica film instead — half-white in light, 60% of `#3a3c40` dark over white text colours, under a 16px saturating blur. The values follow the DeepSeek Default skin, whose composer card is the reference for this surface.
 
 ### The field
 

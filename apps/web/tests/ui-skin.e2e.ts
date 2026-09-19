@@ -143,8 +143,8 @@ describe('web e2e: interface skin', () => {
       const style = getComputedStyle(card)
       return { background: style.backgroundColor, blur: style.backdropFilter }
     })
-    expect(composer.background).toBe('rgba(255, 255, 255, 0.78)')
-    expect(composer.blur).toBe('blur(12px)')
+    expect(composer.background).toBe('rgba(255, 255, 255, 0.5)')
+    expect(composer.blur).toBe('blur(16px) saturate(1.4)')
   })
 
   it('moves to the classic chrome from Settings and back', async () => {
