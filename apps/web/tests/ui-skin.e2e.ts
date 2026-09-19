@@ -150,7 +150,7 @@ describe('web e2e: interface skin', () => {
       }
     })
     // The fill is the card's own token: mica, not the shipped acrylic.
-    expect(composer.background).toBe('rgba(255, 255, 255, 0.5)')
+    expect(composer.background).toBe('rgb(255, 255, 255)')
     // Elevated surfaces take their boundary from the elevation shadow, never
     // from a border, and the frost rides the pseudo-element.
     expect(composer.border).toBe('0px')

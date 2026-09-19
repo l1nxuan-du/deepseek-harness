@@ -19,11 +19,13 @@ const RAISED_LIGHT = 'rgba(255, 255, 255, 0.72)'
 const RAISED_DARK = 'rgba(32, 33, 36, 0.86)'
 
 /**
- * Mica fill for the input card: a tinted film over the seat's own material.
- * Half the card's value, matching the reference skin's composer film.
+ * Fill for the input card. Opaque by decision: the card is the one surface the
+ * transcript scrolls under, so nothing shows through it. Light keeps the
+ * shipped white; dark takes a raised grey rather than the page's near-black so
+ * the card still reads as a panel.
  */
-const MICA_LIGHT = 'rgba(255, 255, 255, 0.5)'
-const MICA_DARK = 'rgba(58, 60, 64, 0.5)'
+const INPUT_LIGHT = 'rgb(255, 255, 255)'
+const INPUT_DARK = 'rgb(43, 45, 49)'
 
 /** The prototype's single interactive accent. */
 const ACCENT = '#4176e6'
@@ -56,7 +58,7 @@ export const MATERIAL_TOKEN_OVERRIDES: ThemeTokenOverrides = {
   // The composer card's own fill token: the shipped card rule consumes it, so
   // the input and the other card surfaces (attachment rail, approval and
   // question panels) move together instead of drifting apart.
-  '--dsw-specific-input-major': { light: MICA_LIGHT, dark: MICA_DARK },
+  '--dsw-specific-input-major': { light: INPUT_LIGHT, dark: INPUT_DARK },
   '--dsw-specific-bubble': { light: SURFACE_LIGHT, dark: SURFACE_DARK },
   '--dsw-specific-bubble-highlight': { light: RAISED_LIGHT, dark: RAISED_DARK },
   '--dsw-specific-menu': { light: RAISED_LIGHT, dark: RAISED_DARK },
