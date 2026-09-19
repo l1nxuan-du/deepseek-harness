@@ -95,9 +95,12 @@ html[data-dsh-skin='material'] body {
 /* --- frame --------------------------------------------------------------- */
 
 /* The shipped composer seat fades the transcript into the page fill over a
- * 36px band; on the material chrome that band is a gradient behind the input
- * and it hides the field, so the seat stays transparent. */
-html[data-dsh-skin='material'] [class*='_composerSeat'] {
+ * 36px band. On the material chrome that band is a gradient behind the input
+ * and it hides the field, so the seat stays transparent. The shipped rule is
+ * phase-scoped (`.root[data-phase='active'] .composerSeat`), so this override
+ * carries the phase and the root attribute to outrank it. */
+html[data-dsh-skin='material'] [class*='_root'][data-phase='active'] [class*='_composerSeat'],
+html[data-dsh-skin='material'] [class*='_embeddedBody'][data-content-phase='active'] [class*='_composerSeat'] {
   background: none;
 }
 

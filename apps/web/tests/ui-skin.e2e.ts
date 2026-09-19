@@ -178,6 +178,15 @@ describe('web e2e: interface skin', () => {
     const titleDecoration = await page.locator('[data-slot="sidebar"] [class*="_sessionRow"] [class*="_title"]').first()
       .evaluate(title => getComputedStyle(title).textDecorationLine)
     expect(titleDecoration).toBe('none')
+    // An active session's composer seat paints the shipped 36px fade into the
+    // page fill; the material chrome drops it, so the field stays continuous
+    // behind the input.
+    const seat = await page.locator('[class*="_composerSeat"]').first().evaluate((element) => {
+      const style = getComputedStyle(element)
+      return { backgroundImage: style.backgroundImage, backgroundColor: style.backgroundColor }
+    })
+    expect(seat.backgroundImage).toBe('none')
+    expect(seat.backgroundColor).toBe('rgba(0, 0, 0, 0)')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })
