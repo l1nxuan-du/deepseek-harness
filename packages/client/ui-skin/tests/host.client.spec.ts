@@ -38,7 +38,7 @@ describe('interface-skin host', () => {
     const fiber = ctx.plugin({ apply })
     await fiber.await()
     expect(DEFAULT_SKIN_VARIANT).toBe('material')
-    expect(ctx.settings.get(SKIN_SETTINGS_NAMESPACE)).toEqual({ variant: DEFAULT_SKIN_VARIANT, strength: 60 })
+    expect(ctx.settings.get(SKIN_SETTINGS_NAMESPACE)).toEqual({ variant: DEFAULT_SKIN_VARIANT, strength: 80 })
     await ctx.settings.update(SKIN_SETTINGS_NAMESPACE, { variant: 'classic', strength: 40 })
     expect(ctx.settings.get(SKIN_SETTINGS_NAMESPACE)).toEqual({ variant: 'classic', strength: 40 })
     await expect(ctx.settings.update(SKIN_SETTINGS_NAMESPACE, { variant: 'glass' })).rejects.toThrow()

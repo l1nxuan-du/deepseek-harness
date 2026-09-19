@@ -27,7 +27,7 @@ export const STRENGTH_MIN = 0
 export const STRENGTH_MAX = 100
 
 /** Material strength when the user-settings document has no override. */
-export const DEFAULT_STRENGTH = 60
+export const DEFAULT_STRENGTH = 80
 
 /** Strength step the settings row writes. */
 export const STRENGTH_STEP = 10

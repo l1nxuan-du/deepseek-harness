@@ -12,15 +12,15 @@ describe('interface-skin settings', () => {
     expect(DEFAULT_SKIN_VARIANT).toBe('material')
     expect(CLASSIC_SKIN_VARIANT).toBe('classic')
     expect(SKIN_VARIANTS).toEqual(['classic', 'material'])
-    expect(DEFAULT_STRENGTH).toBe(60)
+    expect(DEFAULT_STRENGTH).toBe(80)
     expect(STRENGTH_STEP).toBe(10)
     expect(STRENGTH_MIN).toBe(0)
     expect(STRENGTH_MAX).toBe(100)
-    expect(SkinSettingsSchema({} as never)).toEqual({ variant: 'material', strength: 60 })
+    expect(SkinSettingsSchema({} as never)).toEqual({ variant: 'material', strength: 80 })
   })
 
   it('accepts a declared skin and strength and rejects everything else', () => {
-    expect(SkinSettingsSchema({ variant: 'classic' } as never)).toEqual({ variant: 'classic', strength: 60 })
+    expect(SkinSettingsSchema({ variant: 'classic' } as never)).toEqual({ variant: 'classic', strength: 80 })
     expect(SkinSettingsSchema({ variant: 'material', strength: 30 })).toEqual({ variant: 'material', strength: 30 })
     expect(() => SkinSettingsSchema({ variant: 'glass' } as never)).toThrow()
     expect(() => SkinSettingsSchema({ strength: 101 } as never)).toThrow()

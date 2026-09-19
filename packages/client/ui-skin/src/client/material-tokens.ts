@@ -19,13 +19,12 @@ const RAISED_LIGHT = 'rgba(255, 255, 255, 0.72)'
 const RAISED_DARK = 'rgba(32, 33, 36, 0.86)'
 
 /**
- * Fill for the input card. Opaque by decision: the card is the one surface the
- * transcript scrolls under, so nothing shows through it. Light keeps the
- * shipped white; dark takes a raised grey rather than the page's near-black so
- * the card still reads as a panel.
+ * Fill for the input card: acrylic at half strength — half-white in light, the
+ * reference skin's raised grey at half alpha in dark, so the field's tone
+ * reaches the card while its text stays legible.
  */
-const INPUT_LIGHT = 'rgb(255, 255, 255)'
-const INPUT_DARK = 'rgb(43, 45, 49)'
+const INPUT_LIGHT = 'rgba(255, 255, 255, 0.5)'
+const INPUT_DARK = 'rgba(58, 60, 64, 0.5)'
 
 /** The prototype's single interactive accent. */
 const ACCENT = '#4176e6'

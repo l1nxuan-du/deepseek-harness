@@ -30,7 +30,7 @@ async function bench() {
   const locale = new LocaleRuntime(ctx)
   locale.setLocale('zh')
   ctx.provide('locale', locale)
-  const section: Record<string, unknown> = { variant: 'material', strength: 60 }
+  const section: Record<string, unknown> = { variant: 'material', strength: 80 }
   const namespace = () => ({
     ns: SKIN_SETTINGS_NAMESPACE,
     schema: SkinSettingsSchema.toJSON(),
@@ -138,7 +138,7 @@ describe('ui-skin apply', () => {
     const handle = entry.store as ReturnType<typeof createStrengthRowStore>
     const instance = handle.create()
     const face = (entry.inject as unknown as (a: typeof instance.actions) => StrengthRowInjected)(instance.actions)
-    expect(instance.getSnapshot()).toEqual({ strength: 60, revision: 0 })
+    expect(instance.getSnapshot()).toEqual({ strength: 80, revision: 0 })
     face.setStrength(30)
     await Promise.resolve()
     expect(b.mutate).toHaveBeenCalled()

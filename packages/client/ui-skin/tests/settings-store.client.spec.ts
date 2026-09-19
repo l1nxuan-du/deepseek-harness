@@ -24,7 +24,7 @@ describe('interface row store', () => {
 describe('material strength row store', () => {
   it('opens on the default strength at the pre-sync revision', () => {
     const store = createStrengthRowStore().create()
-    expect(store.getSnapshot()).toEqual({ strength: 60, revision: -1 })
+    expect(store.getSnapshot()).toEqual({ strength: 80, revision: -1 })
   })
 
   it('adopts newer revisions and drops stale ones', () => {

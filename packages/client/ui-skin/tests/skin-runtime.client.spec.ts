@@ -10,12 +10,12 @@ import { SkinRuntime } from '../src/client/skin-runtime.ts'
 function bench(initial?: Partial<SkinSettings>) {
   let section: SkinSettings | undefined = initial === undefined
     ? undefined
-    : { variant: initial.variant ?? 'material', strength: initial.strength ?? 60 }
+    : { variant: initial.variant ?? 'material', strength: initial.strength ?? 80 }
   const listeners = new Set<() => void>()
   const set = vi.fn(async (field: string, value: unknown) => {
     section = field === 'strength'
       ? { ...(section ?? { variant: 'material' }), strength: value as number }
-      : { ...(section ?? { strength: 60 }), variant: value as SkinSettings['variant'] }
+      : { ...(section ?? { strength: 80 }), variant: value as SkinSettings['variant'] }
     for (const listener of [...listeners]) listener()
   })
   const host = {
@@ -61,8 +61,8 @@ describe('skin runtime', () => {
     const b = bench()
     const onChange = vi.fn()
     const runtime = new SkinRuntime(b.ctx, b.host, onChange)
-    expect(runtime.getSkin()).toEqual({ variant: 'material', strength: 60, revision: 0 })
-    expect(document.documentElement.style.getPropertyValue('--dsh-skin-strength')).toBe('60')
+    expect(runtime.getSkin()).toEqual({ variant: 'material', strength: 80, revision: 0 })
+    expect(document.documentElement.style.getPropertyValue('--dsh-skin-strength')).toBe('80')
     expect(document.documentElement.getAttribute(SKIN_ATTRIBUTE)).toBe('material')
     expect(document.querySelector(`[${FIELD_ATTRIBUTE}]`)).not.toBeNull()
     expect(b.overrideTokens).toHaveBeenCalledWith('ui-skin', expect.any(Object))
@@ -73,7 +73,7 @@ describe('skin runtime', () => {
     document.documentElement.setAttribute(SKIN_ATTRIBUTE, 'classic')
     const classic = bench()
     const runtime = new SkinRuntime(classic.ctx, classic.host)
-    expect(runtime.getSkin()).toEqual({ variant: 'classic', strength: 60, revision: 0 })
+    expect(runtime.getSkin()).toEqual({ variant: 'classic', strength: 80, revision: 0 })
     expect(classic.overrideTokens).not.toHaveBeenCalled()
     expect(document.querySelector(`[${FIELD_ATTRIBUTE}]`)).toBeNull()
 
@@ -81,7 +81,7 @@ describe('skin runtime', () => {
     document.documentElement.setAttribute(SKIN_ATTRIBUTE, 'glass')
     const unknown = bench()
     const fallback = new SkinRuntime(unknown.ctx, unknown.host)
-    expect(fallback.getSkin()).toEqual({ variant: 'material', strength: 60, revision: 0 })
+    expect(fallback.getSkin()).toEqual({ variant: 'material', strength: 80, revision: 0 })
     expect(document.documentElement.getAttribute(SKIN_ATTRIBUTE)).toBe('material')
   })
 
@@ -89,14 +89,14 @@ describe('skin runtime', () => {
     const b = bench({ variant: 'classic' })
     const onChange = vi.fn()
     const runtime = new SkinRuntime(b.ctx, b.host, onChange)
-    expect(runtime.getSkin()).toEqual({ variant: 'classic', strength: 60, revision: 1 })
+    expect(runtime.getSkin()).toEqual({ variant: 'classic', strength: 80, revision: 1 })
     expect(document.documentElement.getAttribute(SKIN_ATTRIBUTE)).toBe('classic')
     expect(document.querySelector(`[${FIELD_ATTRIBUTE}]`)).toBeNull()
     // The runtime projects the default before the durable value lands, then
     // retracts the material layer it installed.
     expect(b.overrideTokens).toHaveBeenCalledTimes(1)
     expect(b.disposeTokens).toHaveBeenCalledTimes(1)
-    expect(onChange).toHaveBeenCalledWith({ variant: 'classic', strength: 60, revision: 1 })
+    expect(onChange).toHaveBeenCalledWith({ variant: 'classic', strength: 80, revision: 1 })
   })
 
   it('writes an accepted switch once and reuses the live material layers', () => {
@@ -107,7 +107,7 @@ describe('skin runtime', () => {
     expect(b.overrideTokens).toHaveBeenCalledTimes(1)
     runtime.setSkin('classic')
     expect(b.set).toHaveBeenCalledWith('variant', 'classic')
-    expect(runtime.getSkin()).toEqual({ variant: 'classic', strength: 60, revision: 1 })
+    expect(runtime.getSkin()).toEqual({ variant: 'classic', strength: 80, revision: 1 })
     expect(b.disposeTokens).toHaveBeenCalledTimes(1)
     expect(document.documentElement.getAttribute(SKIN_ATTRIBUTE)).toBe('classic')
     expect(document.querySelector(`[${FIELD_ATTRIBUTE}]`)).toBeNull()
@@ -121,7 +121,7 @@ describe('skin runtime', () => {
   it('writes an accepted strength once and refuses values outside the range', () => {
     const b = bench()
     const runtime = new SkinRuntime(b.ctx, b.host)
-    runtime.setStrength(60)
+    runtime.setStrength(80)
     expect(b.set).not.toHaveBeenCalled()
     runtime.setStrength(30)
     expect(b.set).toHaveBeenCalledWith('strength', 30)

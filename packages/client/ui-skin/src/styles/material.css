@@ -28,6 +28,7 @@ html[data-dsh-skin='material'] {
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
   --dsh-surface-button: rgb(255 255 255 / 0.4);
   --dsh-mica-frost: blur(16px) saturate(1.4);
+  --dsh-input-frost: blur(24px) saturate(1.8);
   --dsh-surface-hover: rgb(0 0 0 / 0.04);
   --dsh-surface-active: rgb(0 0 0 / 0.07);
   --dsh-border-subtle: rgb(0 0 0 / 0.06);
@@ -62,6 +63,7 @@ html[data-dsh-skin='material'] body[data-ds-dark-theme] {
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.14);
   --dsh-surface-button: rgb(255 255 255 / 0.08);
   --dsh-mica-frost: blur(16px) saturate(1.4);
+  --dsh-input-frost: blur(24px) saturate(1.8);
   --dsh-surface-hover: rgb(255 255 255 / 0.08);
   --dsh-surface-active: rgb(255 255 255 / 0.12);
   --dsh-border-subtle: rgb(255 255 255 / 0.08);
@@ -290,7 +292,7 @@ html[data-dsh-skin='material'] [data-slot='conversation.view'] [class*='_bubble'
 
 /* --- composer ------------------------------------------------------------ */
 
-/* The input is mica: its fill is the card's own token, and the boundary stays
+/* The input is acrylic at half strength: its fill is the card's own token, and the boundary stays
  * the shipped elevation (the styling reference pairs elevated surfaces with a
  * shadow and forbids a border next to one). The frost rides the card's own
  * ::before rather than the card, because a backdrop-filter makes its element
@@ -308,8 +310,8 @@ html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='
   z-index: -1;
   pointer-events: none;
   border-radius: inherit;
-  -webkit-backdrop-filter: var(--dsh-mica-frost);
-  backdrop-filter: var(--dsh-mica-frost);
+  -webkit-backdrop-filter: var(--dsh-input-frost);
+  backdrop-filter: var(--dsh-input-frost);
 }
 
 /* --- right panel --------------------------------------------------------- */

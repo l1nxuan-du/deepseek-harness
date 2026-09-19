@@ -127,8 +127,8 @@ describe('web e2e: interface skin', () => {
     })
     expect(insetPane.radius).toBe('24px')
     expect(insetPane.backdrop).toContain('blur')
-    // Light keeps the study's mica film.
-    expect(insetPane.background).toBe('rgba(255, 255, 255, 0.3)')
+    // Light keeps the study's mica film, scaled by the default strength (80).
+    expect(insetPane.background).toBe('rgba(255, 255, 255, 0.4)')
     // The field is the wash plus the flow pattern: no lattice, and the pattern
     // canvas is sized and visible wherever the browser renders WebGL2.
     await expect.poll(() => page.locator('[data-dsh-field-layer="grid"]').count()).toBe(0)
@@ -152,12 +152,12 @@ describe('web e2e: interface skin', () => {
       }
     })
     // The fill is the card's own token: mica, not the shipped acrylic.
-    expect(composer.background).toBe('rgb(255, 255, 255)')
+    expect(composer.background).toBe('rgba(255, 255, 255, 0.5)')
     // Elevated surfaces take their boundary from the elevation shadow, never
     // from a border, and the frost rides the pseudo-element.
     expect(composer.border).toBe('0px')
     expect(composer.blur).toBe('none')
-    expect(composer.frost).toBe('blur(16px) saturate(1.4)')
+    expect(composer.frost).toBe('blur(24px) saturate(1.8)')
   })
 
   it('moves to the classic chrome from Settings and back', async () => {
@@ -182,15 +182,15 @@ describe('web e2e: interface skin', () => {
     // The strength row scales the material, and the root variable it writes is
     // what the sheet derives the panes' fill and blur from.
     await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
-      .toBe('60')
+      .toBe('80')
     await dialog.getByRole('button', { name: 'Strengthen the material' }).click()
     await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
-      .toBe('70')
+      .toBe('90')
     const scaled = await page.locator('[class*="_centerCol"]').evaluate(pane => getComputedStyle(pane).backgroundColor)
-    expect(scaled).toBe('rgba(255, 255, 255, 0.35)')
+    expect(scaled).toBe('rgba(255, 255, 255, 0.45)')
     await dialog.getByRole('button', { name: 'Weaken the material' }).click()
     await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
-      .toBe('60')
+      .toBe('80')
 
     await dialog.getByRole('button', { name: 'Close' }).last().click()
     expect(tripwire.pageErrors).toEqual([])
