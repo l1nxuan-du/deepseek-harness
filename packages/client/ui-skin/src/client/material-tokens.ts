@@ -18,9 +18,12 @@ const SURFACE_DARK = 'rgba(255, 255, 255, 0.08)'
 const RAISED_LIGHT = 'rgba(255, 255, 255, 0.72)'
 const RAISED_DARK = 'rgba(32, 33, 36, 0.86)'
 
-/** Mica fill for the input card: a tinted film that bounds the card. */
-const MICA_LIGHT = 'rgba(255, 255, 255, 0.88)'
-const MICA_DARK = 'rgba(43, 45, 49, 0.9)'
+/**
+ * Mica fill for the input card: a tinted film over the seat's own material.
+ * Half the card's value, matching the reference skin's composer film.
+ */
+const MICA_LIGHT = 'rgba(255, 255, 255, 0.5)'
+const MICA_DARK = 'rgba(58, 60, 64, 0.5)'
 
 /** The prototype's single interactive accent. */
 const ACCENT = '#4176e6'
