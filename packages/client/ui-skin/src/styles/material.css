@@ -292,24 +292,14 @@ html[data-dsh-skin='material'] [data-slot='conversation.view'] [class*='_bubble'
 
 /* --- composer ------------------------------------------------------------ */
 
-/* The input is acrylic at half strength: its fill is the card's own token, and the boundary stays
- * the shipped elevation (the styling reference pairs elevated surfaces with a
- * shadow and forbids a border next to one). The frost rides the card's own
- * ::before rather than the card, because a backdrop-filter makes its element
- * the containing block for fixed descendants — the shell's tooltips are fixed
- * and are laid out against the viewport. */
+/* The input is acrylic at half strength. The blur sits on the card itself,
+ * exactly like the panes and the message bubbles — a pseudo-element with a
+ * negative z-index would be painted behind the pane's own background, because
+ * the pane's backdrop-filter makes it a stacking context, and the frost would
+ * never reach the screen. */
 html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card'] {
   position: relative;
   border: 0;
-}
-
-html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card']::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: inherit;
   -webkit-backdrop-filter: var(--dsh-input-frost);
   backdrop-filter: var(--dsh-input-frost);
 }

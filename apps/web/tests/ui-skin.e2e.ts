@@ -151,13 +151,14 @@ describe('web e2e: interface skin', () => {
         frost: frost.backdropFilter,
       }
     })
+    // The blur rides the card, the way the panes and bubbles carry theirs.
+    expect(composer.blur).toBe('blur(24px) saturate(1.8)')
     // The fill is the card's own token: mica, not the shipped acrylic.
     expect(composer.background).toBe('rgba(255, 255, 255, 0.5)')
     // Elevated surfaces take their boundary from the elevation shadow, never
     // from a border, and the frost rides the pseudo-element.
     expect(composer.border).toBe('0px')
-    expect(composer.blur).toBe('none')
-    expect(composer.frost).toBe('blur(24px) saturate(1.8)')
+    expect(composer.frost).toBe('none')
   })
 
   it('moves to the classic chrome from Settings and back', async () => {
