@@ -141,10 +141,13 @@ describe('web e2e: interface skin', () => {
     // rows scrolling behind it cannot be read through the card.
     const composer = await page.locator('[data-composer-card]').first().evaluate((card) => {
       const style = getComputedStyle(card)
-      return { background: style.backgroundColor, blur: style.backdropFilter }
+      const frost = getComputedStyle(card, '::before')
+      return { background: style.backgroundColor, blur: style.backdropFilter, frost: frost.backdropFilter }
     })
-    expect(composer.background).toBe('rgba(255, 255, 255, 0.88)')
-    expect(composer.blur).toBe('blur(12px) saturate(1.2)')
+    expect(composer.background).toBe('rgba(255, 255, 255, 0.5)')
+    // The blur rides the pseudo-element, never the card itself.
+    expect(composer.blur).toBe('none')
+    expect(composer.frost).toBe('blur(16px) saturate(1.4)')
   })
 
   it('moves to the classic chrome from Settings and back', async () => {
@@ -191,10 +194,19 @@ describe('web e2e: interface skin', () => {
     // behind the input.
     const seat = await page.locator('[class*="_composerSeat"]').first().evaluate((element) => {
       const style = getComputedStyle(element)
-      return { backgroundImage: style.backgroundImage, backgroundColor: style.backgroundColor }
+      const band = getComputedStyle(element, '::before')
+      return {
+        backgroundImage: style.backgroundImage,
+        backgroundColor: style.backgroundColor,
+        bandImage: band.backgroundImage,
+        bandBlur: band.backdropFilter,
+      }
     })
     expect(seat.backgroundImage).toBe('none')
     expect(seat.backgroundColor).toBe('rgba(0, 0, 0, 0)')
+    // The composer's own paint is the blurred band on its seat.
+    expect(seat.bandImage).toContain('linear-gradient')
+    expect(seat.bandBlur).toBe('blur(14px) saturate(1.3)')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })
