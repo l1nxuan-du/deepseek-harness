@@ -28,11 +28,6 @@ html[data-dsh-skin='material'] {
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
   --dsh-surface-button: rgb(255 255 255 / 0.4);
   --dsh-mica-frost: blur(16px) saturate(1.4);
-  --dsh-input-frost: blur(24px) saturate(1.8);
-  --dsh-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-  --dsh-acrylic-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.14) 0%, rgb(255 255 255 / 0) 46%);
-  --dsh-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-  --dsh-acrylic-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0) 46%);
   --dsh-surface-hover: rgb(0 0 0 / 0.04);
   --dsh-surface-active: rgb(0 0 0 / 0.07);
   --dsh-border-subtle: rgb(0 0 0 / 0.06);
@@ -67,11 +62,6 @@ html[data-dsh-skin='material'] body[data-ds-dark-theme] {
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.14);
   --dsh-surface-button: rgb(255 255 255 / 0.08);
   --dsh-mica-frost: blur(16px) saturate(1.4);
-  --dsh-input-frost: blur(24px) saturate(1.8);
-  --dsh-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-  --dsh-acrylic-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.14) 0%, rgb(255 255 255 / 0) 46%);
-  --dsh-acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-  --dsh-acrylic-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0) 46%);
   --dsh-surface-hover: rgb(255 255 255 / 0.08);
   --dsh-surface-active: rgb(255 255 255 / 0.12);
   --dsh-border-subtle: rgb(255 255 255 / 0.08);
@@ -116,15 +106,6 @@ html[data-dsh-skin='material'] body {
 
 /* --- frame --------------------------------------------------------------- */
 
-/* The composer seat stays clear: the card is the material, and the seat adds
- * no ground of its own. The shipped rule fades the transcript into the page
- * fill over a 36px gradient, so this override cancels that paint — it is
- * phase-scoped (`.root[data-phase='active'] .composerSeat`), which is why the
- * selector carries the phase and the root attribute to outrank it. */
-html[data-dsh-skin='material'] [class*='_root'][data-phase='active'] [class*='_composerSeat'],
-html[data-dsh-skin='material'] [class*='_embeddedBody'][data-content-phase='active'] [class*='_composerSeat'] {
-  background: none;
-}
 
 
 html[data-dsh-skin='material'] [data-slot='root'] {
@@ -296,36 +277,6 @@ html[data-dsh-skin='material'] [data-slot='conversation.view'] [class*='_bubble'
   backdrop-filter: var(--dsh-acrylic);
   box-shadow: var(--dsh-sheen), 0 4px 14px rgb(31 45 84 / 0.08);
   corner-shape: round;
-}
-
-/* --- composer ------------------------------------------------------------ */
-
-/* The input is acrylic at half strength. The blur sits on the card itself,
- * exactly like the panes and the message bubbles — a pseudo-element with a
- * negative z-index would be painted behind the pane's own background, because
- * the pane's backdrop-filter makes it a stacking context, and the frost would
- * never reach the screen. */
-html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card'] {
-  position: relative;
-  border: 0;
-  -webkit-backdrop-filter: var(--dsh-input-frost);
-  backdrop-filter: var(--dsh-input-frost);
-}
-
-/* The study's acrylic is a composite, not a fill: the noise grain and the top
- * sheen are what read as material when the backdrop behind the card is the
- * pane's own flat fill rather than the field. */
-html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card']::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background-image: var(--dsh-acrylic-noise), var(--dsh-acrylic-sheen);
-  background-size: 160px 160px, 100% 100%;
-  opacity: 0.05;
-  mix-blend-mode: overlay;
 }
 
 /* --- right panel --------------------------------------------------------- */

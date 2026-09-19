@@ -139,26 +139,6 @@ describe('web e2e: interface skin', () => {
     expect(pattern.hidden).toBe(false)
     expect(pattern.width).toBeGreaterThan(0)
     expect(pattern.height).toBeGreaterThan(0)
-    // The input is mica: a mostly opaque fill under a short blur, so transcript
-    // rows scrolling behind it cannot be read through the card.
-    const composer = await page.locator('[data-composer-card]').first().evaluate((card) => {
-      const style = getComputedStyle(card)
-      const frost = getComputedStyle(card, '::before')
-      return {
-        background: style.backgroundColor,
-        border: style.borderTopWidth,
-        blur: style.backdropFilter,
-        frost: frost.backdropFilter,
-      }
-    })
-    // The blur rides the card, the way the panes and bubbles carry theirs.
-    expect(composer.blur).toBe('blur(24px) saturate(1.8)')
-    // The fill is the card's own token: mica, not the shipped acrylic.
-    expect(composer.background).toBe('rgba(255, 255, 255, 0.5)')
-    // Elevated surfaces take their boundary from the elevation shadow, never
-    // from a border, and the frost rides the pseudo-element.
-    expect(composer.border).toBe('0px')
-    expect(composer.frost).toBe('none')
   })
 
   it('moves to the classic chrome from Settings and back', async () => {
@@ -213,25 +193,6 @@ describe('web e2e: interface skin', () => {
     const titleDecoration = await page.locator('[data-slot="sidebar"] [class*="_sessionRow"] [class*="_title"]').first()
       .evaluate(title => getComputedStyle(title).textDecorationLine)
     expect(titleDecoration).toBe('none')
-    // An active session's composer seat paints the shipped 36px fade into the
-    // page fill; the material chrome drops it, so the field stays continuous
-    // behind the input.
-    const seat = await page.locator('[class*="_composerSeat"]').first().evaluate((element) => {
-      const style = getComputedStyle(element)
-      const band = getComputedStyle(element, '::before')
-      return {
-        backgroundImage: style.backgroundImage,
-        backgroundColor: style.backgroundColor,
-        blur: style.backdropFilter,
-        bandImage: band.backgroundImage,
-      }
-    })
-    // The seat is clear: the card is the material, and the shipped fade plus
-    // any band stay off.
-    expect(seat.backgroundImage).toBe('none')
-    expect(seat.backgroundColor).toBe('rgba(0, 0, 0, 0)')
-    expect(seat.blur).toBe('none')
-    expect(seat.bandImage).toBe('none')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })

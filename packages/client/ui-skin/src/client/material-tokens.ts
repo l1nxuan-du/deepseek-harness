@@ -18,14 +18,6 @@ const SURFACE_DARK = 'rgba(255, 255, 255, 0.08)'
 const RAISED_LIGHT = 'rgba(255, 255, 255, 0.72)'
 const RAISED_DARK = 'rgba(32, 33, 36, 0.86)'
 
-/**
- * Fill for the input card: acrylic at half strength — half-white in light, the
- * reference skin's raised grey at half alpha in dark, so the field's tone
- * reaches the card while its text stays legible.
- */
-const INPUT_LIGHT = 'rgba(255, 255, 255, 0.5)'
-const INPUT_DARK = 'rgba(58, 60, 64, 0.5)'
-
 /** The prototype's single interactive accent. */
 const ACCENT = '#4176e6'
 
@@ -54,10 +46,6 @@ export const MATERIAL_TOKEN_OVERRIDES: ThemeTokenOverrides = {
   '--dsw-alias-markdown-tag': { light: 'rgba(0, 0, 0, 0.05)', dark: 'rgba(255, 255, 255, 0.10)' },
   '--dsw-specific-sidebar-nav-item-active': { light: 'rgba(0, 0, 0, 0.06)', dark: 'rgba(255, 255, 255, 0.10)' },
   '--dsw-specific-sidebar-nav-item-hover': { light: 'rgba(0, 0, 0, 0.04)', dark: 'rgba(255, 255, 255, 0.07)' },
-  // The composer card's own fill token: the shipped card rule consumes it, so
-  // the input and the other card surfaces (attachment rail, approval and
-  // question panels) move together instead of drifting apart.
-  '--dsw-specific-input-major': { light: INPUT_LIGHT, dark: INPUT_DARK },
   '--dsw-specific-bubble': { light: SURFACE_LIGHT, dark: SURFACE_DARK },
   '--dsw-specific-bubble-highlight': { light: RAISED_LIGHT, dark: RAISED_DARK },
   '--dsw-specific-menu': { light: RAISED_LIGHT, dark: RAISED_DARK },
