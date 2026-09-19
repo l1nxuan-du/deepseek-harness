@@ -1,0 +1,334 @@
+/* ============================================================================
+   Material interface skin.
+
+   Every rule is scoped to `html[data-dsh-skin="material"]`, which the skin
+   runtime sets only while the new interface is selected: the classic chrome is
+   never restyled, and an uninstall leaves the document as it was.
+
+   Palette axes (page wash, acrylic surfaces, accent) ride the alias-token
+   layer the skin runtime installs; this sheet owns structure, material
+   recipes, and the field the chrome floats on. Selectors reach the shipped
+   chrome through the slot seats it renders into, plus the stable class-name
+   suffixes of the components it restyles.
+   ========================================================================= */
+
+html[data-dsh-skin='material'] {
+  --dsh-page: #f9f8f8;
+  --dsh-field-wash:
+    radial-gradient(74% 62% at 72% -14%, color-mix(in oklab, #9cc1e7 40%, transparent) 0%, color-mix(in oklab, #9cc1e7 16%, transparent) 48%, transparent 82%),
+    linear-gradient(180deg, #e6edf7 0%, #e9eef7 50%, #f6f8fb 100%);
+  --dsh-field-mask: linear-gradient(to left, rgb(0 0 0 / 0.95) 0%, rgb(0 0 0 / 0.72) 45%, rgb(0 0 0 / 0.25) 72%, rgb(0 0 0 / 0) 90%);
+  --dsh-field-grid: rgb(0 0 0 / 0.035);
+  --dsh-surface-glass: rgb(255 255 255 / 0.3);
+  --dsh-surface-acrylic: rgb(255 255 255 / 0.5);
+  --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
+  --dsh-surface-button: rgb(255 255 255 / 0.4);
+  --dsh-surface-hover: rgb(0 0 0 / 0.04);
+  --dsh-surface-active: rgb(0 0 0 / 0.07);
+  --dsh-border-subtle: rgb(0 0 0 / 0.06);
+  --dsh-border-default: rgb(0 0 0 / 0.1);
+  --dsh-border-acrylic: rgb(255 255 255 / 0.8);
+  --dsh-accent: #4176e6;
+  --dsh-accent-ink: #2b4a8a;
+  --dsh-radius-card: 24px;
+  --dsh-radius-panel: 16px;
+  --dsh-radius-input: 22px;
+  --dsh-radius-row: 12px;
+  --dsh-mica: blur(12px);
+  --dsh-acrylic: blur(24px) saturate(180%);
+  --dsh-pane-inset: 8px;
+  --dsh-pane-gap: 5px;
+  --dsh-sheen: inset 0 1px 0 rgb(255 255 255 / 0.85);
+  --dsh-pane-shadow: 0 10px 30px rgb(31 45 84 / 0.08);
+  --dsh-field-grid: rgb(0 0 0 / 0.035);
+}
+
+html[data-dsh-skin='material'] body[data-ds-dark-theme] {
+  --dsh-page: #151517;
+  --dsh-field-wash:
+    radial-gradient(74% 62% at 72% -14%, color-mix(in oklab, #2f4c8f 55%, transparent) 0%, color-mix(in oklab, #2f4c8f 24%, transparent) 48%, transparent 82%),
+    linear-gradient(180deg, #1b1d24 0%, #17181d 50%, #121214 100%);
+  --dsh-surface-glass: rgb(255 255 255 / 0.06);
+  --dsh-surface-acrylic: rgb(255 255 255 / 0.08);
+  --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.14);
+  --dsh-surface-button: rgb(255 255 255 / 0.08);
+  --dsh-surface-hover: rgb(255 255 255 / 0.08);
+  --dsh-surface-active: rgb(255 255 255 / 0.12);
+  --dsh-border-subtle: rgb(255 255 255 / 0.08);
+  --dsh-border-default: rgb(255 255 255 / 0.12);
+  --dsh-border-acrylic: rgb(255 255 255 / 0.12);
+  --dsh-accent-ink: #a9c4ff;
+  --dsh-sheen: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --dsh-field-grid: rgb(255 255 255 / 0.05);
+  --dsh-pane-shadow: 0 10px 30px rgb(0 0 0 / 0.34);
+}
+
+html[data-dsh-skin='material'] body {
+  background-color: var(--dsh-page);
+}
+
+/* --- the field ----------------------------------------------------------- */
+
+[data-dsh-field] {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+[data-dsh-field-layer] {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: var(--dsh-field-mask);
+  mask-image: var(--dsh-field-mask);
+}
+
+[data-dsh-field-layer='wash'] {
+  background: var(--dsh-field-wash);
+  transition: background 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-dsh-field-layer='grid'] {
+  background-image:
+    linear-gradient(to right, var(--dsh-field-grid) 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, var(--dsh-field-grid) 0.5px, transparent 0.5px);
+  background-size: 90px 90px;
+}
+
+[data-dsh-field]::after {
+  content: '';
+  position: absolute;
+  top: var(--dsh-field-y, 50%);
+  left: var(--dsh-field-x, 50%);
+  width: 420px;
+  height: 420px;
+  margin: -210px 0 0 -210px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: radial-gradient(circle, color-mix(in oklab, var(--dsh-accent) 26%, transparent) 0%, transparent 68%);
+  opacity: 0;
+  transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-dsh-field][data-dsh-field-pointer]::after {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  [data-dsh-field]::after {
+    display: none;
+  }
+}
+
+/* --- frame --------------------------------------------------------------- */
+
+html[data-dsh-skin='material'] [data-slot='root'] {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-dsh-skin='material'] [data-slot='root'] > [class*='_frame'] {
+  box-sizing: border-box;
+  padding: var(--dsh-pane-inset) var(--dsh-pane-inset) var(--dsh-pane-inset) 0;
+  background: transparent;
+}
+
+html[data-dsh-skin='material'] [class*='_sidebarCol'] {
+  background: transparent;
+  border-right: none;
+}
+
+html[data-dsh-skin='material'] [class*='_centerCol'] {
+  position: relative;
+  border: 0.5px solid var(--dsh-border-subtle);
+  border-radius: var(--dsh-radius-card);
+  background: var(--dsh-surface-glass);
+  -webkit-backdrop-filter: var(--dsh-mica);
+  backdrop-filter: var(--dsh-mica);
+  box-shadow: var(--dsh-pane-shadow);
+  overflow: hidden;
+}
+
+/* The right panel is its own card: the conversation keeps a gap from it while
+ * the frame reserves the panel's track, and the gap travels with the track. */
+html[data-dsh-skin='material'] [class*='_frame']:not([data-rightbar-collapsed]):not([data-rightbar-fullscreen]) > [class*='_centerCol'] {
+  margin-right: var(--dsh-pane-gap);
+  transition: margin-right var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-dsh-skin='material'] [class*='_frame']:not([data-rightbar-collapsed]):not([data-rightbar-fullscreen]) > [class*='_centerCol'] {
+    transition: none;
+  }
+}
+
+html[data-dsh-skin='material'] [class*='_handle'] {
+  background: none;
+}
+
+/* --- sidebar ------------------------------------------------------------- */
+
+html[data-dsh-skin='material'] [data-slot='sidebar'] > [class*='_root'] {
+  background: transparent;
+}
+
+html[data-dsh-skin='material'] [data-slot='sidebar'] button[class*='_newSession'] {
+  height: 44px;
+  margin: 0 2px 12px;
+  border: 0.5px solid var(--dsh-border-default);
+  border-radius: var(--dsh-radius-row);
+  background: var(--dsh-surface-button);
+  -webkit-backdrop-filter: var(--dsh-mica);
+  backdrop-filter: var(--dsh-mica);
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+
+html[data-dsh-skin='material'] [data-slot='sidebar'] button[class*='_newSession']:hover {
+  background: var(--dsh-surface-acrylic);
+}
+
+html[data-dsh-skin='material'] [data-slot='sidebar'] nav button,
+html[data-dsh-skin='material'] [data-slot='sidebar'] [role='treeitem'] {
+  margin: 0 2px;
+  border-radius: var(--dsh-radius-row);
+  min-height: 40px;
+  transition: background 100ms cubic-bezier(0.4, 0, 0.2, 1), color 100ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html[data-dsh-skin='material'] [data-slot='sidebar'] nav button:hover,
+html[data-dsh-skin='material'] [data-slot='sidebar'] [role='treeitem']:hover {
+  background: var(--dsh-surface-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+html[data-dsh-skin='material'] [data-slot='sidebar'] [class*='_sessionRow'][class*='_selected'] {
+  background: var(--dsh-surface-active);
+  font-weight: 500;
+}
+
+html[data-dsh-skin='material'] [data-slot='sidebar'] [class*='_projectRow'] {
+  font-weight: 500;
+}
+
+html[data-dsh-skin='material'] [data-slot='sidebar.settings'] button,
+html[data-dsh-skin='material'] [data-slot='sidebar.footer.action'] button {
+  border-radius: var(--dsh-radius-row);
+}
+
+html[data-dsh-skin='material'] [data-slot='sidebar.settings'] {
+  border-top: 0.5px solid var(--dsh-border-subtle);
+  padding-top: 8px;
+}
+
+/* --- conversation header ------------------------------------------------- */
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] > * {
+  border-bottom: 0.5px solid var(--dsh-border-subtle);
+  background: none;
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [role='tablist'] {
+  gap: 36px;
+  padding-left: 8px;
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [role='tab'] {
+  position: relative;
+  padding-bottom: 9px;
+  border: 0;
+  background: none;
+  font-weight: 500;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [role='tab']::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -0.5px;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [role='tab']:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [role='tab'][aria-selected='true'],
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [role='tab'][data-selected='true'] {
+  color: var(--dsh-accent-ink);
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [role='tab'][aria-selected='true']::after,
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [role='tab'][data-selected='true']::after {
+  background: var(--dsh-accent);
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [class*='_tabActive']::after {
+  background: var(--dsh-accent);
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.session.header'] [class*='_tabActive'] {
+  color: var(--dsh-accent-ink);
+}
+
+/* --- transcript ---------------------------------------------------------- */
+
+html[data-dsh-skin='material'] [data-slot='conversation.view'] [class*='_bubble'] {
+  border: 0.5px solid var(--dsh-border-acrylic);
+  background: var(--dsh-surface-acrylic);
+  -webkit-backdrop-filter: var(--dsh-acrylic);
+  backdrop-filter: var(--dsh-acrylic);
+  box-shadow: var(--dsh-sheen), 0 4px 14px rgb(31 45 84 / 0.08);
+  corner-shape: round;
+}
+
+/* --- composer ------------------------------------------------------------ */
+
+html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card'] {
+  border: 0.5px solid var(--dsh-border-acrylic);
+  border-radius: var(--dsh-radius-input);
+  background: var(--dsh-surface-acrylic);
+  -webkit-backdrop-filter: var(--dsh-acrylic);
+  backdrop-filter: var(--dsh-acrylic);
+  box-shadow: var(--dsh-sheen), 0 10px 30px rgb(31 45 84 / 0.12);
+  corner-shape: round;
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card']:hover {
+  background: var(--dsh-surface-acrylic-hover);
+}
+
+html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_dock'] {
+  gap: 8px;
+  padding-top: 8px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* --- right panel --------------------------------------------------------- */
+
+html[data-dsh-skin='material'] [data-slot='rightbar.session'] [class*='_panel'][data-sidebar-right-panel='push'] {
+  /* The frame reserves the panel's outer width as its track; border-box keeps
+   * the panel inside that track, so the pane gap above is the visible gap. */
+  box-sizing: border-box;
+  border: 0.5px solid var(--dsh-border-subtle);
+  border-radius: var(--dsh-radius-card);
+  background: var(--dsh-surface-glass);
+  -webkit-backdrop-filter: var(--dsh-mica);
+  backdrop-filter: var(--dsh-mica);
+  box-shadow: var(--dsh-pane-shadow);
+  overflow: hidden;
+}
+
+/* --- settings dialog ----------------------------------------------------- */
+
+html[data-dsh-skin='material'] [role='dialog'] {
+  border: 0.5px solid var(--dsh-border-subtle);
+  border-radius: var(--dsh-radius-panel);
+  -webkit-backdrop-filter: var(--dsh-mica);
+  backdrop-filter: var(--dsh-mica);
+}

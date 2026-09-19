@@ -24,9 +24,6 @@ importers:
       '@deepseek-ai/dsh-browser-use':
         specifier: workspace:^
         version: link:packages/browser-use/browser-use
-      '@deepseek-ai/dsh-experimental-browser-use-playwright-native':
-        specifier: workspace:^
-        version: link:packages/experimental/browser-use-playwright-native
       '@deepseek-ai/dsh-computer-use':
         specifier: workspace:^
         version: link:packages/computer-use/computer-use
@@ -36,6 +33,9 @@ importers:
       '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp':
         specifier: workspace:^
         version: link:packages/experimental/browser-use-playwright-mcp
+      '@deepseek-ai/dsh-experimental-browser-use-playwright-native':
+        specifier: workspace:^
+        version: link:packages/experimental/browser-use-playwright-native
       '@deepseek-ai/dsh-experimental-browser-use-runtime':
         specifier: workspace:^
         version: link:packages/experimental/browser-use-runtime
@@ -1601,37 +1601,6 @@ importers:
         specifier: workspace:^
         version: link:../../util/brand
 
-  packages/experimental/browser-use-playwright-native:
-    dependencies:
-      '@deepseek-ai/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
-      playwright-core:
-        specifier: ^1.49.0
-        version: 1.61.1
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: workspace:^
-        version: link:../../../vendor/cordis
-      '@deepseek-ai/dsh-agent':
-        specifier: workspace:^
-        version: link:../../core/agent
-      '@deepseek-ai/dsh-browser-use':
-        specifier: workspace:^
-        version: link:../browser-use
-      '@deepseek-ai/dsh-experimental-browser-use-runtime':
-        specifier: workspace:^
-        version: link:../../experimental/browser-use-runtime
-      '@deepseek-ai/dsh-mcp-client':
-        specifier: workspace:^
-        version: link:../../mcp/mcp-client
-      '@deepseek-ai/dsh-system-prompt':
-        specifier: workspace:^
-        version: link:../../core/system-prompt
-      '@deepseek-ai/dsh-tools':
-        specifier: workspace:^
-        version: link:../../core/tools
-
   packages/bundle/acp-app:
     dependencies:
       '@deepseek-ai/dsh-acp':
@@ -2254,6 +2223,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-skill':
         specifier: workspace:^
         version: link:../../client/ui-skill
+      '@deepseek-ai/dsh-client-ui-skin':
+        specifier: workspace:^
+        version: link:../../client/ui-skin
       '@deepseek-ai/dsh-client-ui-subagent':
         specifier: workspace:^
         version: link:../../client/ui-subagent
@@ -4785,6 +4757,61 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
 
+  packages/client/ui-skin:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: workspace:^
+        version: link:../../api/remotes
+      '@deepseek-ai/dsh-client-connection':
+        specifier: workspace:^
+        version: link:../connection
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:^
+        version: link:../locale
+      '@deepseek-ai/dsh-client-store':
+        specifier: workspace:^
+        version: link:../store
+      '@deepseek-ai/dsh-client-test-runtime':
+        specifier: workspace:^
+        version: link:../../test-support/client-runtime
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:^
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-renderer':
+        specifier: workspace:^
+        version: link:../ui-renderer
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: workspace:^
+        version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:^
+        version: link:../ui-slots
+      '@deepseek-ai/dsh-client-ui-theme':
+        specifier: workspace:^
+        version: link:../ui-theme
+      '@deepseek-ai/dsh-host-webserver':
+        specifier: workspace:^
+        version: link:../../host/webserver
+      '@deepseek-ai/dsh-settings':
+        specifier: workspace:^
+        version: link:../../settings/settings
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+
   packages/client/ui-slots:
     devDependencies:
       '@deepseek-ai/cordis':
@@ -6448,6 +6475,37 @@ importers:
       '@deepseek-ai/dsh-session-projection':
         specifier: workspace:^
         version: link:../../session/session-projection
+      '@deepseek-ai/dsh-system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
+
+  packages/experimental/browser-use-playwright-native:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      playwright-core:
+        specifier: ^1.49.0
+        version: 1.61.1
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-agent':
+        specifier: workspace:^
+        version: link:../../core/agent
+      '@deepseek-ai/dsh-browser-use':
+        specifier: workspace:^
+        version: link:../../browser-use/browser-use
+      '@deepseek-ai/dsh-experimental-browser-use-runtime':
+        specifier: workspace:^
+        version: link:../browser-use-runtime
+      '@deepseek-ai/dsh-mcp-client':
+        specifier: workspace:^
+        version: link:../../mcp/mcp-client
       '@deepseek-ai/dsh-system-prompt':
         specifier: workspace:^
         version: link:../../core/system-prompt
@@ -8367,7 +8425,7 @@ importers:
         version: link:../../../vendor/schemastery
       '@earendil-works/pi-ai':
         specifier: ^0.85.1
-        version: 0.85.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(supports-color@9.4.0)(ws@8.21.0)(zod@4.4.3)
+        version: 0.85.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -20820,14 +20878,14 @@ snapshots:
     transitivePeerDependencies:
       - '@algolia/client-search'
 
-  '@earendil-works/pi-ai@0.85.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(supports-color@9.4.0)(ws@8.21.0)(zod@4.4.3)':
+  '@earendil-works/pi-ai@0.85.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       '@anthropic-ai/sdk': 0.123.0(zod@4.4.3)
       '@aws-sdk/client-bedrock-runtime': 3.1048.0
       '@earendil-works/pi-telemetry': 0.85.1
       '@google/genai': 1.52.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))
       '@smithy/node-http-handler': 4.7.3
-      http-proxy-agent: 7.0.2(supports-color@9.4.0)
+      http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       openai: 6.40.0(ws@8.21.0)(zod@4.4.3)
       partial-json: 0.1.7
@@ -23452,7 +23510,7 @@ snapshots:
       cross-spawn: 7.0.6
       debug: 4.4.3(supports-color@9.4.0)
       fs-extra: 10.1.0
-      http-proxy-agent: 7.0.2(supports-color@9.4.0)
+      http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       js-yaml: 4.3.1
       sanitize-filename: 1.6.4
@@ -24828,7 +24886,7 @@ snapshots:
       statuses: 2.0.2
       toidentifier: 1.0.1
 
-  http-proxy-agent@7.0.2(supports-color@9.4.0):
+  http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.4
       debug: 4.4.3(supports-color@9.4.0)

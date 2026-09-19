@@ -25,6 +25,10 @@
 - 使用中性 `--dsw-alias-border-*` token 的平面边框与分割线一律 `0.5px`——按钮、输入框、卡片、行分割线，以及以填充盒绘制的分隔线（菜单分隔、对话标题栏接缝、markdown `hr`、竖向轨道线）共用发丝线粗细，Chromium 将其绘制为一个设备像素。dashed 记号与状态色 border 保持 1px；spinner 圆环经 spec 的显式豁免保留原宽度。更宽的中性 solid border 会被 ui-theme elevation spec 拒绝。
 - 可点击产物链接（Markdown 锚点、正文文件引用、网页来源与抓取链接、产物 chips、workflow 成员链接）经 `--dsw-alias-link` 着色、`font-weight: 500`，默认无下划线，hover/focus 时为 3px offset 的点状下划线。紧凑 Thinking Markdown 保持 tertiary 文字色和默认点状下划线（[紧凑展示](../.agents/notes/implemented/bug-fix/2026-09-17-thinking-markdown.zh.md)）。带文字的锚点另以 ui-primitives 的 `LinkIcon` 分类图形（随 `currentColor`）作前置；目的地是已知外部站点时改用该站点自己的标记而非地球；workflow 成员链接与只包图片的锚点不带图形，工具行文件链接保持其灰色点线示能（[可点击链接 Agent Note](../.agents/notes/implemented/feature/2026-09-04-web-clickable-link-styles.zh.md)、[已知站点标记 Agent Note](../.agents/notes/implemented/feature/2026-09-16-known-site-link-marks.zh.md)）。
 
+## 界面皮肤
+
+[`ui-skin`](../packages/client/ui-skin/README.zh.md) 持有用户的界面选择：对话设计稿描述的 `material` 界面（产品默认值），或现有的 `classic` 界面。新版样式表是全局样式，但每条规则都要求 `html[data-dsh-skin='material']`，而该属性只在选中新版时由皮肤运行时设置，因此安装它不会改动经典界面。新版界面的配色轴通过 `ctx.theme.overrideTokens` 走别名 token 层；样式表负责结构（面板内边距与圆角、背景模糊、气泡、输入框卡片、标签指示条），并通过现有组件的 slot 座位与稳定类名后缀抵达它们。两套界面共用的控件仍应作为属性加入 [ui-primitives](../packages/client/ui-primitives/README.zh.md)，新的共享 token 仍归 ui-theme。
+
 ## 变更系统
 
 在所属 `ui-theme` 样式表中添加或修改共享 token，然后在功能包中使用其语义别名。公共样式约定发生变化时，更新所属包的参考文档。视觉行为遵循[测试策略](testing.zh.md)；[样式系统 Agent Note](../.agents/notes/implemented/process/2026-07-19-web-styling-system.zh.md) 记录框架依据。
