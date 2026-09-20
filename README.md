@@ -18,10 +18,10 @@ Review the [safety notice](SAFETY.md) before running the project.
 
 ### Run from `npm`
 
-Install `Node.js`, then run:
+This repository is a fork: the published package `@l1nxuan-du/dsh` already carries the packages it needs, so there is no extra install step. Install `Node.js`, then run:
 
 ```sh
-npx @deepseek-ai/dsh web
+npx @l1nxuan-du/dsh web
 ```
 
 The command serves the Web UI on port 3080, listening on all IPv4 interfaces by default. Its canonical local URL is `http://127.0.0.1:3080`, which is opened in the default browser for a local launch. Pass `--host 127.0.0.1` to restrict the server to this machine, or `--no-open` to run it without opening a browser. The default bind is plain HTTP, so use loopback or a trusted network unless you add TLS. An SSH launch only prints the host URL because the SSH client or editor owns the local forwarded address. See [Web UI guide](docs/user/guide/index.md).
@@ -31,7 +31,7 @@ The command serves the Web UI on port 3080, listening on all IPv4 interfaces by 
 To run from a repository checkout:
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
+git clone https://github.com/l1nxuan-du/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build

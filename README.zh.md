@@ -20,10 +20,10 @@ DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来
 
 ### 通过 `npm` 运行
 
-安装 `Node.js`，然后运行：
+本仓库是 fork：发布包 `@l1nxuan-du/dsh` 已自带所需的分包，无需额外安装步骤。安装 `Node.js`，然后运行：
 
 ```sh
-npx @deepseek-ai/dsh web
+npx @l1nxuan-du/dsh web
 ```
 
 该命令会在 3080 端口提供 Web UI，默认监听所有 IPv4 网络接口。规范本地地址是 `http://127.0.0.1:3080`，本机启动时默认浏览器会打开该 URL。传入 `--host 127.0.0.1` 可将服务器限制在本机，或传入 `--no-open` 仅运行服务器而不打开浏览器。默认绑定使用明文 HTTP，因此除非另行配置 TLS，否则应仅通过 loopback 或可信网络访问。通过 SSH 启动时只打印宿主机 URL，因为本地转发地址由 SSH 客户端或编辑器持有。详见 [Web UI 指南](docs/user/guide/index.zh.md)。
@@ -35,7 +35,7 @@ npx @deepseek-ai/dsh web
 如需从仓库源码运行：
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
+git clone https://github.com/l1nxuan-du/deepseek-harness.git
 cd deepseek-harness
 pnpm install
 pnpm run build
