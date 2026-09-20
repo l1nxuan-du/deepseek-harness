@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-tool-apply-patch",
   "description": "Model-facing apply_patch tool: one Codex-style multi-file patch envelope over the DeepSeek Harness filesystem service",
-  "version": "0.1.5-rc.2",
+  "version": "0.1.6-fork-alpha.2.20260920.1",
   "publishConfig": {
     "access": "public"
   },
