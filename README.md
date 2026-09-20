@@ -8,6 +8,12 @@ It is built on an **everything-is-a-plugin** architecture and powered by [Cordis
 
 Documentation: [https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
 
+## Screenshots
+
+![Web UI, dark theme](docs/assets/screenshot-web-ui-dark.png)
+
+![Web UI, light theme](docs/assets/screenshot-web-ui-light.png)
+
 ## Developer preview
 
 DeepSeek Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
