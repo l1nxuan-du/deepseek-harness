@@ -24,6 +24,9 @@ html[data-dsh-skin='material'] {
    * default. */
   --dsh-pane-surface: rgb(255 255 255 / calc(var(--dsh-skin-strength, 60) / 200));
   --dsh-pane-filter: blur(calc(6px + var(--dsh-skin-strength, 60) * 0.1px));
+  /* The input card keeps the acrylic recipe in both themes: a 50% film under a
+   * long, saturating blur. */
+  --dsh-input-frost: blur(24px) saturate(1.8);
   --dsh-surface-acrylic: rgb(255 255 255 / 0.5);
   --dsh-surface-acrylic-hover: rgb(255 255 255 / 0.62);
   --dsh-surface-button: rgb(255 255 255 / 0.4);
@@ -125,22 +128,17 @@ html[data-dsh-skin='material'] [class*='_sidebarCol'] {
   border-right: none;
 }
 
-/* The conversation's material box is the pane card, not the column: the pane
- * carries the material and the composer seat sits outside it, so the input
- * floats on the field instead of on the pane. */
+/* The column stays transparent so the field reaches the card painted on the
+ * conversation root below, and it carries the card's own radius: the column
+ * clips its overflow, so a square clip left the card's shadow — the one surface
+ * behind the glass that is neither rounded nor transparent — showing as a
+ * square patch in each corner the card's arc does not cover. Matching the two
+ * shapes clips the shadow along the card's own edge. The Windows titlebar's
+ * smaller top-left radius is replaced by this one. */
 html[data-dsh-skin='material'] [class*='_centerCol'] {
   position: relative;
   background: none;
-}
-
-html[data-dsh-skin='material'] [data-conversation-pane] {
-  border: 0.5px solid var(--dsh-border-subtle);
   border-radius: var(--dsh-radius-card);
-  background: var(--dsh-pane-surface);
-  -webkit-backdrop-filter: var(--dsh-pane-filter);
-  backdrop-filter: var(--dsh-pane-filter);
-  box-shadow: var(--dsh-pane-shadow);
-  overflow: hidden;
 }
 
 /* The right panel is its own card: the conversation keeps a gap from it while
@@ -160,11 +158,35 @@ html[data-dsh-skin='material'] [class*='_handle'] {
   background: none;
 }
 
-/* The shipped conversation root paints the page fill as its own ground; the
- * material pane supplies that ground, so the fill would hide the pane's glass
- * and leave the conversation flatter than the panel beside it. */
+/* The conversation's material box is the whole column: the title row and the
+ * tabs sit inside the card with the transcript and the composer. The card
+ * cannot be painted on the scrollport, because the input card's acrylic
+ * samples the field behind it and any `backdrop-filter` on an ancestor caps
+ * what the card can see. So the material rides the conversation root — which
+ * does not scroll — as an absolutely positioned layer under all of them, and
+ * the card keeps the column's height for the whole session.
+ *
+ * The shipped root paints the page fill as its own ground; the card supplies
+ * that ground, so the fill would hide the card's glass and leave the
+ * conversation flatter than the panel beside it. `isolation` gives the root
+ * the stacking context the layer's negative z-index needs. */
 html[data-dsh-skin='material'] [data-slot='main.conversation'] > [class*='_root'] {
   background: transparent;
+  isolation: isolate;
+}
+
+html[data-dsh-skin='material'] [data-slot='main.conversation'] > [class*='_root']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border: 0.5px solid var(--dsh-border-subtle);
+  border-radius: var(--dsh-radius-card);
+  background: var(--dsh-pane-surface);
+  -webkit-backdrop-filter: var(--dsh-pane-filter);
+  backdrop-filter: var(--dsh-pane-filter);
+  box-shadow: var(--dsh-pane-shadow);
 }
 
 /* --- sidebar ------------------------------------------------------------- */
@@ -289,14 +311,43 @@ html[data-dsh-skin='material'] [data-slot='conversation.view'] [class*='_bubble'
 
 /* --- composer ------------------------------------------------------------ */
 
-/* The input floats on the field — the pane's material stops above it — so the
- * half-strength acrylic film and its 24px saturating blur finally have the
- * field to act on. The blur rides the card itself, like the panes and the
+/* The input card sits at the column's bottom edge on the pane's material — the
+ * transcript's flow ends above the composer's band — so the half-strength
+ * acrylic film and its 24px saturating blur read against that material and the
+ * field behind it. The blur rides the card itself, like the panes and the
  * bubbles; the card holds no fixed-position descendants. */
 html[data-dsh-skin='material'] [data-slot='conversation.composer.bar'] [class*='_card'] {
   border: 0;
   -webkit-backdrop-filter: var(--dsh-input-frost);
   backdrop-filter: var(--dsh-input-frost);
+}
+
+
+/* The transcript must not surface under the composer. The band the seat holds —
+ * the dock, the input card, and the stats line — paints no background of its
+ * own, so content that travels through it while the reader scrolls would read
+ * as text printed under the input. The seat's own layer blurs that backdrop out
+ * of legibility, masked so that the ramp starts at the seat's top edge and
+ * nothing above the card is touched: the transcript dissolves into the material
+ * the composer sits on instead of reaching the column's bottom. Blur alone
+ * keeps the material itself unchanged — the pane already blurs the field — so
+ * no band, gradient, or opaque fill appears behind the composer. The blur rides
+ * a pseudo-element, which cannot hijack the containing block of the card's
+ * fixed-position descendants the way a filter on the seat itself would. */
+html[data-dsh-skin='material'] [data-slot='main.conversation'] [data-content-phase='active']:not(:has([data-conversation-composer-overlay])) [data-composer-seat]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(40px) saturate(1.4);
+  backdrop-filter: blur(40px) saturate(1.4);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 40px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 40px);
+  /* The blur's output is clipped to this box, so the layer carries the card's
+   * own radius: a square layer would smear the pane's material across the
+   * column's rounded bottom corners. */
+  border-radius: var(--dsh-radius-card);
 }
 
 /* --- right panel --------------------------------------------------------- */

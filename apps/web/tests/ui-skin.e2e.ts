@@ -50,6 +50,8 @@ function seedLog(): string {
 
 /** Mirrors the Client constant of the same name (this lane never imports Client packages). */
 const SKIN_ATTRIBUTE = 'data-dsh-skin'
+/** The conversation column: the card the material chrome paints in its `::before`. */
+const PANE_SELECTOR = '[data-slot="main.conversation"] > [class*="_root"]'
 /** Marks the material backdrop element. */
 const FIELD_SELECTOR = '[data-dsh-field]'
 
@@ -72,12 +74,13 @@ async function openSeededSession(page: Page): Promise<void> {
 async function geometry(page: Page): Promise<{
   gap: number
   paneRadius: string
+  columnRadius: string | null
   panelRadius: string
   panelBlur: string
 } | null> {
-  return await page.evaluate(() => {
+  return await page.evaluate((paneSelector) => {
     const frame = document.querySelector<HTMLElement>('[class*="_frame"]')
-    const pane = document.querySelector<HTMLElement>('[data-conversation-pane]')
+    const pane = document.querySelector<HTMLElement>(paneSelector)
     // The gap is the column's own right inset: the card inside it also pays the
     // shipped scrollbar gutter, which the skin leaves alone.
     const column = document.querySelector<HTMLElement>('[class*="_centerCol"]')
@@ -90,11 +93,12 @@ async function geometry(page: Page): Promise<{
     const panelBox = panel.getBoundingClientRect()
     return {
       gap: Math.round((panelBox.left - paneBox.right) * 10) / 10,
-      paneRadius: getComputedStyle(pane).borderTopLeftRadius,
+      paneRadius: getComputedStyle(pane, '::before').borderTopLeftRadius,
+      columnRadius: column === null ? null : getComputedStyle(column).borderTopLeftRadius,
       panelRadius: getComputedStyle(panel).borderTopLeftRadius,
       panelBlur: getComputedStyle(panel).backdropFilter,
     }
-  })
+  }, PANE_SELECTOR)
 }
 
 describe('web e2e: interface skin', () => {
@@ -124,8 +128,8 @@ describe('web e2e: interface skin', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-ui-skin-material'))
     await expect.poll(() => page.getAttribute('html', SKIN_ATTRIBUTE)).toBe('material')
     await expect.poll(() => page.locator(FIELD_SELECTOR).count()).toBe(1)
-    const insetPane = await page.locator('[data-conversation-pane]').evaluate((pane) => {
-      const style = getComputedStyle(pane)
+    const insetPane = await page.locator(PANE_SELECTOR).evaluate((pane) => {
+      const style = getComputedStyle(pane, '::before')
       return { radius: style.borderTopLeftRadius, backdrop: style.backdropFilter, background: style.backgroundColor }
     })
     expect(insetPane.radius).toBe('24px')
@@ -142,6 +146,18 @@ describe('web e2e: interface skin', () => {
     expect(pattern.hidden).toBe(false)
     expect(pattern.width).toBeGreaterThan(0)
     expect(pattern.height).toBeGreaterThan(0)
+    // The composer floats on the pane instead of shortening it: the surface
+    // reaches the column's bottom edge, past the input card's own top.
+    const floating = await page.evaluate((paneSelector) => {
+      const pane = document.querySelector<HTMLElement>(paneSelector)
+      const card = document.querySelector<HTMLElement>('[data-composer-card]')
+      if (pane === null || card === null) throw new Error('pane or input card is missing')
+      return {
+        cardTop: card.getBoundingClientRect().top,
+        paneBottom: pane.getBoundingClientRect().bottom,
+      }
+    }, PANE_SELECTOR)
+    expect(floating.paneBottom).toBeGreaterThan(floating.cardTop)
   })
 
   it('moves to the classic chrome from Settings and back', async () => {
@@ -170,7 +186,8 @@ describe('web e2e: interface skin', () => {
     await dialog.getByRole('button', { name: 'Strengthen the material' }).click()
     await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
       .toBe('90')
-    const scaled = await page.locator('[data-conversation-pane]').evaluate(pane => getComputedStyle(pane).backgroundColor)
+    const scaled = await page.locator(PANE_SELECTOR)
+      .evaluate(pane => getComputedStyle(pane, '::before').backgroundColor)
     expect(scaled).toBe('rgba(255, 255, 255, 0.45)')
     await dialog.getByRole('button', { name: 'Weaken the material' }).click()
     await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--dsh-skin-strength')))
@@ -191,11 +208,49 @@ describe('web e2e: interface skin', () => {
     if (measured === null) throw new Error('right panel geometry missing')
     expect(measured).toMatchObject({ gap: 5 })
     expect(measured.panelRadius).toBe(measured.paneRadius)
+    // The column clips overflow, so its clip has to follow the card's radius:
+    // a square clip would show the card's shadow in each corner.
+    expect(measured.columnRadius).toBe(measured.paneRadius)
     expect(measured.panelBlur).toContain('blur')
     // The session titles are plain rows in the material chrome.
     const titleDecoration = await page.locator('[data-slot="sidebar"] [class*="_sessionRow"] [class*="_title"]').first()
       .evaluate(title => getComputedStyle(title).textDecorationLine)
     expect(titleDecoration).toBe('none')
+    // The card is the whole column: the title row and the tabs start inside its
+    // top edge instead of sitting on the field above it.
+    const cardCoversHeader = await page.evaluate((paneSelector) => {
+      const pane = document.querySelector<HTMLElement>(paneSelector)
+      const tabs = pane?.querySelector<HTMLElement>("[class*='_tabs']") ?? null
+      if (pane === null || tabs === null) throw new Error('pane or tab strip is missing')
+      return {
+        paneTop: pane.getBoundingClientRect().top,
+        tabsTop: tabs.getBoundingClientRect().top,
+      }
+    }, PANE_SELECTOR)
+    expect(cardCoversHeader.paneTop).toBeLessThan(cardCoversHeader.tabsTop)
+    // Nothing may surface under the input: the seat's own layer blurs its band's
+    // backdrop out of legibility, ramped in from the seat's top edge so the
+    // transcript above the card stays crisp.
+    const composerBand = await page.locator('[data-composer-seat]').evaluate((seat, paneSelector) => {
+      const style = getComputedStyle(seat, '::before')
+      const pane = document.querySelector<HTMLElement>(paneSelector)
+      return {
+        paneRadius: pane === null ? null : getComputedStyle(pane, '::before').borderTopLeftRadius,
+        backdrop: style.backdropFilter,
+        masked: style.maskImage.includes('linear-gradient'),
+        inset: style.inset,
+        radius: style.borderTopLeftRadius,
+        height: Number.parseFloat(style.height),
+        seatHeight: seat.getBoundingClientRect().height,
+      }
+    }, PANE_SELECTOR)
+    expect(composerBand.backdrop).toContain('blur')
+    expect(composerBand.masked).toBe(true)
+    expect(composerBand.inset).toBe('0px')
+    expect(Math.abs(composerBand.height - composerBand.seatHeight)).toBeLessThanOrEqual(1)
+    // The blur's output is clipped to that box, so the layer carries the card's
+    // radius and cannot smear the material across the rounded bottom corners.
+    expect(composerBand.radius).toBe(composerBand.paneRadius)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })

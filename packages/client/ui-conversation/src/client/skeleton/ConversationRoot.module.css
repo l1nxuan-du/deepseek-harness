@@ -211,13 +211,6 @@
   background: var(--dsw-alias-state-business-primary);
 }
 
-.paneCard {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
-
 .viewArea {
   display: flex;
   flex: 1;
@@ -449,7 +442,7 @@
   scrollbar-gutter: auto;
 }
 
-.scrollBody:has([data-conversation-composer-overlay]) > .paneCard > :global([data-slot='conversation.session']) > .viewArea {
+.scrollBody:has([data-conversation-composer-overlay]) > :global([data-slot='conversation.session']) > .viewArea {
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;

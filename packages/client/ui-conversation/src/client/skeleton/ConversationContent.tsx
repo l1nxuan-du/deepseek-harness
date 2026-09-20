@@ -187,12 +187,7 @@ export function ConversationContent(props: ConversationContentProps) {
       data-content-phase={phase}
     >
       <div className={css.scrollBody} data-conversation-scroll="">
-        {/* The pane's material box: the header and transcript live inside it,
-            while the composer seat stays outside so a skin can float the input
-            on the page instead of on the pane. */}
-        <div className={css.paneCard} data-conversation-pane="">
-          {sessionId === undefined ? null : <Views />}
-        </div>
+        {sessionId === undefined ? null : <Views />}
         {composerSeat}
       </div>
       <WidthControls container={body} phase={phase} />
