@@ -17,23 +17,55 @@ export function createUpdateOverlay(parent: BrowserWindow, preload: string, titl
   const follow = (): void => { if (!window.isDestroyed()) window.setBounds(parent.getContentBounds()) }
   parent.on('move', follow)
   parent.on('resize', follow)
-  let closed = false
-  let blur: string | undefined
+  // The blur has to be undone on the same path that reaches the parent, and the key only
+  // exists after insertion resolves. Tracking 'pending', the key, and 'removed' keeps a
+  // close that lands inside that gap from leaving the parent filtered forever.
+  let blurKey: string | undefined
+  let blurDone = false
   const unblur = (): void => {
-    if (blur === undefined || parent.isDestroyed()) return
-    void parent.webContents.removeInsertedCSS(blur).catch((error: unknown) => { console.warn('desktop update: could not remove background blur', error) })
-    blur = undefined
+    blurDone = true
+    const key = blurKey
+    blurKey = undefined
+    if (key === undefined || parent.isDestroyed()) return
+    void parent.webContents.removeInsertedCSS(key).catch((error: unknown) => { console.warn('desktop update: could not remove background blur', error) })
   }
   void parent.webContents.insertCSS('body { filter: blur(2px) !important; }').then((key) => {
-    blur = key
-    if (closed) unblur()
+    if (blurDone) {
+      if (!parent.isDestroyed()) void parent.webContents.removeInsertedCSS(key).catch((error: unknown) => { console.warn('desktop update: could not remove background blur', error) })
+      return
+    }
+    blurKey = key
   }).catch((error: unknown) => { console.warn('desktop update: could not blur background', error) })
-  window.once('closed', () => { closed = true; unblur() })
+  window.once('closed', () => { unblur() })
   window.once('closed', () => { parent.off('move', follow); parent.off('resize', follow) })
   window.once('ready-to-show', () => { if (!window.isDestroyed()) window.show() })
   window.setMenu(null)
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   return window
+}
+
+/// How long an overlay may stay silent before the shell assumes it will never present itself.
+const OVERLAY_LOAD_TIMEOUT_MS = 15_000
+
+/**
+ * Close an overlay that never became ready. A transparent, frameless child blocks the parent
+ * window whether or not it paints, so one that cannot load its document leaves a window the
+ * user can neither see nor operate. Its close also releases the parent's input.
+ * @param window - Overlay opened for a shell prompt.
+ * @param ready - Resolves once the overlay document has presented itself.
+ * @returns nothing; the overlay is destroyed when it stays unready past the timeout.
+ */
+export function closeUnreadyOverlay(window: BrowserWindow, ready: Promise<unknown>): void {
+  let settled = false
+  const timer = setTimeout(() => {
+    if (settled || window.isDestroyed()) return
+    window.destroy()
+  }, OVERLAY_LOAD_TIMEOUT_MS)
+  const finish = (): void => { settled = true; clearTimeout(timer) }
+  void ready.then(finish, () => {
+    finish()
+    if (!window.isDestroyed()) window.destroy()
+  })
 }
 
 /** A native Windows modal retains its own title bar while the product window remains blocked. */

@@ -1,7 +1,7 @@
 /** Main-owned update confirmations; closing or replacing a dialog never grants installation permission. */
 import { ipcMain, type BrowserWindow, type IpcMainInvokeEvent, type MessageBoxOptions, type MessageBoxReturnValue } from 'electron'
 import type { DesktopLocale } from './locale.ts'
-import { createUpdateOverlay } from './update-overlay.ts'
+import { closeUnreadyOverlay, createUpdateOverlay } from './update-overlay.ts'
 
 /** Channels available only to the isolated update-dialog document. */
 export const UPDATE_DIALOG_IPC = { status: 'dsh-update-dialog:status', respond: 'dsh-update-dialog:respond' } as const
@@ -84,9 +84,20 @@ export class DesktopUpdateDialog {
       this.active = { window, view, finish }
       options.signal?.addEventListener('abort', abort, { once: true })
       window.once('closed', abort)
-      window.webContents.on('will-navigate', (event, url) => { if (url !== page) event.preventDefault() })
       window.webContents.once('render-process-gone', abort)
-      void window.loadURL(page).catch(abort)
+      // A prompt that never presents itself still owns the parent window's input, so the
+      // shell closes it rather than leaving the application visible but unusable.
+      const presented = Promise.withResolvers<void>()
+      window.webContents.once('did-finish-load', () => { presented.resolve() })
+      window.webContents.once('did-fail-load', () => { presented.reject(new Error(`desktop update: overlay failed to load ${page}`)) })
+      window.webContents.once('preload-error', () => { presented.reject(new Error('desktop update: overlay preload failed')) })
+      window.webContents.once('will-navigate', (event, url) => {
+        if (url === page) return
+        event.preventDefault()
+        presented.reject(new Error(`desktop update: overlay left ${page}`))
+      })
+      closeUnreadyOverlay(window, presented.promise)
+      void window.loadURL(page).catch(() => { presented.reject(new Error(`desktop update: overlay could not load ${page}`)) })
     })
   }
 
