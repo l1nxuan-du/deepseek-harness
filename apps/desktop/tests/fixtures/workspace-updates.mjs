@@ -4,7 +4,7 @@ import { registerHooks } from 'node:module'
 import { appendFile, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import updaterModule from 'electron-updater'
 import { createUpdateServer } from './update-server.mjs'
 import { fixture } from './workspace-update-adapters.mjs'
@@ -187,9 +187,8 @@ async function qualify() {
     console.log('workspace qualification: startup API requests settled')
     const messages = resolveDesktopLocale(app.getLocale()).messages
     await screenshot(mainWindow, 'workspace.png')
-    const menu = Menu.getApplicationMenu().items[0].submenu.items
-    const checkMenu = menu.find(item => item.label === messages.checkUpdatesMenu)
-    assert.ok(checkMenu)
+    // The Application menu no longer carries the update command.
+    const checkMenu = { click: () => mainWindow.webContents.executeJavaScript('window.dshDesktop.updates.open()') }
     if (interactive) {
       const { runInteractiveUpdates } = await import('./workspace-updates-interactive.mjs')
       await runInteractiveUpdates({ mainWindow, server, fixture, checkMenu, control, root })
@@ -208,7 +207,7 @@ async function qualify() {
     const current = await dialogWith(messages.updateCurrent.replace('{version}', app.getVersion()))
     await clickText(current, messages.updateAcknowledge)
     assert.equal(server.requests.filter(path => path === '/payload.exe').length, 0)
-    cases.push('native-menu-checking-and-current-without-download')
+    cases.push('window-api-checking-and-current-without-download')
     console.log('workspace qualification: manual no-update feedback complete')
 
     server.select('healthy', '0.1.6-nightly.1')
@@ -357,7 +356,7 @@ async function qualify() {
     cases.push('mandatory-stop-recovery-preserves-block-and-requires-fresh-install-confirmation')
     await writeFile(join(root, 'result.json'), JSON.stringify({ realElectron: true, realHostProcess: true,
       realPreload: true, compiledMainEntry: true, installerExecuted: false, cases,
-      menu: menu.map(item => item.label), phases: fixture.states.map(state => state.phase) }, null, 2) + '\n')
+      phases: fixture.states.map(state => state.phase) }, null, 2) + '\n')
   } catch (error) {
     await writeFile(join(root, 'failure.txt'), String(error.stack ?? error))
     await writeFile(join(root, 'failure-update-state.json'), JSON.stringify(fixture.coordinator?.state, null, 2))
