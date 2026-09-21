@@ -20,7 +20,10 @@
 :global([data-windows-titlebar]) .frame {
   --dsh-windows-content-radius: 16px;
   box-sizing: border-box;
-  padding-top: var(--dsh-windows-titlebar-height);
+  /* The material skin states its own frame padding from a runtime-injected
+     sheet whose selector outranks this rule, and its 8px pane inset cannot
+     stand in for the caption row. */
+  padding-top: var(--dsh-windows-titlebar-height) !important;
   grid-template-rows: minmax(0, 1fr);
   background: var(--dsw-specific-sidebar-fill);
 }
