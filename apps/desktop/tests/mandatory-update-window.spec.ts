@@ -42,6 +42,24 @@ function setup() {
     update(next: DesktopUpdateState) { update = next; ui!.sync() } }
 }
 
+it('drops a block whose recovery document cannot load instead of holding the parent', async () => {
+  window = fakeWindow()
+  window.loadURL.mockRejectedValueOnce(new Error('mandatory document failed to load'))
+  let policy: DesktopPolicyState = { blocking: true, checking: false, page: 'https://downloads.example.com/desktop' }
+  const update: DesktopUpdateState = { phase: 'ready', version: '1.0.1-nightly.1' }
+  ui = new DesktopMandatoryUpdateWindow({ preload: 'owned', locale: resolveDesktopLocale('en'),
+    allowedPageOrigins: ['https://downloads.example.com'], parent: () => window as unknown as BrowserWindow,
+    policy: () => policy, update: () => update, refresh: async () => {}, download: async () => update, install: async () => update })
+  ui.sync()
+  await window.loadURL.mock.results[0]!.value.catch(() => {})
+  expect(window.destroy).toHaveBeenCalledOnce()
+  // The abandoned block is replaced on the next policy event rather than on this pass.
+  expect(window.loadURL).toHaveBeenCalledOnce()
+  policy = { ...policy, checking: true }
+  ui.sync()
+  expect(window.loadURL).toHaveBeenCalledTimes(2)
+  expect(ui.confirmationWindow).toBe(window)
+})
 it('waits for a version-bound second click in the same modal and rejects obsolete or hidden responses', async () => {
   const f = setup()
   const pending = ui!.confirm('1.0.1-nightly.1', false)

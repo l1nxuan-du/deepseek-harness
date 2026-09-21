@@ -13,6 +13,12 @@ it.each(['test', 'production'] as const)('selects the %s policy and authenticati
   expect(resolveDesktopPolicyConfig(policy)).toMatchObject(policy)
 })
 
+it('publishes no policy when the build opts out, so the application starts without the login gate', () => {
+  expect(resolveDesktopPolicyEnvironment({ DSH_DESKTOP_DISABLE_POLICY: '1' })).toBeUndefined()
+  expect(resolveDesktopPolicyConfig(undefined)).toBeUndefined()
+  // Any other value keeps the deployment settings required.
+  expect(() => resolveDesktopPolicyEnvironment({ DSH_DESKTOP_DISABLE_POLICY: '0' })).toThrow('origin')
+})
 it('requires only the selected origin, defaults to test, and accepts explicit page restrictions', () => {
   const policy = resolveDesktopPolicyEnvironment({
     DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: origins.DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN,

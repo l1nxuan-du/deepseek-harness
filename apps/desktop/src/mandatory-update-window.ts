@@ -55,6 +55,7 @@ export class DesktopMandatoryUpdateWindow {
   private confirmationRevision = 0
   private deferred = false
   private restart: MandatoryUpdateView['restart']
+  private abandonment: number | undefined
   private navigation: MandatoryUpdateView['navigation']
   private navigationUrl: string | undefined
   private navigationEpoch = 0
@@ -148,10 +149,14 @@ export class DesktopMandatoryUpdateWindow {
     }
     if (this.navigationUrl !== this.options.policy().page) this.clearNavigation()
     if (this.options.update().phase === 'error') this.restart = undefined
+    if (this.window === undefined && this.abandonment !== undefined) {
+      this.abandonment = undefined
+    }
     if (this.window === undefined) {
       const parent = this.options.parent()
       if (parent === undefined) return
       const window = createMandatoryUpdateWindow(parent, this.options.preload, this.options.locale.messages.mandatoryTitle)
+      this.abandonment = undefined
       this.window = window
       window.setMenu(null)
       window.on('close', (event) => { if (!this.disposed && this.options.policy().blocking) { event.preventDefault(); app.quit() } })
@@ -159,17 +164,24 @@ export class DesktopMandatoryUpdateWindow {
       window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
       window.webContents.on('will-navigate', (event, url) => { if (url !== page) event.preventDefault() })
       window.webContents.on('render-process-gone', () => {
-        if (!this.disposed) void window.loadURL(page).catch(() => {
-          // A failed recovery keeps the parent blocked and leaves application exit available.
-          if (!window.isDestroyed()) window.setTitle(this.options.locale.messages.mandatoryActionFailed)
-        })
+        // The document is gone either way; only a successful reload keeps this modal.
+        if (!this.disposed) void window.loadURL(page).catch(() => { this.abandonBlock(window) })
       })
       void window.loadURL(page).catch(() => {
-        // The parent stays modal-blocked if its dedicated recovery document cannot load.
-        if (!window.isDestroyed()) window.setTitle(this.options.locale.messages.mandatoryActionFailed)
+        // A block that cannot render would hold the parent disabled while showing nothing,
+        // so the modal is dropped and the next policy event opens a fresh one.
+        this.abandonBlock(window)
       })
     }
-    this.window.webContents.send(MANDATORY_IPC.state, this.view())
+    this.publishState()
+  }
+
+  /**
+   * Send the current view to the block that owns it.
+   * @returns nothing; a block dropped by a failed load or a missing parent is skipped.
+   */
+  private publishState(): void {
+    this.window?.webContents.send(MANDATORY_IPC.state, this.view())
   }
 
   /** Focus the block instead of opening ordinary product or plugin interactions. */
@@ -182,6 +194,17 @@ export class DesktopMandatoryUpdateWindow {
     this.window?.focus()
   }
 
+  /**
+   * Drop a block whose document cannot present itself.
+   * @param window - The block this call owns; a stale child leaves the current one alone.
+   * @returns nothing; the abandoned modal is destroyed and its parent regains input.
+   */
+  private abandonBlock(window: BrowserWindow): void {
+    if (this.window !== window) return
+    this.abandonment = ++this.confirmationRevision
+    this.window = undefined
+    if (!window.isDestroyed()) window.destroy()
+  }
   /** Detach IPC and release the modal during application shutdown. */
   dispose(): void {
     this.disposed = true
