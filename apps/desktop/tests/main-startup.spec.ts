@@ -117,6 +117,7 @@ const harness = await vi.hoisted(async () => {
     name: 'Desktop test',
     whenReady: () => Promise.resolve(),
     getLocale: (): string => 'en-US',
+    commandLine: { appendSwitch: vi.fn<(name: string, value?: string) => void>() },
     getVersion: () => '1.0.0',
     getAppPath: () => 'desktop-test-app',
     setAboutPanelOptions: vi.fn<(options: Electron.AboutPanelOptionsOptions) => void>(),
@@ -274,6 +275,7 @@ beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
   harness.dialog.showMessageBox.mockReset()
+  harness.app.commandLine.appendSwitch.mockClear()
   harness.dialog.showMessageBox.mockResolvedValue({ response: 1 })
   testAuth.login.mockReset()
   testAuth.login.mockResolvedValue('cancelled')
@@ -323,6 +325,10 @@ describe('desktop main startup', () => {
     expect({ menu: submenu.slice(0, 2), options: { ...options, iconPath: '<app icon>' } }).toEqual(expected[locale])
     expect(options.iconPath).toBe(packaged ? join('desktop-test-resources', 'icon.png')
       : join('desktop-test-app', 'resources', 'icon-windows.png'))
+    // Windows alone disables Chromium's occlusion heuristic, which stops painting an uncovered window.
+    const occlusion = ['disable-features', 'CalculateNativeWinOcclusion']
+    if (platform === 'win32') expect(harness.app.commandLine.appendSwitch).toHaveBeenCalledWith(...occlusion)
+    else expect(harness.app.commandLine.appendSwitch).not.toHaveBeenCalled()
   })
 
   it('shows one explained startup login before Host readiness and joins concurrent checks without reopening it', async () => {

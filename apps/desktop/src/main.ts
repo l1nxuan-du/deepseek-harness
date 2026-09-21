@@ -139,7 +139,15 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
       contextIsolation: true,
       sandbox: true,
       webSecurity: true,
+      // A minimized or fully occluded window must keep painting; the document is
+      // image-heavy, so a throttled renderer repaints as a blank surface.
+      backgroundThrottling: false,
     },
+  })
+  // Showing the window again is the one moment a stale surface is acceptable to repair.
+  window.on('show', () => {
+    if (window.isDestroyed()) return
+    window.webContents.invalidate()
   })
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url)
@@ -205,6 +213,11 @@ async function main(): Promise<void> {
   let mandatoryUI: DesktopMandatoryUpdateWindow | undefined
   let policyAuth: DesktopPolicyTestAuth | undefined
   const isQuitting = (): boolean => quitting
+  // Chromium's native occlusion heuristic stops producing frames for a window it
+  // believes is covered, which leaves the application document unpainted after the
+  // display or session wakes. Windows only; the other platforms have no equivalent.
+  if (process.platform === 'win32') app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion')
+
   const currentMainWindow = (): BrowserWindow | undefined => mainWindow
   const ordinaryDialogs = new Set<AbortController>()
   const locale = resolveDesktopLocale(app.getLocale())
