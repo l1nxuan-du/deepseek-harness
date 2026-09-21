@@ -52,7 +52,7 @@ pnpm dsh web
 
 ### 运行 Windows 桌面版
 
-[最新发布](https://github.com/l1nxuan-du/deepseek-harness/releases/latest) 附带未签名的 Windows x64 安装包。它按机器安装到 `C:\\Program Files\\deepseek-harness-l1nxuan-du`，桌面快捷方式与开始菜单项均为默认勾选的选项，并在 Windows 设置的「应用」中注册以便卸载。关闭其窗口后应用保留在通知区，其菜单提供「打开界面」和「退出」。
+[0.1.6 fork alpha 发布](https://github.com/l1nxuan-du/deepseek-harness/releases/tag/dsh-v0.1.6-fork-alpha.2.20260920.1) 附带未签名的 Windows x64 安装包。它按机器安装到 `C:\\Program Files\\deepseek-harness-l1nxuan-du`，桌面快捷方式与开始菜单项均为默认勾选的选项，并在 Windows 设置的「应用」中注册以便卸载。关闭其窗口后应用保留在通知区，其菜单提供「打开界面」和「退出」。
 
 ## 社区与支持
 

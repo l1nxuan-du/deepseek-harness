@@ -48,7 +48,7 @@ pnpm dsh web
 
 ### Run the Windows desktop app
 
-An unsigned Windows x64 installer is attached to the [latest release](https://github.com/l1nxuan-du/deepseek-harness/releases/latest). It installs for all users under `C:\\Program Files\\deepseek-harness-l1nxuan-du`, offers the desktop shortcut and Start menu entry as checked options, and registers itself under Apps in Windows Settings for uninstall. Closing its window keeps the app in the notification area, whose menu offers Open Window and Exit.
+An unsigned Windows x64 installer is attached to the [0.1.6 fork alpha release](https://github.com/l1nxuan-du/deepseek-harness/releases/tag/dsh-v0.1.6-fork-alpha.2.20260920.1). It installs for all users under `C:\\Program Files\\deepseek-harness-l1nxuan-du`, offers the desktop shortcut and Start menu entry as checked options, and registers itself under Apps in Windows Settings for uninstall. Closing its window keeps the app in the notification area, whose menu offers Open Window and Exit.
 
 ## Community and support
 
