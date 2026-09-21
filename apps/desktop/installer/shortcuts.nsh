@@ -1,8 +1,6 @@
 ; Shortcut policy for the machine-wide installation.
 !include "LogicLib.nsh"
 
-Var dshDesktopShortcut
-Var dshStartMenuShortcut
 
 ; The welcome page owns both choices and rewrites them on every install, so no stale entry survives.
 ; The uninstaller's own shortcut deletion stays correct: it only ever sees these paths.

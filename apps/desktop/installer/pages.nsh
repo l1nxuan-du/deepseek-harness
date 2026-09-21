@@ -21,8 +21,9 @@ Var InstallerExpanded
 Var InstallerDesktopShortcut
 Var InstallerStartMenuShortcut
 Var InstallerTextWidth
-Var InstallerTextHeight
 Var InstallerRowLeft
+Var dshDesktopShortcut
+Var dshStartMenuShortcut
 Var InstallerRowWidth
 Var InstallerWatchWidth
 !include "${__FILEDIR__}\path.nsh"
@@ -179,13 +180,15 @@ Function InstallerCreate
     ${NSD_Check} $InstallerStartMenuShortcut
     ; The two installation choices share one centered row.
     StrCpy $InstallerWatchWidth $InstallerTextWidth
-    IntOp $InstallerRowWidth $InstallerRowWidth + $InstallerWatchWidth + 16
+    IntOp $InstallerRowWidth $InstallerRowWidth + $InstallerWatchWidth
+    IntOp $InstallerRowWidth $InstallerRowWidth + 16
     IntOp $InstallerRowLeft $InstallerSize - $InstallerRowWidth
     IntOp $InstallerRowLeft $InstallerRowLeft / 2
     System::Call 'kernel32::MulDiv(i 474, i $InstallerDpi, i 96) i.r1'
     System::Call 'kernel32::MulDiv(i 32, i $InstallerDpi, i 96) i.r3'
     System::Call 'user32::MoveWindow(p $InstallerDesktopShortcut, i $InstallerRowLeft, i r1, i $InstallerTextWidth, i r3, i 1)'
-    IntOp $InstallerRowLeft $InstallerRowLeft + $InstallerTextWidth + 16
+    IntOp $InstallerRowLeft $InstallerRowLeft + $InstallerTextWidth
+    IntOp $InstallerRowLeft $InstallerRowLeft + 16
     System::Call 'user32::MoveWindow(p $InstallerStartMenuShortcut, i $InstallerRowLeft, i r1, i $InstallerWatchWidth, i r3, i 1)'
 
     ${NSD_CreateButton} 0 0 0 0 "$(INSTALLER_INSTALL)"
