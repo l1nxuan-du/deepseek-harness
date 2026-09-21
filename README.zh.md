@@ -50,6 +50,10 @@ pnpm dsh web
 
 `pnpm run build` 会准备仓库产物。`pnpm dsh web` 会直接使用这些已构建产物，不会重新构建。
 
+### 运行 Windows 桌面版
+
+[最新发布](https://github.com/l1nxuan-du/deepseek-harness/releases/latest) 附带未签名的 Windows x64 安装包。它按机器安装到 `C:\\Program Files\\deepseek-harness-l1nxuan-du`，桌面快捷方式与开始菜单项均为默认勾选的选项，并在 Windows 设置的「应用」中注册以便卸载。关闭其窗口后应用保留在通知区，其菜单提供「打开界面」和「退出」。
+
 ## 社区与支持
 
 - 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。

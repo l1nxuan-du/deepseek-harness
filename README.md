@@ -46,6 +46,10 @@ pnpm dsh web
 
 `pnpm run build` prepares the repository artifacts. `pnpm dsh web` uses those built artifacts without rebuilding.
 
+### Run the Windows desktop app
+
+An unsigned Windows x64 installer is attached to the [latest release](https://github.com/l1nxuan-du/deepseek-harness/releases/latest). It installs for all users under `C:\\Program Files\\deepseek-harness-l1nxuan-du`, offers the desktop shortcut and Start menu entry as checked options, and registers itself under Apps in Windows Settings for uninstall. Closing its window keeps the app in the notification area, whose menu offers Open Window and Exit.
+
 ## Community and support
 
 - Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
