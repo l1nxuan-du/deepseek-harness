@@ -14,24 +14,11 @@
     !include "${INSTALLER_SOURCE_DIR}\theme.nsh"
     !include "${INSTALLER_SOURCE_DIR}\pages.nsh"
     !include "${INSTALLER_SOURCE_DIR}\lifecycle.nsh"
+    !include "${INSTALLER_SOURCE_DIR}\shortcuts.nsh"
   !endif
 !macroend
 
 !macro customInit
-  ${If} ${isForAllUsers}
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_PER_USER)" /SD IDOK
-    SetErrorLevel 2
-    Quit
-  ${EndIf}
-  ReadRegStr $0 HKLM "${INSTALL_REGISTRY_KEY}" InstallLocation
-  ${If} $0 != ""
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_PER_USER)" /SD IDOK
-    SetErrorLevel 2
-    Quit
-  ${EndIf}
-  !insertmacro setInstallModePerUser
-  StrCpy $hasPerMachineInstallation 0
-  StrCpy $hasPerUserInstallation 1
   StrCpy $InstallerPath $INSTDIR
   StrCpy $InstallerTheme "auto"
   ${GetParameters} $0

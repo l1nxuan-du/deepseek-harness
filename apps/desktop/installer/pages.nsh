@@ -18,10 +18,44 @@ Var InstallerEditFrame
 Var InstallerBrowse
 Var InstallerLaunch
 Var InstallerExpanded
+Var InstallerDesktopShortcut
+Var InstallerStartMenuShortcut
+Var InstallerTextWidth
+Var InstallerTextHeight
+Var InstallerRowLeft
+Var InstallerRowWidth
+Var InstallerWatchWidth
 !include "${__FILEDIR__}\path.nsh"
 !include "${__FILEDIR__}\drawing.nsh"
 
 ; All layout values are 96-DPI logical pixels.
+; One checkbox is measured, centered on the window and given the shared custom painting.
+!macro InstallerCheckbox CONTROL TEXT TOP
+    ${NSD_CreateCheckbox} 0 0 0 0 "${TEXT}"
+    Pop ${CONTROL}
+    SendMessage ${CONTROL} ${WM_SETFONT} $InstallerSmallFont 1
+    System::Call 'user32::GetDC(p ${CONTROL}) p.r4'
+    System::Call 'gdi32::SelectObject(p r4, p $InstallerSmallFont) p.r5'
+    StrLen $0 "${TEXT}"
+    System::Alloc 8
+    Pop $7
+    System::Call 'gdi32::GetTextExtentPoint32W(p r4, w "${TEXT}", i r0, p r7)'
+    System::Call '*$7(i .r6)'
+    System::Free $7
+    System::Call 'gdi32::SelectObject(p r4, p r5)'
+    System::Call 'user32::ReleaseDC(p ${CONTROL}, p r4)'
+    System::Call 'kernel32::MulDiv(i 42, i $InstallerDpi, i 96) i.r2'
+    IntOp $2 $2 + $6
+    StrCpy $InstallerTextWidth $2
+    IntOp $InstallerRowLeft $InstallerSize - $2
+    IntOp $InstallerRowLeft $InstallerRowLeft / 2
+    System::Call 'kernel32::MulDiv(i ${TOP}, i $InstallerDpi, i 96) i.r1'
+    System::Call 'kernel32::MulDiv(i 32, i $InstallerDpi, i 96) i.r3'
+    System::Call 'user32::MoveWindow(p ${CONTROL}, i $InstallerRowLeft, i r1, i $InstallerTextWidth, i r3, i 1)'
+    !insertmacro InstallerControlColors ${CONTROL}
+    ${NSD_OnNotify} ${CONTROL} InstallerPaintCheckbox
+!macroend
+
 !macro InstallerPlace HWND X Y W H
     System::Call 'kernel32::MulDiv(i ${X}, i $InstallerDpi, i 96) i.r0'
     System::Call 'kernel32::MulDiv(i ${Y}, i $InstallerDpi, i 96) i.r1'
@@ -133,29 +167,26 @@ Function InstallerCreate
     !insertmacro InstallerPlace $InstallerBrowse 456 434 80 34
     ${NSD_OnClick} $InstallerBrowse InstallerBrowsePath
     ${NSD_OnNotify} $InstallerBrowse InstallerPaintButton
-    ${NSD_CreateCheckbox} 0 0 0 0 "$(INSTALLER_LAUNCH)"
-    Pop $InstallerLaunch
-    SendMessage $InstallerLaunch ${WM_SETFONT} $InstallerSmallFont 1
-    System::Call 'user32::GetDC(p $InstallerLaunch) p.r4'
-    System::Call 'gdi32::SelectObject(p r4, p $InstallerSmallFont) p.r5'
-    StrLen $0 "$(INSTALLER_LAUNCH)"
-    System::Alloc 8
-    Pop $6
-    System::Call 'gdi32::GetTextExtentPoint32W(p r4, w "$(INSTALLER_LAUNCH)", i r0, p r6)'
-    System::Call '*$6(i .r7)'
-    System::Free $6
-    System::Call 'gdi32::SelectObject(p r4, p r5)'
-    System::Call 'user32::ReleaseDC(p $InstallerLaunch, p r4)'
-    System::Call 'kernel32::MulDiv(i 42, i $InstallerDpi, i 96) i.r2'
-    IntOp $2 $2 + $7
-    IntOp $0 $InstallerSize - $2
-    IntOp $0 $0 / 2
-    System::Call 'kernel32::MulDiv(i 438, i $InstallerDpi, i 96) i.r1'
+    !insertmacro InstallerCheckbox $InstallerLaunch "$(INSTALLER_LAUNCH)" 438
+
+    !insertmacro InstallerCheckbox $InstallerDesktopShortcut "$(INSTALLER_DESKTOP_SHORTCUT)" 474
+    StrCpy $InstallerRowWidth $InstallerTextWidth
+    ${NSD_OnClick} $InstallerDesktopShortcut InstallerShortcutChanged
+    ${NSD_Check} $InstallerDesktopShortcut
+
+    !insertmacro InstallerCheckbox $InstallerStartMenuShortcut "$(INSTALLER_START_MENU_SHORTCUT)" 474
+    ${NSD_OnClick} $InstallerStartMenuShortcut InstallerShortcutChanged
+    ${NSD_Check} $InstallerStartMenuShortcut
+    ; The two installation choices share one centered row.
+    StrCpy $InstallerWatchWidth $InstallerTextWidth
+    IntOp $InstallerRowWidth $InstallerRowWidth + $InstallerWatchWidth + 16
+    IntOp $InstallerRowLeft $InstallerSize - $InstallerRowWidth
+    IntOp $InstallerRowLeft $InstallerRowLeft / 2
+    System::Call 'kernel32::MulDiv(i 474, i $InstallerDpi, i 96) i.r1'
     System::Call 'kernel32::MulDiv(i 32, i $InstallerDpi, i 96) i.r3'
-    System::Call 'user32::MoveWindow(p $InstallerLaunch, i r0, i r1, i r2, i r3, i 1)'
-    !insertmacro InstallerControlColors $InstallerLaunch
-    ${NSD_OnNotify} $InstallerLaunch InstallerPaintCheckbox
-    ${NSD_Check} $InstallerLaunch
+    System::Call 'user32::MoveWindow(p $InstallerDesktopShortcut, i $InstallerRowLeft, i r1, i $InstallerTextWidth, i r3, i 1)'
+    IntOp $InstallerRowLeft $InstallerRowLeft + $InstallerTextWidth + 16
+    System::Call 'user32::MoveWindow(p $InstallerStartMenuShortcut, i $InstallerRowLeft, i r1, i $InstallerWatchWidth, i r3, i 1)'
 
     ${NSD_CreateButton} 0 0 0 0 "$(INSTALLER_INSTALL)"
     Pop $InstallerButton
@@ -177,6 +208,13 @@ Function InstallerCreate
     System::Call 'gdiplus::GdiplusShutdown(p $InstallerGdiToken)'
     System::Call 'gdi32::DeleteObject(p $InstallerFont)'
     System::Call 'gdi32::DeleteObject(p $InstallerSmallFont)'
+FunctionEnd
+
+; A custom-painted checkbox does not redraw on click without an explicit invalidation.
+Function InstallerShortcutChanged
+    Pop $0
+    System::Call 'user32::InvalidateRect(p $InstallerDesktopShortcut, p 0, i 0)'
+    System::Call 'user32::InvalidateRect(p $InstallerStartMenuShortcut, p 0, i 0)'
 FunctionEnd
 
 Function InstallerRender
@@ -209,6 +247,8 @@ FunctionEnd
 ; Page leave callbacks also run when Enter activates NSIS's hidden default button.
 Function InstallerWelcomeLeave
     ${NSD_GetText} $InstallerEdit $InstallerPath
+    ${NSD_GetState} $InstallerDesktopShortcut $dshDesktopShortcut
+    ${NSD_GetState} $InstallerStartMenuShortcut $dshStartMenuShortcut
     Call InstallerPreflight
     ${If} $InstallerError != ""
         MessageBox MB_OK|MB_ICONEXCLAMATION "$InstallerError"

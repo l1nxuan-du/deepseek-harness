@@ -38,12 +38,14 @@ import { DesktopMandatoryUpdatePolicy, resolveDesktopPolicyConfig, type DesktopP
 import { DesktopMandatoryUpdateWindow } from './mandatory-update-window.ts'
 import { DesktopPolicyTestAuth } from './policy-test-auth.ts'
 import { DesktopUpdateDialog, type UpdateDialogOptions } from './update-dialog.ts'
+import { installDesktopTray, type DesktopTray } from './tray.ts'
 import { readDesktopRuntime } from './runtime-tree.ts'
 
 let focusPrimaryWindow = (): void => {}
 let stopForRecovery = async (): Promise<void> => {}
 let shuttingDown = false
 let windowsLanguage: string | undefined
+let tray: DesktopTray | undefined
 
 function currentDesktopLocale(): ReturnType<typeof resolveDesktopLocale> {
   return resolveDesktopLocale(windowsLanguage ?? app.getLocale())
@@ -645,6 +647,7 @@ async function main(): Promise<void> {
       if (!event.senderFrame.url.startsWith(`${SCHEME}://app/`)) return
       if (typeof language === 'string' && /^[a-zA-Z]+(?:-[a-zA-Z0-9]+)*$/u.test(language)) {
         windowsLanguage = language
+        tray?.update()
       }
       // Empty colors precede client stylesheet installation; only CSS color values cross IPC.
       const validColor = (value: unknown): value is string => typeof value === 'string'
@@ -692,11 +695,13 @@ async function main(): Promise<void> {
     if (BrowserWindow.getAllWindows().length === 0) focusPrimaryWindow()
   })
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit()
+    // A live tray owns the process; only its Exit command ends a windowless session.
+    if (process.platform !== 'darwin' && tray?.active !== true) app.quit()
   })
   app.on('before-quit', (event) => {
     shuttingDown = true
     updateJournal?.action('quit-requested')
+    tray?.dispose()
     if (shellInstallerOwnsQuit) {
       updateDialog.dispose()
       mandatoryUI?.dispose()
@@ -710,10 +715,22 @@ async function main(): Promise<void> {
     updateDialog.dispose()
     mandatoryUI?.dispose()
     void Promise.all([Promise.resolve(mandatoryPolicy?.dispose()).then(() => policyAuth?.dispose()), backend.close()])
-      .catch((error: unknown) => { console.error(error) }).finally(() => { app.quit() })
+      .catch((error: unknown) => { console.error(error) }).finally(() => { tray?.dispose(); app.quit() })
   })
 
   mainWindow = createMainWindow()
+  tray = installDesktopTray({
+    iconPath: app.isPackaged ? join(process.resourcesPath, 'icon-tray.png') : join(app.getAppPath(), 'resources', 'icon-tray.png'),
+    locale: currentDesktopLocale,
+    show: () => { focusPrimaryWindow() },
+    quit: () => { app.quit() },
+  })
+  // Closing the window keeps the tray's Open Window command meaningful.
+  mainWindow.on('close', (event) => {
+    if (tray?.active !== true || quitting || shuttingDown) return
+    event.preventDefault()
+    mainWindow?.hide()
+  })
   const manifest: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
   if (typeof manifest !== 'object' || manifest === null) throw new Error('desktop policy: invalid application manifest')
   const developmentPolicy = app.isPackaged ? undefined : process.env.DSH_DESKTOP_MANDATORY_UPDATE_CONFIG

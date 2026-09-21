@@ -51,7 +51,8 @@ export function createElectronBuilderConfig(
   const unsigned = env.DSH_DESKTOP_UNSIGNED === '1'
   if (unsigned && resolvedPlatform !== 'win32') throw new Error('desktop package: unsigned builds require Windows')
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
-  const packagesWindows = resolvedPlatform === 'win32'
+  // The NSIS template must see its per-machine switches even when signing is skipped.
+  const packagesWindows = process.platform === 'win32'
   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
   const macOSSigning = packagesMacOS ? resolveMacOSSigningEnvironment(env) : undefined
   if (packagesMacOS) resolveMacOSNotarizationEnvironment(env)
@@ -117,6 +118,7 @@ export function createElectronBuilderConfig(
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
       { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
+      { from: fileURLToPath(new URL('../resources/icon-tray.png', import.meta.url)), to: 'icon-tray.png' },
     ],
     mac: {
       icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
@@ -192,9 +194,10 @@ export function createElectronBuilderConfig(
       uninstallerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
       include: fileURLToPath(new URL('./installer.nsh', import.meta.url)),
       oneClick: false,
-      perMachine: false,
-      allowElevation: false,
+      perMachine: true,
+      allowElevation: true,
       allowToChangeInstallationDirectory: false,
+      menuCategory: 'deepseek-harness-l1nxuan-du',
       installerLanguages: ['en_US', 'zh_CN'],
       differentialPackage: true,
     },
