@@ -47,6 +47,14 @@
   border-right: none;
 }
 
+/* Without the rail the conversation would start at the window edge; it keeps
+   the same pane inset the frame supplies on the right. Ordinary Web tables
+   keep their 56px rail and receive no such margin. */
+:global([data-windows-titlebar]) .frame[data-sidebar-collapsed] .centerCol {
+  margin-left: var(--dsh-pane-inset, 8px);
+  transition: margin-left var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
 :global([data-windows-titlebar]) .handle {
   top: var(--dsh-windows-titlebar-height);
 }

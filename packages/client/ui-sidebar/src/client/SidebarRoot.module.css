@@ -105,12 +105,20 @@
   animation: none;
 }
 
+/* The caption pairs the collapse toggle with New Session. Both stay 28px
+   rail controls there, so the material skin's 44px New Session button and
+   its translucent film are overridden. */
 :global([data-windows-titlebar]) .collapsed .toggle,
 :global([data-windows-titlebar]) .collapsed .newSession {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0;
+  border: none !important;
+  border-radius: 50% !important;
   corner-shape: round;
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
   color: var(--dsw-alias-label-secondary);
 }
 

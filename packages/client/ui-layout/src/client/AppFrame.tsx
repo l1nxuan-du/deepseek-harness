@@ -208,7 +208,7 @@ export function AppFrame({
       className={css.frame}
       style={{
         ...(document.documentElement.hasAttribute('data-windows-titlebar')
-          ? { '--dsh-windows-sidebar-width': `${cols.sidebar}px` } : {}),
+          ? { '--dsh-windows-sidebar-width': sidebarCollapsed ? `calc(${cols.sidebar}px + var(--dsh-pane-inset, 8px))` : `${cols.sidebar}px` } : {}),
         gridTemplateColumns:
           `${cols.sidebar}px minmax(0, 1fr) ${cols.rightbar}px`,
       }}
