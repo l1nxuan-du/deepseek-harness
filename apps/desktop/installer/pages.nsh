@@ -20,17 +20,21 @@ Var InstallerLaunch
 Var InstallerExpanded
 Var InstallerDesktopShortcut
 Var InstallerStartMenuShortcut
-Var InstallerTextWidth
-Var InstallerRowLeft
 Var dshDesktopShortcut
 Var dshStartMenuShortcut
-Var InstallerRowWidth
-Var InstallerWatchWidth
 !include "${__FILEDIR__}\path.nsh"
 !include "${__FILEDIR__}\drawing.nsh"
 
 ; All layout values are 96-DPI logical pixels.
-; One checkbox is measured, centered on the window and given the shared custom painting.
+!macro InstallerPlace HWND X Y W H
+    System::Call 'kernel32::MulDiv(i ${X}, i $InstallerDpi, i 96) i.r0'
+    System::Call 'kernel32::MulDiv(i ${Y}, i $InstallerDpi, i 96) i.r1'
+    System::Call 'kernel32::MulDiv(i ${W}, i $InstallerDpi, i 96) i.r2'
+    System::Call 'kernel32::MulDiv(i ${H}, i $InstallerDpi, i 96) i.r3'
+    System::Call 'user32::MoveWindow(p ${HWND}, i r0, i r1, i r2, i r3, i 1)'
+!macroend
+
+; One checkbox is measured for its own label, centered, and custom-painted.
 !macro InstallerCheckbox CONTROL TEXT TOP
     ${NSD_CreateCheckbox} 0 0 0 0 "${TEXT}"
     Pop ${CONTROL}
@@ -45,24 +49,16 @@ Var InstallerWatchWidth
     System::Free $7
     System::Call 'gdi32::SelectObject(p r4, p r5)'
     System::Call 'user32::ReleaseDC(p ${CONTROL}, p r4)'
-    System::Call 'kernel32::MulDiv(i 42, i $InstallerDpi, i 96) i.r2'
+    ; The control width carries the drawn check box ahead of the label.
+    System::Call 'kernel32::MulDiv(i ${INSTALLER_CHECKBOX_GLYPH}, i $InstallerDpi, i 96) i.r2'
     IntOp $2 $2 + $6
-    StrCpy $InstallerTextWidth $2
-    IntOp $InstallerRowLeft $InstallerSize - $2
-    IntOp $InstallerRowLeft $InstallerRowLeft / 2
+    IntOp $0 $InstallerSize - $2
+    IntOp $0 $0 / 2
     System::Call 'kernel32::MulDiv(i ${TOP}, i $InstallerDpi, i 96) i.r1'
     System::Call 'kernel32::MulDiv(i 32, i $InstallerDpi, i 96) i.r3'
-    System::Call 'user32::MoveWindow(p ${CONTROL}, i $InstallerRowLeft, i r1, i $InstallerTextWidth, i r3, i 1)'
+    System::Call 'user32::MoveWindow(p ${CONTROL}, i r0, i r1, i r2, i r3, i 1)'
     !insertmacro InstallerControlColors ${CONTROL}
     ${NSD_OnNotify} ${CONTROL} InstallerPaintCheckbox
-!macroend
-
-!macro InstallerPlace HWND X Y W H
-    System::Call 'kernel32::MulDiv(i ${X}, i $InstallerDpi, i 96) i.r0'
-    System::Call 'kernel32::MulDiv(i ${Y}, i $InstallerDpi, i 96) i.r1'
-    System::Call 'kernel32::MulDiv(i ${W}, i $InstallerDpi, i 96) i.r2'
-    System::Call 'kernel32::MulDiv(i ${H}, i $InstallerDpi, i 96) i.r3'
-    System::Call 'user32::MoveWindow(p ${HWND}, i r0, i r1, i r2, i r3, i 1)'
 !macroend
 
 Function InstallerCreate
@@ -170,26 +166,13 @@ Function InstallerCreate
     ${NSD_OnNotify} $InstallerBrowse InstallerPaintButton
     !insertmacro InstallerCheckbox $InstallerLaunch "$(INSTALLER_LAUNCH)" 438
 
-    !insertmacro InstallerCheckbox $InstallerDesktopShortcut "$(INSTALLER_DESKTOP_SHORTCUT)" 474
-    StrCpy $InstallerRowWidth $InstallerTextWidth
+    !insertmacro InstallerCheckbox $InstallerDesktopShortcut "$(INSTALLER_DESKTOP_SHORTCUT)" ${INSTALLER_DESKTOP_OPTION_Y}
     ${NSD_OnClick} $InstallerDesktopShortcut InstallerShortcutChanged
     ${NSD_Check} $InstallerDesktopShortcut
 
-    !insertmacro InstallerCheckbox $InstallerStartMenuShortcut "$(INSTALLER_START_MENU_SHORTCUT)" 474
+    !insertmacro InstallerCheckbox $InstallerStartMenuShortcut "$(INSTALLER_START_MENU_SHORTCUT)" ${INSTALLER_MENU_OPTION_Y}
     ${NSD_OnClick} $InstallerStartMenuShortcut InstallerShortcutChanged
     ${NSD_Check} $InstallerStartMenuShortcut
-    ; The two installation choices share one centered row.
-    StrCpy $InstallerWatchWidth $InstallerTextWidth
-    IntOp $InstallerRowWidth $InstallerRowWidth + $InstallerWatchWidth
-    IntOp $InstallerRowWidth $InstallerRowWidth + 16
-    IntOp $InstallerRowLeft $InstallerSize - $InstallerRowWidth
-    IntOp $InstallerRowLeft $InstallerRowLeft / 2
-    System::Call 'kernel32::MulDiv(i 474, i $InstallerDpi, i 96) i.r1'
-    System::Call 'kernel32::MulDiv(i 32, i $InstallerDpi, i 96) i.r3'
-    System::Call 'user32::MoveWindow(p $InstallerDesktopShortcut, i $InstallerRowLeft, i r1, i $InstallerTextWidth, i r3, i 1)'
-    IntOp $InstallerRowLeft $InstallerRowLeft + $InstallerTextWidth
-    IntOp $InstallerRowLeft $InstallerRowLeft + 16
-    System::Call 'user32::MoveWindow(p $InstallerStartMenuShortcut, i $InstallerRowLeft, i r1, i $InstallerWatchWidth, i r3, i 1)'
 
     ${NSD_CreateButton} 0 0 0 0 "$(INSTALLER_INSTALL)"
     Pop $InstallerButton
