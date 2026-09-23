@@ -209,6 +209,8 @@ Function InstallerRender
     ShowWindow $InstallerEditFrame 0
     ShowWindow $InstallerBrowse 0
     ShowWindow $InstallerLaunch 0
+    ShowWindow $InstallerDesktopShortcut 0
+    ShowWindow $InstallerStartMenuShortcut 0
     ShowWindow $InstallerStatus 0
     ${If} $InstallerPhase == "success"
         ${NSD_SetText} $InstallerButton "$(INSTALLER_FINISH)"

@@ -139,9 +139,6 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
       contextIsolation: true,
       sandbox: true,
       webSecurity: true,
-      // A minimized or fully occluded window must keep painting; the document is
-      // image-heavy, so a throttled renderer repaints as a blank surface.
-      backgroundThrottling: false,
     },
   })
   // Showing the window again is the one moment a stale surface is acceptable to repair.

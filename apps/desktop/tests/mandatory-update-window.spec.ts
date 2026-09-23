@@ -51,7 +51,8 @@ it('drops a block whose recovery document cannot load instead of holding the par
     allowedPageOrigins: ['https://downloads.example.com'], parent: () => window as unknown as BrowserWindow,
     policy: () => policy, update: () => update, refresh: async () => {}, download: async () => update, install: async () => update })
   ui.sync()
-  await window.loadURL.mock.results[0]!.value.catch(() => {})
+  // The handler under test owns the rejection; drain the queue so it has run.
+  await vi.waitFor(() => { expect(window.destroy).toHaveBeenCalledOnce() })
   expect(window.destroy).toHaveBeenCalledOnce()
   // The abandoned block is replaced on the next policy event rather than on this pass.
   expect(window.loadURL).toHaveBeenCalledOnce()
