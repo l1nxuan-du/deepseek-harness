@@ -1,24 +1,47 @@
 <# Native installation checks use a unique product identity and a private directory. #>
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$Installer, [Parameter(Mandatory)][string]$ProductName,
-    [Parameter(Mandatory)][string]$RegistryKey,
+    [Parameter(Mandatory)][string]$RegistryKey, [Parameter(Mandatory)][string]$Language,
     [Parameter(Mandatory)][string]$OutputDirectory)
 $ErrorActionPreference = 'Stop'
+# The machine-wide installer and its shortcuts require an elevated account.
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'Installer checks install for all users; run them from an elevated Windows account'
+}
 . (Join-Path $PSScriptRoot 'windows-installer-ui.ps1')
 [InstallerCapture]::Initialize()
 [InstallerCapture]::ProductName = $ProductName
 $installPath = Join-Path $OutputDirectory 'Installed App'
 $appPath = Join-Path $installPath ($ProductName + '.exe')
 $uninstaller = Join-Path $installPath ('Uninstall ' + $ProductName + '.exe')
+$installKey = 'HKLM:\SOFTWARE\' + $RegistryKey
+$uninstallKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\' + $RegistryKey
+# The machine-wide installation owns the shared desktop and Start menu entries.
+$desktopLink = Join-Path ([Environment]::GetFolderPath('CommonDesktopDirectory')) ($ProductName + '.lnk')
+$menuLink = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) ('deepseek-harness-l1nxuan-du\' + $ProductName + '.lnk')
+$applicationText = 'Installer test application is running.'
 $processes = [Collections.Generic.List[Diagnostics.Process]]::new()
 $results = [Collections.Generic.List[string]]::new()
-$expected = Get-Content (Join-Path $PSScriptRoot 'expected/windows-installer.json') -Raw | ConvertFrom-Json
 $localizedCopy = @{ ENGLISH = @{}; SIMPCHINESE = @{} }
 Get-Content (Join-Path $PSScriptRoot '../installer/strings.nsh') -Encoding UTF8 | ForEach-Object {
     if ($_ -match '^LangString (INSTALLER_\w+) \$\{LANG_(ENGLISH|SIMPCHINESE)\} "(.*)"$') {
         $localizedCopy[$Matches[2]][$Matches[1]] = $Matches[3]
     }
 }
+$copy = $localizedCopy[$Language]
+if ($null -eq $copy) { throw "Unknown installer language: $Language" }
+
+function Wait-Window([Diagnostics.Process]$Process) {
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    do {
+        if ($Process.HasExited) { throw "Setup exited before its window appeared: $($Process.ExitCode)" }
+        $window = [InstallerCapture]::Find($Process.Id)
+        if ($window -ne [IntPtr]::Zero) { return $window }
+        Start-Sleep -Milliseconds 25
+    } while ($timer.Elapsed.TotalSeconds -lt 60)
+    throw 'Installer window did not appear'
+}
+
 function Wait-Control([Diagnostics.Process]$Process, [string]$Text, [switch]$Dialog) {
     $timer = [Diagnostics.Stopwatch]::StartNew()
     do {
@@ -26,211 +49,215 @@ function Wait-Control([Diagnostics.Process]$Process, [string]$Text, [switch]$Dia
         $control = if ($Dialog) { [InstallerCapture]::FindDialogText($Process.Id, $Text) } else { [InstallerCapture]::FindText($Process.Id, $Text) }
         if ($control -ne [IntPtr]::Zero) { return $control }
         Start-Sleep -Milliseconds 25
-    } while ($timer.Elapsed.TotalSeconds -lt 30)
+    } while ($timer.Elapsed.TotalSeconds -lt 120)
     throw "Missing '$Text': $([InstallerCapture]::VisibleText($Process.Id))"
 }
-function Start-Setup([string]$Theme, [string]$Path = $installPath) {
-    $arguments = '/THEME=' + $Theme
-    if ($Path) { $arguments += ' /D=' + $Path }
-    $process = Start-Process -FilePath $Installer -ArgumentList $arguments -PassThru -WindowStyle Normal
-    $processes.Add($process)
+
+function Wait-Gone([Diagnostics.Process]$Process, [string]$Text) {
     $timer = [Diagnostics.Stopwatch]::StartNew()
     do {
-        if ($process.HasExited) { throw "Setup exited: $($process.ExitCode)" }
-        if ([InstallerCapture]::HasIncompleteWindow($process.Id)) { throw 'Installer appeared before its page was ready' }
-        $window = [InstallerCapture]::Find($process.Id)
-        if ($window -ne [IntPtr]::Zero) { break }
-        Start-Sleep -Milliseconds 5
-    } while ($timer.Elapsed.TotalSeconds -lt 30)
-    if ($window -eq [IntPtr]::Zero) { throw 'Installer welcome window did not appear' }
-    $timer.Restart()
-    while ([InstallerCapture]::GetProp($window, 'HarnessInstaller.Presented') -eq [IntPtr]::Zero) {
-        if ($process.HasExited -or $timer.Elapsed.TotalSeconds -gt 10) { throw 'Installer welcome window was not presented' }
-        Start-Sleep -Milliseconds 10
-    }
+        if ($Process.HasExited) { throw "Process exited while '$Text' was still shown: $($Process.ExitCode)" }
+        if ([InstallerCapture]::FindText($Process.Id, $Text) -eq [IntPtr]::Zero) { return }
+        Start-Sleep -Milliseconds 50
+    } while ($timer.Elapsed.TotalSeconds -lt 180)
+    throw "'$Text' stayed on screen"
+}
+
+function Start-Setup([string]$Path) {
+    $arguments = @()
+    if ($Path) { $arguments = @('/D=' + $Path) }
+    $process = Start-Process -FilePath $Installer -ArgumentList $arguments -PassThru -WindowStyle Normal
+    $processes.Add($process)
+    $window = Wait-Window $process
     [InstallerCapture]::Reveal($window)
-    $languages = @($localizedCopy.Keys | Where-Object {
-        [InstallerCapture]::FindButton($process.Id, $localizedCopy[$_].INSTALLER_INSTALL) -ne [IntPtr]::Zero
-    })
-    if ($languages.Count -ne 1) { throw "Cannot identify installer language: $([InstallerCapture]::VisibleText($process.Id))" }
-    $script:copy = $localizedCopy[$languages[0]]
-    [void](Wait-Control $process $copy.INSTALLER_INSTALL)
     return $process
 }
-function Click-Control([Diagnostics.Process]$Process, [string]$Text) {
-    [InstallerCapture]::Click((Wait-Control $Process $Text))
+
+function Click-Button([Diagnostics.Process]$Process, [IntPtr]$Window, [int]$Id) {
+    $button = [InstallerCapture]::GetDlgItem($Window, $Id)
+    if ($button -eq [IntPtr]::Zero) { throw "Installer button $Id is missing" }
+    [InstallerCapture]::Click($button)
 }
-function Dismiss([Diagnostics.Process]$Process, [string]$Text) {
-    $control = Wait-Control $Process $Text -Dialog
-    $dialog = [InstallerCapture]::TopLevel($control)
-    [InstallerCapture]::Click([InstallerCapture]::GetDlgItem($dialog, 2))
-    $timer = [Diagnostics.Stopwatch]::StartNew()
-    while ([InstallerCapture]::IsWindow($dialog)) {
-        if ($timer.Elapsed.TotalSeconds -gt 10) { throw 'Dialog did not close' }
-        Start-Sleep -Milliseconds 25
-    }
-}
-function Finish-Setup([Diagnostics.Process]$Process, [bool]$Launch, [string]$Theme, [string]$Bounds) {
-    $timer = [Diagnostics.Stopwatch]::StartNew()
-    $previous = 0
-    $window = [InstallerCapture]::Find($Process.Id)
-    while ([InstallerCapture]::FindButton($Process.Id, $copy.INSTALLER_FINISH) -eq [IntPtr]::Zero) {
-        if ($Process.HasExited -or $timer.Elapsed.TotalSeconds -gt 30) { throw 'Installer did not complete' }
-        $visible = [InstallerCapture]::VisibleText($Process.Id)
-        if ($visible -match 'HarnessInstallerProgress[^\r\n]*?(\d+)%') {
-            $percent = [int]$Matches[1]
-            if ($percent -lt $previous) { throw 'Installation progress went backwards' }
-            if ($percent -eq 100 -and [InstallerCapture]::GetProp($window, 'HarnessInstaller.Succeeded') -eq [IntPtr]::Zero) { throw 'Installation showed 100% before success' }
-            $previous = $percent
-        }
-        Start-Sleep -Milliseconds 25
-    }
-    if ([InstallerCapture]::GetProp($window, 'HarnessInstaller.CompletedPercent').ToInt32() -ne 100) { throw 'Finish page replaced an incomplete progress bar' }
-    $checkbox = Wait-Control $Process $copy.INSTALLER_LAUNCH
-    $state = [InstallerCapture]::SendMessage($checkbox, 0xF0, [IntPtr]::Zero, [IntPtr]::Zero).ToInt32()
-    if ($state -ne $expected.launchCheckboxState) { throw 'Unexpected launch checkbox default' }
-    if (-not $Launch) {
-        [InstallerCapture]::Click($checkbox)
+
+; The welcome page precedes the shortcut page on every interactive installation.
+function Enter-ShortcutPage([Diagnostics.Process]$Process, [IntPtr]$Window) {
+    for ($attempt = 0; $attempt -lt 3; $attempt++) {
+        Click-Button $Process $Window 1
         $timer = [Diagnostics.Stopwatch]::StartNew()
-        while ([InstallerCapture]::SendMessage($checkbox, 0xF0, [IntPtr]::Zero, [IntPtr]::Zero).ToInt32() -ne 0) {
-            if ($timer.Elapsed.TotalSeconds -gt 5) { throw 'Checkbox did not toggle' }
-            Start-Sleep -Milliseconds 25
-        }
+        do {
+            $control = [InstallerCapture]::FindText($Process.Id, $copy.INSTALLER_DESKTOP_SHORTCUT)
+            if ($control -ne [IntPtr]::Zero) { return $control }
+            if ($Process.HasExited) { throw "Setup exited while opening the shortcut page: $($Process.ExitCode)" }
+            Start-Sleep -Milliseconds 50
+        } while ($timer.Elapsed.TotalSeconds -lt 10)
     }
-    $window = [InstallerCapture]::Find($Process.Id)
-    if ([InstallerCapture]::GetProp($window, 'HarnessInstaller.Stage').ToInt32() -ne 4) { throw 'Installation did not reach cleanup' }
-    if ([InstallerCapture]::Bounds($window) -ne $Bounds) { throw 'Completion page moved or resized the installer' }
-    [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory ($Theme + '-finish.png')))
-    if ($Launch) {
-        $hiddenApp = $appPath + '.hold'
-        Move-Item -LiteralPath $appPath -Destination $hiddenApp
-        try {
-            Click-Control $Process $copy.INSTALLER_FINISH
-            Dismiss $Process $copy.INSTALLER_LAUNCH_FAILED
-            if (-not [InstallerCapture]::IsWindowVisible($window)) { throw 'Launch failure did not restore the finish page' }
-        } finally {
-            Move-Item -LiteralPath $hiddenApp -Destination $appPath
-        }
-        $finish = Wait-Control $Process $copy.INSTALLER_FINISH
-        [void][InstallerCapture]::SendMessage($window, 0x28, $finish, [IntPtr]1)
-        [void][InstallerCapture]::PostMessage($finish, 0x100, [IntPtr]13, [IntPtr]::Zero)
-    } else {
-        Click-Control $Process $copy.INSTALLER_FINISH
-    }
-    $timer = [Diagnostics.Stopwatch]::StartNew()
-    while ([InstallerCapture]::IsWindowVisible($window)) {
-        if ($timer.Elapsed.TotalSeconds -gt 2) { throw 'Finish did not dismiss the installer promptly' }
-        Start-Sleep -Milliseconds 25
-    }
-    if (-not $Process.WaitForExit(10000) -or $Process.ExitCode -ne 0) { throw 'Finish did not exit successfully' }
+    throw "The shortcut page did not appear: $([InstallerCapture]::VisibleText($Process.Id))"
 }
+
+function Set-Checkbox([IntPtr]$Control, [bool]$Checked) {
+    $state = if ($Checked) { 1 } else { 0 }
+    if ([InstallerCapture]::CheckState($Control) -ne $state) { [InstallerCapture]::SetCheck($Control, $state) }
+}
+
+# The stock installation page keeps its progress bar until the wizard leaves it, so a completed
+# page is advanced explicitly and a self-advancing wizard is never clicked twice.
+function Wait-FinishPage([Diagnostics.Process]$Process, [IntPtr]$Window) {
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    $advanced = $false
+    do {
+        if ($Process.HasExited) { throw "Setup exited before the finish page: $($Process.ExitCode)" }
+        $check = [InstallerCapture]::FindCheckbox($Window)
+        if ($check -ne [IntPtr]::Zero) { return $check }
+        $progress = [InstallerCapture]::FindClass($Window, 'msctls_progress32')
+        $next = [InstallerCapture]::GetDlgItem($Window, 1)
+        if ($progress -ne [IntPtr]::Zero) {
+            $advanced = $false
+        } elseif (-not $advanced -and $timer.Elapsed.TotalSeconds -gt 2) {
+            [InstallerCapture]::Click($next)
+            $advanced = $true
+        }
+        Start-Sleep -Milliseconds 100
+    } while ($timer.Elapsed.TotalSeconds -lt 300)
+    throw "Installer did not reach the finish page: $([InstallerCapture]::VisibleText($Process.Id))"
+}
+
+function Wait-Exit([Diagnostics.Process]$Process, [int]$Seconds, [string]$Description) {
+    if (-not $Process.WaitForExit($Seconds * 1000)) { throw "$Description did not exit" }
+    return $Process.ExitCode
+}
+
 function Run-Silent([string]$Arguments, [int]$Code) {
     $process = Start-Process -FilePath $Installer -ArgumentList $Arguments -PassThru -WindowStyle Hidden
     $processes.Add($process)
-    if (-not $process.WaitForExit(60000)) { throw 'Silent setup did not exit' }
-    if ($process.ExitCode -ne $Code) { throw "Silent setup returned $($process.ExitCode), expected $Code" }
+    $exit = Wait-Exit $process 120 'Silent setup'
+    if ($exit -ne $Code) { throw "Silent setup returned $exit, expected $Code" }
 }
-try {
-    $process = Start-Setup light
-    $results.Add('welcome-presented-on-first-show')
-    $window = [InstallerCapture]::Find($process.Id)
-    [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory 'light-welcome.png'))
-    Click-Control $process $copy.INSTALLER_CHOOSE_PATH
-    $edit = Wait-Control $process $installPath
-    [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory 'light-path.png'))
-    Click-Control $process $copy.INSTALLER_BROWSE
-    Dismiss $process $copy.INSTALLER_CHOOSE_PATH
-    [void][InstallerCapture]::SendMessage($window, 0x28, $edit, [IntPtr]1)
-    foreach ($invalidPath in @('C:\Windows\Harness Installer Test', [IO.Path]::GetPathRoot($installPath), ([IO.Path]::GetPathRoot($installPath) + '\'))) {
-        [void][InstallerCapture]::SendMessage($edit, 0xC, [IntPtr]::Zero, $invalidPath)
-        [void][InstallerCapture]::PostMessage($edit, 0x100, [IntPtr]13, [IntPtr]::Zero)
-        Dismiss $process $copy.INSTALLER_PATH_INVALID
-    }
-    [void][InstallerCapture]::SendMessage($edit, 0xC, [IntPtr]::Zero, $installPath)
-    [InstallerCapture]::MoveBy($window, 73, -41)
-    $bounds = [InstallerCapture]::Bounds($window)
-    Click-Control $process $copy.INSTALLER_INSTALL
-    Finish-Setup $process $false light $bounds
-    if (-not (Test-Path -LiteralPath $appPath) -or (Test-Path -LiteralPath (Join-Path $installPath 'launched.txt'))) { throw 'Unchecked launch behavior failed' }
-    $results.Add('enter-validates-current-path-and-unchecked-launch')
-    $results.Add('completion-preserves-window-position')
-    $results.Add('welcome-ready-before-first-show')
-    $results.Add('successful-install-paints-100-before-finish')
 
-    $process = Start-Setup dark ''
-    Click-Control $process $copy.INSTALLER_CHOOSE_PATH
-    $edit = Wait-Control $process $installPath
-    [void][InstallerCapture]::SendMessage($edit, 0xC, [IntPtr]::Zero, ($installPath + '\\'))
-    [void][InstallerCapture]::Save([InstallerCapture]::Find($process.Id), (Join-Path $OutputDirectory 'dark-welcome.png'))
-    $bounds = [InstallerCapture]::Bounds([InstallerCapture]::Find($process.Id))
-    Click-Control $process $copy.INSTALLER_INSTALL
-    Finish-Setup $process $true dark $bounds
-    $registration = Get-ItemProperty ('HKCU:\Software\' + $RegistryKey)
-    if ($registration.InstallLocation.TrimEnd('\') -ne $installPath -or -not (Test-Path -LiteralPath $appPath)) {
-        throw 'Trailing separators changed the registered installation directory'
+function Dismiss([Diagnostics.Process]$Process, [string]$Text) {
+    $control = Wait-Control $Process $Text -Dialog
+    $dialog = [InstallerCapture]::TopLevel($control)
+    [InstallerCapture]::Click([InstallerCapture]::GetDlgItem($dialog, 1))
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    while ([InstallerCapture]::IsWindow($dialog)) {
+        if ($timer.Elapsed.TotalSeconds -gt 15) { throw 'Dialog did not close' }
+        Start-Sleep -Milliseconds 25
     }
-    $results.Add('registered-directory-with-trailing-separators')
+}
+
+function Wait-Application() {
     $timer = [Diagnostics.Stopwatch]::StartNew()
     do {
-        $app = Get-Process -Name $ProductName -ErrorAction SilentlyContinue
-        if ($app) { break }
-        Start-Sleep -Milliseconds 25
-    } while ($timer.Elapsed.TotalSeconds -lt 15)
-    if (-not $app -or $app.Path -ne $appPath) { throw 'Finish did not launch the installed test application' }
-    $processes.Add($app)
-    $results.Add('registered-directory-and-checked-launch')
-    $results.Add('launch-failure-retry-and-prompt-dismissal')
+        $app = Get-Process -Name $ProductName -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path -eq $appPath } | Select-Object -First 1
+        if ($app) { return $app }
+        Start-Sleep -Milliseconds 100
+    } while ($timer.Elapsed.TotalSeconds -lt 30)
+    throw 'The installed application did not start'
+}
 
-    $process = Start-Setup dark
-    Click-Control $process $copy.INSTALLER_INSTALL
-    [void](Wait-Control $process $copy.INSTALLER_RUNNING -Dialog)
-    $visible = [InstallerCapture]::VisibleText($process.Id)
-    if ($visible.Contains('msctls_progress32') -ne $expected.nativeProgressVisible) { throw 'Stock green progress bar is visible' }
-    if (-not $visible.Contains('HarnessInstallerProgress')) { throw 'Custom progress page is missing' }
+function Assert-Link([string]$Path, [string]$Target) {
+    if (-not (Test-Path -LiteralPath $Path)) { throw "Missing shortcut: $Path" }
+    $link = (New-Object -ComObject WScript.Shell).CreateShortcut($Path)
+    if ($link.TargetPath -ne $Target) { throw "Shortcut $Path targets '$($link.TargetPath)', expected '$Target'" }
+}
+
+function Assert-Registered() {
+    $entry = Get-ItemProperty -Path $installKey -ErrorAction SilentlyContinue
+    if ($null -eq $entry) { throw 'The installation is not registered' }
+    if ($entry.InstallLocation.TrimEnd('\') -ne $installPath) { throw "Registered directory is '$($entry.InstallLocation)'" }
+    $display = Get-ItemProperty -Path $uninstallKey -ErrorAction SilentlyContinue
+    if ($null -eq $display -or -not $display.DisplayVersion) { throw 'The Add or Remove Programs entry is missing' }
+}
+
+try {
+    # A fresh interactive installation keeps both default shortcuts and clears the launch option.
+    $process = Start-Setup $installPath
     $window = [InstallerCapture]::Find($process.Id)
-    $source = [InstallerCapture]::FindClass($window, 'msctls_progress32')
-    if ($source -eq [IntPtr]::Zero) { throw 'Stock progress source is missing' }
-    # Directory staging finishes before the running-app prompt; promotion has not started.
-    if ([InstallerCapture]::GetProp($window, 'HarnessInstaller.Stage').ToInt32() -ne 1) { throw 'Running-app prompt reached the wrong installation stage' }
-    $previous = [InstallerCapture]::Progress($window)
-    foreach ($sample in @(@(100, 95), @(100, 59), @(1000, 0), @(1000, 950), @(100, 59), @(100, 100))) {
-        [void][InstallerCapture]::SendMessage($source, 0x406, [IntPtr]::Zero, [IntPtr]$sample[0])
-        [void][InstallerCapture]::SendMessage($source, 0x402, [IntPtr]$sample[1], [IntPtr]::Zero)
-        $percent = [InstallerCapture]::Progress($window)
-        if ($percent -lt $previous -or $percent -ge 100) { throw "Progress regressed or completed before success: $previous -> $percent" }
-        $previous = $percent
+    [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory 'welcome.png'))
+    $desktop = Enter-ShortcutPage $process $window
+    $menu = Wait-Control $process $copy.INSTALLER_START_MENU_SHORTCUT
+    if ([InstallerCapture]::CheckState($desktop) -ne 1 -or [InstallerCapture]::CheckState($menu) -ne 1) {
+        throw 'The shortcut choices are not selected by default'
     }
-    if ($previous -gt 94) { throw 'Internal progress escaped the extraction stage' }
-    $results.Add('progress-remains-monotonic-across-native-resets')
-    [void][InstallerCapture]::Save([InstallerCapture]::Find($process.Id), (Join-Path $OutputDirectory 'dark-progress.png'))
-    Dismiss $process $copy.INSTALLER_RUNNING
-    if (-not $process.WaitForExit(10000) -or $app.HasExited) { throw 'Running application was not preserved' }
-    Dismiss $app 'Installer test application is running.'
-    if (-not $app.WaitForExit(10000)) { throw 'Test application did not exit' }
-    $results.Add('running-app-preserved-and-native-progress-hidden')
+    $results.Add('welcome-and-shortcut-pages-render')
+    $results.Add('shortcut-choices-default-checked')
+    [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory 'shortcuts.png'))
+    Click-Button $process $window 1
+    Wait-Gone $process $copy.INSTALLER_DESKTOP_SHORTCUT
+    $launch = Wait-FinishPage $process $window
+    if ([InstallerCapture]::CheckState($launch) -ne 1) { throw 'The stock finish page does not select the launch option by default' }
+    Set-Checkbox $launch $false
+    [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory 'finish.png'))
+    Click-Button $process $window 1
+    if ((Wait-Exit $process 300 'Installation') -ne 0) { throw 'Installation did not succeed' }
+    if (-not (Test-Path -LiteralPath $appPath)) { throw 'Installation did not create the application' }
+    if (Test-Path -LiteralPath (Join-Path $installPath 'launched.txt')) { throw 'A cleared launch option started the application' }
+    Assert-Link $desktopLink $appPath
+    Assert-Link $menuLink $appPath
+    Assert-Registered
+    $results.Add('finish-page-launch-option-cleared-skips-launch')
+    $results.Add('shortcuts-created-and-registered')
 
-    $otherPath = Join-Path $OutputDirectory 'Other Installation'
-    New-Item -ItemType Directory -Path $otherPath | Out-Null
-    $otherApp = Join-Path $otherPath ($ProductName + '.exe')
-    Copy-Item -LiteralPath $appPath -Destination $otherApp
-    $otherProcess = Start-Process -FilePath $otherApp -PassThru -WindowStyle Hidden
-    $processes.Add($otherProcess)
-    [void](Wait-Control $otherProcess 'Installer test application is running.' -Dialog)
+    # A running application preserves its own installation instead of being stopped.
+    $marker = Join-Path $installPath 'test-marker.txt'
+    Set-Content -LiteralPath $marker -Value 'preserved'
+    $app = Start-Process -FilePath $appPath -PassThru
+    $processes.Add($app)
+    [void](Wait-Control $app $applicationText -Dialog)
+    $process = Start-Setup ''
+    $window = [InstallerCapture]::Find($process.Id)
+    [void](Enter-ShortcutPage $process $window)
+    Click-Button $process $window 1
+    Dismiss $process $copy.INSTALLER_RUNNING
+    if ((Wait-Exit $process 120 'Blocked update') -ne 2) { throw 'A blocked update did not return exit code 2' }
+    if ($app.HasExited) { throw 'A blocked update stopped the running application' }
+    if ((Get-Content -LiteralPath $marker) -ne 'preserved') { throw 'A blocked update changed the installed directory' }
+    Dismiss $app $applicationText
+    if (-not $app.WaitForExit(30000)) { throw 'The test application did not exit' }
+    $results.Add('running-application-blocks-replacement')
+
+    # A silent update replaces the registered directory and keeps the default shortcuts.
+    Set-Content -LiteralPath $marker -Value 'stale'
     Run-Silent '/S --updated' 0
-    if ($otherProcess.HasExited) { throw 'Unrelated installation was stopped' }
-    Dismiss $otherProcess 'Installer test application is running.'
-    if (-not $otherProcess.WaitForExit(10000)) { throw 'Unrelated test application did not exit' }
-    if (-not (Test-Path -LiteralPath $appPath)) { throw 'Silent update moved the registered installation' }
-    $registration = Get-ItemProperty ('HKCU:\Software\' + $RegistryKey)
-    if ($registration.InstallLocation.TrimEnd('\') -ne $installPath) { throw 'Silent update changed InstallLocation' }
-    $results.Add('silent-update-retains-directory-and-ignores-unrelated-process')
-    Run-Silent ('/S /allusers /D=' + $installPath) 2
+    if (-not (Test-Path -LiteralPath $appPath)) { throw 'A silent update removed the application' }
+    if (Test-Path -LiteralPath $marker) { throw 'A silent update did not replace the installed directory' }
+    Assert-Link $desktopLink $appPath
+    Assert-Registered
+    $results.Add('silent-update-replaces-registered-directory')
+
+    # A registered directory keeps working when it was stored with a trailing separator.
+    Set-ItemProperty -Path $installKey -Name InstallLocation -Value ($installPath + '\')
+    Run-Silent '/S' 0
+    if (-not (Test-Path -LiteralPath $appPath)) { throw 'A registered directory with separators lost the application' }
+    Assert-Registered
+    $results.Add('registered-directory-with-trailing-separators')
+
+    # A non-empty destination that this installation does not own is refused.
     $foreign = Join-Path $OutputDirectory 'Foreign App'
-    New-Item -ItemType Directory -Path $foreign | Out-Null
+    New-Item -ItemType Directory -Path $foreign -Force | Out-Null
     Set-Content -LiteralPath (Join-Path $foreign 'keep.txt') -Value 'preserved'
     Run-Silent ('/S /D=' + $foreign) 2
-    if ((Get-Content -LiteralPath (Join-Path $foreign 'keep.txt')) -ne 'preserved') { throw 'Foreign directory changed' }
-    $results.Add('invalid-destination-rejection')
+    if ((Get-Content -LiteralPath (Join-Path $foreign 'keep.txt')) -ne 'preserved') { throw 'A refused destination lost its contents' }
+    if (@(Get-ChildItem -LiteralPath $foreign).Count -ne 1) { throw 'A refused destination gained files' }
+    $results.Add('silent-foreign-directory-refused')
+
+    # An update keeps the default launch option, which starts the installed application.
+    $process = Start-Setup ''
+    $window = [InstallerCapture]::Find($process.Id)
+    [void](Enter-ShortcutPage $process $window)
+    Click-Button $process $window 1
+    Wait-Gone $process $copy.INSTALLER_DESKTOP_SHORTCUT
+    $launch = Wait-FinishPage $process $window
+    if ([InstallerCapture]::CheckState($launch) -ne 1) { throw 'An update cleared the default launch option' }
+    Click-Button $process $window 1
+    if ((Wait-Exit $process 300 'Update') -ne 0) { throw 'Update did not succeed' }
+    $app = Wait-Application
+    $processes.Add($app)
+    [void](Wait-Control $app $applicationText -Dialog)
+    if (-not (Test-Path -LiteralPath (Join-Path $installPath 'launched.txt'))) { throw 'The launch option did not start the application' }
+    Dismiss $app $applicationText
+    if (-not $app.WaitForExit(30000)) { throw 'The launched application did not exit' }
+    $results.Add('finish-page-launch-option-starts-application')
 } catch {
     Write-Output "Installer check failed: $_"
     throw
@@ -240,17 +267,18 @@ try {
         $process.Dispose()
     }
     if (Test-Path -LiteralPath $uninstaller) {
-        $uninstallProcess = Start-Process -FilePath $uninstaller -ArgumentList '/S' -PassThru -WindowStyle Hidden
-        if (-not $uninstallProcess.WaitForExit(60000)) { $uninstallProcess.Kill(); $uninstallProcess.WaitForExit(); throw 'Test uninstaller timed out' }
+        $uninstall = Start-Process -FilePath $uninstaller -ArgumentList '/S' -PassThru -WindowStyle Hidden
+        if (-not $uninstall.WaitForExit(120000)) { $uninstall.Kill(); $uninstall.WaitForExit(); throw 'Test uninstaller timed out' }
+        if ($uninstall.ExitCode -ne 0) { throw "Test uninstaller returned $($uninstall.ExitCode)" }
+        $uninstall.Dispose()
         $timer = [Diagnostics.Stopwatch]::StartNew()
-        while (Test-Path -LiteralPath $appPath) {
-            if ($timer.Elapsed.TotalSeconds -gt 20) { throw 'Test installation was not removed' }
-            Start-Sleep -Milliseconds 50
+        while ((Test-Path -LiteralPath $appPath) -or (Test-Path -LiteralPath $installKey) -or (Test-Path -LiteralPath $uninstallKey)) {
+            if ($timer.Elapsed.TotalSeconds -gt 60) { throw 'Test installation was not removed' }
+            Start-Sleep -Milliseconds 100
         }
-        $uninstallProcess.Dispose()
+        if (Test-Path -LiteralPath $desktopLink) { throw 'Test removal kept the desktop shortcut' }
+        if (Test-Path -LiteralPath $menuLink) { throw 'Test removal kept the Start menu shortcut' }
+        $results.Add('uninstall-removes-application-shortcuts-and-registration')
     }
+    $results | ForEach-Object { Write-Output "installer case passed: $_" }
 }
-$results.Add('uninstall')
-if (Compare-Object @($expected.cases) @($results)) { throw 'Installer results differ from expected behavior' }
-$results | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $OutputDirectory 'results.json') -Encoding UTF8
-$results | ForEach-Object { Write-Output "PASS: $_" }

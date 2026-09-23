@@ -50,17 +50,8 @@ try {
   const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
   const childOptions = { env: scrubWindowsSigningEnvironment(process.env), windowsHide: true, maxBuffer: 8 * 1024 * 1024 }
   await execute('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-    join(appRoot, 'scripts', 'prepare-windows-installer.ps1'), '-OutputDirectory', join(output, 'ui'), '-CompileProgressOnly'], childOptions)
-  const progressTest = join(output, 'ui', 'progress-test.exe')
-  const presentationTest = join(output, 'ui', 'presentation-test.exe')
-  if (sign) {
-    await sign({ path: progressTest, hash: 'sha256', isNest: false })
-    await sign({ path: presentationTest, hash: 'sha256', isNest: false })
-    await sign({ path: join(output, 'ui', 'window-frame.dll'), hash: 'sha256', isNest: false })
-    installWindowsNsisBootstrapSigner({ sign })
-  }
-  await execute(progressTest, [], childOptions)
-  await execute(presentationTest, [], childOptions)
+    join(appRoot, 'scripts', 'prepare-windows-installer.ps1'), '-OutputDirectory', join(output, 'ui')], childOptions)
+  if (sign) installWindowsNsisBootstrapSigner({ sign })
   const payloadSource = join(output, 'payload.nsi')
   await writeFile(payloadSource, `Unicode true
 RequestExecutionLevel user
@@ -99,7 +90,7 @@ SectionEnd
     })
     const result = await execute('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
       join(appRoot, 'tests', 'windows-installer-smoke.ps1'), '-Installer', join(languageOutput, 'installer-test.exe'),
-      '-ProductName', productName, '-RegistryKey', guid, '-OutputDirectory', languageOutput], childOptions)
+      '-ProductName', productName, '-RegistryKey', guid, '-Language', languageId, '-OutputDirectory', languageOutput], childOptions)
     process.stdout.write(`${language}\n${result.stdout}`)
   }
   succeeded = true

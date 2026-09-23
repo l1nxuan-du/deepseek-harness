@@ -38,6 +38,17 @@ export function directoryInstallSection(source) {
   result = replaceOnce(result, '!insertmacro setLinkVars', `!insertmacro setLinkVars
 !insertmacro dshStageApplication`)
   result = replaceOnce(result, '!insertmacro installApplicationFiles', 'Call dshPromoteDirectories\nIfErrors 0 +4\n  SetErrorLevel 2\n  MessageBox MB_OK|MB_ICONEXCLAMATION "$(appCannotBeClosed)" /SD IDOK\n  Quit')
+  // The include owns the shortcut choices; an unchecked choice also removes a previous entry.
+  result = replaceOnce(result, '!insertmacro addStartMenuLink $keepShortcuts', `\${If} $dshStartMenuShortcut == "1"
+  !insertmacro addStartMenuLink $keepShortcuts
+\${Else}
+  Delete "$newStartMenuLink"
+\${EndIf}`)
+  result = replaceOnce(result, '!insertmacro addDesktopLink $keepShortcuts', `\${If} $dshDesktopShortcut == "1"
+  !insertmacro addDesktopLink $keepShortcuts
+\${Else}
+  Delete "$newDesktopLink"
+\${EndIf}`)
   result = replaceOnce(result, '!ifdef UNINSTALLER_ICON\n  File /oname=uninstallerIcon.ico "${UNINSTALLER_ICON}"\n!endif\n', '')
   // The staging macro uses the upstream installer macro, including its signed uninstaller.
   return result

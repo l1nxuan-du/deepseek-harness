@@ -2,7 +2,6 @@
 param(
   [Parameter(Mandatory)][string]$Makensis,
   [Parameter(Mandatory)][string]$SevenZip,
-  [string]$FrameLibrary,
   [scriptblock]$SignExecutable
 )
 $ErrorActionPreference = 'Stop'
@@ -43,7 +42,6 @@ try {
     $probe = Join-Path $caseRoot 'probe.exe'
     $caseArchive = if ($mode -eq 'broken') { $brokenArchive } else { $archive }
     $compileArgs = @('/V2', "/DOUTPUT_FILE=$probe", "/DPAYLOAD_FILE=$caseArchive", "/DTARGET_DIR=$target", "/DDSH_SEVENZIP_PATH=$SevenZip")
-    if ($FrameLibrary) { $compileArgs += "/DSOURCE_DLL=$FrameLibrary" }
     if ($mode -eq 'missing-stage') { $compileArgs += '/DMISSING_STAGE' }
     if ($mode -eq 'cancelled') { $compileArgs += '/DCANCELLED' }
     Invoke-Checked $Makensis ($compileArgs + $fixture)

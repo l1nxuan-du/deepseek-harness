@@ -91,9 +91,6 @@ export function createElectronBuilderConfig(
         '-OutputDirectory', join(buildPaths.root, 'installer-ui')], {
         env: scrubWindowsSigningEnvironment(env), windowsHide: true,
       })
-      if (windowsSigner !== undefined) {
-        await windowsSigner({ path: join(buildPaths.root, 'installer-ui', 'window-frame.dll'), hash: 'sha256', isNest: false })
-      }
       // A falsy result tells electron-builder to omit its production node_modules collection.
       return true
     },

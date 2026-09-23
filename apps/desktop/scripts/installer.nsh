@@ -1,47 +1,72 @@
+; The Windows installer reuses the stock NSIS pages that the uninstaller already shows.
 !include "LogicLib.nsh"
 !define INSTALLER_SOURCE_DIR "${__FILEDIR__}\..\installer"
-!define /ifndef INSTALLER_BUILD_DIR "${__FILEDIR__}\..\.desktop-build\targets\win-x64\installer-ui"
+!define /ifndef INSTALLER_STRINGS_FILE "${INSTALLER_SOURCE_DIR}\strings.nsh"
 
 !ifndef BUILD_UNINSTALLER
   ManifestDPIAware true
-  !define MUI_CUSTOMFUNCTION_GUIINIT InstallerGuiInit
 !endif
 
+; MUI, nsDialogs, and the localized strings exist only after the stock template includes MUI2,
+; so everything that uses them is spliced in through the header hook.
 !macro customHeader
-  !define /ifndef INSTALLER_STRINGS_FILE "${INSTALLER_SOURCE_DIR}\strings.nsh"
   !include "${INSTALLER_STRINGS_FILE}"
   !ifndef BUILD_UNINSTALLER
-    !include "${INSTALLER_SOURCE_DIR}\theme.nsh"
-    !include "${INSTALLER_SOURCE_DIR}\pages.nsh"
-    !include "${INSTALLER_SOURCE_DIR}\lifecycle.nsh"
-    !include "${INSTALLER_SOURCE_DIR}\shortcuts.nsh"
+    Var dshDesktopShortcut
+    Var dshStartMenuShortcut
+    Var dshShortcutPageDesktop
+    Var dshShortcutPageStartMenu
+    !include "${INSTALLER_SOURCE_DIR}\path.nsh"
+
+    Function dshShortcutPageCreate
+      !insertmacro MUI_HEADER_TEXT "$(INSTALLER_SHORTCUTS_HEADER)" "$(INSTALLER_SHORTCUTS_SUBTEXT)"
+      nsDialogs::Create 1018
+      Pop $0
+      ${If} $0 == error
+        Abort
+      ${EndIf}
+      ${NSD_CreateCheckbox} 0 0 100% 12u "$(INSTALLER_DESKTOP_SHORTCUT)"
+      Pop $dshShortcutPageDesktop
+      ${NSD_Check} $dshShortcutPageDesktop
+      ${NSD_CreateCheckbox} 0 20u 100% 12u "$(INSTALLER_START_MENU_SHORTCUT)"
+      Pop $dshShortcutPageStartMenu
+      ${NSD_Check} $dshShortcutPageStartMenu
+      nsDialogs::Show
+    FunctionEnd
+
+    Function dshShortcutPageLeave
+      ${NSD_GetState} $dshShortcutPageDesktop $0
+      ${If} $0 == ${BST_CHECKED}
+        StrCpy $dshDesktopShortcut "1"
+      ${Else}
+        StrCpy $dshDesktopShortcut "0"
+      ${EndIf}
+      ${NSD_GetState} $dshShortcutPageStartMenu $0
+      ${If} $0 == ${BST_CHECKED}
+        StrCpy $dshStartMenuShortcut "1"
+      ${Else}
+        StrCpy $dshStartMenuShortcut "0"
+      ${EndIf}
+    FunctionEnd
   !endif
 !macroend
 
+; The welcome page is the stock one, so it matches the uninstaller's own pages.
+!macro customWelcomePage
+  !insertmacro MUI_PAGE_WELCOME
+!macroend
+
+; The two shortcut choices share one plain page between the welcome and progress pages.
+!macro customPageAfterChangeDir
+  Page custom dshShortcutPageCreate dshShortcutPageLeave
+!macroend
+
 !macro customInit
-  StrCpy $InstallerPath $INSTDIR
-  StrCpy $InstallerTheme "auto"
-  ${GetParameters} $0
-  ${GetOptions} $0 "/THEME=" $1
-  ${IfNot} ${Errors}
-    ${If} $1 == "light"
-    ${OrIf} $1 == "dark"
-    ${OrIf} $1 == "auto"
-      StrCpy $InstallerTheme $1
-    ${Else}
-      MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_THEME_ERROR)" /SD IDOK
-      SetErrorLevel 2
-      Quit
-    ${EndIf}
-  ${EndIf}
-  Call InstallerResolveTheme
-  InitPluginsDir
-  File "/oname=$PLUGINSDIR\brand.bmp" "${INSTALLER_BUILD_DIR}\brand.bmp"
-  File "/oname=$PLUGINSDIR\brand-2x.bmp" "${INSTALLER_BUILD_DIR}\brand-2x.bmp"
-  File "/oname=$PLUGINSDIR\brand-dark.bmp" "${INSTALLER_BUILD_DIR}\brand-dark.bmp"
-  File "/oname=$PLUGINSDIR\brand-dark-2x.bmp" "${INSTALLER_BUILD_DIR}\brand-dark-2x.bmp"
-  File "/oname=$PLUGINSDIR\window-frame.dll" "${INSTALLER_BUILD_DIR}\window-frame.dll"
+  ; A silent installation skips the page and keeps both shortcuts.
+  StrCpy $dshDesktopShortcut "1"
+  StrCpy $dshStartMenuShortcut "1"
   ${If} ${Silent}
+    StrCpy $InstallerPath $INSTDIR
     Call InstallerPreflight
     ${If} $InstallerError != ""
       SetErrorLevel 2
@@ -50,75 +75,19 @@
   ${EndIf}
 !macroend
 
-!macro customInstallMode
-  ; Preserve the directory selected on the custom welcome page.
-  StrCpy $installMode CurrentUser
-  SetShellVarContext current
-  Abort
-!macroend
-
-!macro customWelcomePage
-  Page custom InstallerWelcome InstallerWelcomeLeave
-!macroend
-
-!macro customPageAfterChangeDir
-  !define MUI_PAGE_CUSTOMFUNCTION_PRE InstallerBeforeInstall
-  !define MUI_PAGE_CUSTOMFUNCTION_SHOW InstallerProgressShow
-!macroend
-
-!macro customFinishPage
-  Page custom InstallerFinish InstallerFinishLeave
-!macroend
-
-; Installation work publishes stage changes without disturbing the NSIS caller.
-!macro InstallerPublishStage Stage
-  ; Extraction owns the stack and error flag across these callbacks.
-  Push $0
-  StrCpy $0 0
-  ${If} ${Errors}
-    StrCpy $0 1
-  ${EndIf}
-  System::Store /NOUNLOAD "S"
-  System::Call /NOUNLOAD 'user32::SetPropW(p $HWNDPARENT, w "HarnessInstaller.Stage", p ${Stage})'
-  System::Store "L"
-  ${If} $0 == 1
-    SetErrors
-  ${Else}
-    ClearErrors
-  ${EndIf}
-  Pop $0
-!macroend
-
-!macro customInstallerExtract Archive
-  !insertmacro InstallerPublishStage 1
-  System::Store /NOUNLOAD "S"
-  System::Call /NOUNLOAD '$PLUGINSDIR\window-frame.dll::InstallerExtract(p $HWNDPARENT, w "$PLUGINSDIR\dsh-7za.exe", w "${Archive}", w "$INSTDIR", w "$PLUGINSDIR\extract.log") i.s ?c'
-  System::Store "L"
-  Pop $R0
-  StrCpy $R1 "$R0"
-  ${If} $R0 != 0
-    Push $0
-    FileOpen $0 "$PLUGINSDIR\extract.log" r
-    ${IfNot} ${Errors}
-      FileRead $0 $R1
-      FileClose $0
-    ${EndIf}
-    Pop $0
-  ${EndIf}
-!macroend
-
+; The stock check stops the running application. This installation asks for a manual exit instead,
+; because a running application keeps its directory as the replacement's rollback source.
 !macro customCheckAppRunning
-  !ifdef BUILD_UNINSTALLER
-    InitPluginsDir
-    File "/oname=$PLUGINSDIR\window-frame.dll" "${INSTALLER_BUILD_DIR}\window-frame.dll"
-  !endif
-  System::Call '$PLUGINSDIR\window-frame.dll::InstallerFindProcess(w "$INSTDIR\${APP_EXECUTABLE_FILENAME}") i.R0 ?c'
+  ; The stock macro declared the command paths before this hook runs.
+  !insertmacro IS_POWERSHELL_AVAILABLE
+  !insertmacro FIND_PROCESS "${APP_EXECUTABLE_FILENAME}" $R0
   ${If} $R0 == 0
     ${If} ${isUpdated}
+      ; An update waits for the quit path the updater already started.
       StrCpy $R1 0
       ${DoWhile} $R0 == 0
         Sleep 250
-        System::Call '$PLUGINSDIR\window-frame.dll::InstallerFindProcess(w "$INSTDIR\${APP_EXECUTABLE_FILENAME}") i.R0 ?c'
+        !insertmacro FIND_PROCESS "${APP_EXECUTABLE_FILENAME}" $R0
         IntOp $R1 $R1 + 1
         ${If} $R1 >= 40
           ${ExitDo}
@@ -130,11 +99,6 @@
       SetErrorLevel 2
       Quit
     ${EndIf}
-  ${EndIf}
-  ${If} $R0 < 0
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_UI_ERROR)" /SD IDOK
-    SetErrorLevel 2
-    Quit
   ${EndIf}
 !macroend
 
@@ -148,7 +112,6 @@
   ${If} ${Errors}
     StrCpy $0 1
   ${EndIf}
-  !insertmacro InstallerPublishStage 4
   !insertmacro dshFinishDirectories
   ${If} $0 == 1
     SetErrors

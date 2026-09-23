@@ -7,13 +7,9 @@ Var dshOldMoved
 Var dshNewMoved
 
 !macro dshExtractPayload FILE
-  !ifmacrodef customInstallerExtract
-    !insertmacro customInstallerExtract "${FILE}"
-  !else
-    nsExec::ExecToStack '"$PLUGINSDIR\dsh-7za.exe" x -y -bd -bb0 "-o$INSTDIR" "${FILE}"'
-    Pop $R0
-    Pop $R1
-  !endif
+  nsExec::ExecToStack '"$PLUGINSDIR\dsh-7za.exe" x -y -bd -bb0 "-o$INSTDIR" "${FILE}"'
+  Pop $R0
+  Pop $R1
   ${If} $R0 != 0
     DetailPrint $R1
     Call dshRollbackDirectories
@@ -89,9 +85,6 @@ Function dshRollbackDirectories
 FunctionEnd
 
 Function dshPromoteDirectories
-  !ifmacrodef InstallerPublishStage
-    !insertmacro InstallerPublishStage 2
-  !endif
   ; SetOutPath opens a directory handle; release it before either rename.
   SetOutPath $PLUGINSDIR
   ClearErrors
@@ -116,9 +109,6 @@ Function dshPromoteDirectories
   ${EndIf}
   StrCpy $dshNewMoved "1"
   SetOutPath $dshFinalDirectory
-  !ifmacrodef InstallerPublishStage
-    !insertmacro InstallerPublishStage 3
-  !endif
   ClearErrors
 FunctionEnd
 

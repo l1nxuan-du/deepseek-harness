@@ -22,14 +22,17 @@ it('stages before stopping the application and promotes before registering the i
   const result = directoryInstallSection(section)
   expect(result.indexOf('!insertmacro dshStageApplication')).toBeLessThan(result.indexOf('!insertmacro CHECK_APP_RUNNING'))
   expect(result.indexOf('Call dshPromoteDirectories')).toBeLessThan(result.indexOf('!insertmacro registryAddInstallInfo'))
-  expect(result).toContain('!insertmacro addStartMenuLink $keepShortcuts')
-  expect(result).toContain('!insertmacro addDesktopLink $keepShortcuts')
+  expect(result).toContain('${If} $dshStartMenuShortcut == "1"\n  !insertmacro addStartMenuLink $keepShortcuts')
+  expect(result).toContain('${If} $dshDesktopShortcut == "1"\n  !insertmacro addDesktopLink $keepShortcuts')
+  expect(result).toContain('Delete "$newStartMenuLink"')
+  expect(result).toContain('Delete "$newDesktopLink"')
   expect(result).toContain('!insertmacro handleUninstallResult HKEY_CURRENT_USER')
   expect(result).not.toContain('!insertmacro installApplicationFiles')
   expect(result).not.toContain('File /oname=uninstallerIcon.ico')
 })
 
-it.each(['!include installer.nsh', '!insertmacro setLinkVars', '!insertmacro installApplicationFiles'])(
+it.each(['!include installer.nsh', '!insertmacro setLinkVars', '!insertmacro installApplicationFiles',
+  '!insertmacro addStartMenuLink $keepShortcuts', '!insertmacro addDesktopLink $keepShortcuts'])(
   'rejects a missing or duplicate upstream insertion point: %s', (point) => {
     expect(() => directoryInstallSection(section.replace(point, ''))).toThrow('Desktop NSIS template changed')
     expect(() => directoryInstallSection(`${section}\n${point}`)).toThrow('Desktop NSIS template changed')
