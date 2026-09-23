@@ -192,7 +192,7 @@ export function createElectronBuilderConfig(
       oneClick: false,
       perMachine: true,
       allowElevation: true,
-      allowToChangeInstallationDirectory: false,
+      allowToChangeInstallationDirectory: true,
       menuCategory: 'deepseek-harness-l1nxuan-du',
       installerLanguages: ['en_US', 'zh_CN'],
       differentialPackage: true,

@@ -31,6 +31,9 @@ public static class InstallerCapture {
     [DllImport("user32.dll")] static extern int GetDlgCtrlID(IntPtr window);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr window, uint message, IntPtr wparam, IntPtr lparam);
     [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wparam, IntPtr lparam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wparam, string text);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] public static extern bool SetWindowText(IntPtr window, string text);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wparam, StringBuilder text);
     [StructLayout(LayoutKind.Sequential)] struct Rect { public int Left, Top, Right, Bottom; }
 
     public static string Bounds(IntPtr window) {
@@ -66,6 +69,17 @@ public static class InstallerCapture {
             GetClassName(child, kind, kind.Capacity);
             if (kind.ToString() != "Button") return true;
             if ((GetWindowLong(child, -16) & 0xF) == 3) result = child;
+            return result == IntPtr.Zero;
+        }, IntPtr.Zero);
+        return result;
+    }
+
+    // Page controls keep a stable dialog id even when their text is localized.
+    public static IntPtr FindId(IntPtr parent, int id) {
+        IntPtr result = IntPtr.Zero;
+        EnumChildWindows(parent, delegate(IntPtr child, IntPtr unused) {
+            if (result != IntPtr.Zero || !IsWindowVisible(child)) return result == IntPtr.Zero;
+            if (GetDlgCtrlID(child) == id) result = child;
             return result == IntPtr.Zero;
         }, IntPtr.Zero);
         return result;
@@ -139,7 +153,25 @@ public static class InstallerCapture {
         if (!PostMessage(control, 0xF5, IntPtr.Zero, IntPtr.Zero)) throw new InvalidOperationException("Could not click native button");
     }
 
+    // A page created by the dialog plugin leaves through the wizard's own next-page message; its
+    // stock buttons do not accept a synthesized click.
+    public static void Advance(IntPtr window) {
+        SendMessage(window, 0x408, new IntPtr(1), IntPtr.Zero);
+    }
+
     public static int CheckState(IntPtr control) { return SendMessage(control, 0xF0, IntPtr.Zero, IntPtr.Zero).ToInt32(); }
+
+    // Control text crosses the process boundary only through window messages.
+    public static void SetText(IntPtr control, string text) {
+        SendMessage(control, 0xC, IntPtr.Zero, text);
+    }
+
+    public static string GetText(IntPtr control) {
+        int length = SendMessage(control, 0xE, IntPtr.Zero, IntPtr.Zero).ToInt32();
+        var buffer = new StringBuilder(length + 1);
+        SendMessage(control, 0xD, new IntPtr(length + 1), buffer);
+        return buffer.ToString();
+    }
 
     public static void SetCheck(IntPtr control, int state) { SendMessage(control, 0xF1, new IntPtr(state), IntPtr.Zero); }
 

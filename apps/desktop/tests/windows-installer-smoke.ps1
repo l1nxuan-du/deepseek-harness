@@ -79,7 +79,22 @@ function Click-Button([Diagnostics.Process]$Process, [IntPtr]$Window, [int]$Id) 
     [InstallerCapture]::Click($button)
 }
 
-; The welcome page precedes the shortcut page on every interactive installation.
+# The dialog-plugin pages keep their own message loop, so they leave through the wizard's next-page
+# message instead of a synthesized click on the stock buttons.
+function Leave-Page([IntPtr]$Window) { [InstallerCapture]::Advance($Window) }
+
+function Wait-ControlId([Diagnostics.Process]$Process, [IntPtr]$Window, [int]$Id) {
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    do {
+        $control = [InstallerCapture]::FindId($Window, $Id)
+        if ($control -ne [IntPtr]::Zero) { return $control }
+        if ($Process.HasExited) { throw "Installer exited before control $Id with code $($Process.ExitCode)" }
+        Start-Sleep -Milliseconds 50
+    } while ($timer.Elapsed.TotalSeconds -lt 60)
+    throw "Installer control $Id did not appear"
+}
+
+# The welcome page precedes the shortcut page on every interactive installation.
 function Enter-ShortcutPage([Diagnostics.Process]$Process, [IntPtr]$Window) {
     for ($attempt = 0; $attempt -lt 3; $attempt++) {
         Click-Button $Process $Window 1
@@ -174,7 +189,28 @@ try {
     $process = Start-Setup $installPath
     $window = [InstallerCapture]::Find($process.Id)
     [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory 'welcome.png'))
-    $desktop = Enter-ShortcutPage $process $window
+    Click-Button $process $window 1
+    $directory = Wait-ControlId $process $window 1019
+    if (-not ([InstallerCapture]::GetText($directory)).Contains($installPath)) {
+        throw "The directory page does not show the requested destination: '$([InstallerCapture]::GetText($directory))'"
+    }
+    [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory 'directory.png'))
+    $results.Add('directory-page-shows-requested-destination')
+    # A destination the installer does not own is refused when the shortcut page is left.
+    [InstallerCapture]::SetText($directory, (Join-Path $env:WINDIR 'Harness Installer Test'))
+    Click-Button $process $window 1
+    $desktop = Wait-Control $process $copy.INSTALLER_DESKTOP_SHORTCUT
+    Leave-Page $window
+    Dismiss $process $copy.INSTALLER_PATH_INVALID
+    if ([InstallerCapture]::FindText($process.Id, $copy.INSTALLER_DESKTOP_SHORTCUT) -eq [IntPtr]::Zero) {
+        throw 'A rejected destination left the shortcut page'
+    }
+    $results.Add('directory-page-validates-destination')
+    Click-Button $process $window 3
+    $directory = Wait-ControlId $process $window 1019
+    [InstallerCapture]::SetText($directory, $installPath)
+    Click-Button $process $window 1
+    $desktop = Wait-Control $process $copy.INSTALLER_DESKTOP_SHORTCUT
     $menu = Wait-Control $process $copy.INSTALLER_START_MENU_SHORTCUT
     if ([InstallerCapture]::CheckState($desktop) -ne 1 -or [InstallerCapture]::CheckState($menu) -ne 1) {
         throw 'The shortcut choices are not selected by default'
@@ -182,7 +218,7 @@ try {
     $results.Add('welcome-and-shortcut-pages-render')
     $results.Add('shortcut-choices-default-checked')
     [void][InstallerCapture]::Save($window, (Join-Path $OutputDirectory 'shortcuts.png'))
-    Click-Button $process $window 1
+    Leave-Page $window
     Wait-Gone $process $copy.INSTALLER_DESKTOP_SHORTCUT
     $launch = Wait-FinishPage $process $window
     if ([InstallerCapture]::CheckState($launch) -ne 1) { throw 'The stock finish page does not select the launch option by default' }
@@ -207,7 +243,7 @@ try {
     $process = Start-Setup ''
     $window = [InstallerCapture]::Find($process.Id)
     [void](Enter-ShortcutPage $process $window)
-    Click-Button $process $window 1
+    Leave-Page $window
     Dismiss $process $copy.INSTALLER_RUNNING
     if ((Wait-Exit $process 120 'Blocked update') -ne 2) { throw 'A blocked update did not return exit code 2' }
     if ($app.HasExited) { throw 'A blocked update stopped the running application' }
@@ -245,7 +281,7 @@ try {
     $process = Start-Setup ''
     $window = [InstallerCapture]::Find($process.Id)
     [void](Enter-ShortcutPage $process $window)
-    Click-Button $process $window 1
+    Leave-Page $window
     Wait-Gone $process $copy.INSTALLER_DESKTOP_SHORTCUT
     $launch = Wait-FinishPage $process $window
     if ([InstallerCapture]::CheckState($launch) -ne 1) { throw 'An update cleared the default launch option' }

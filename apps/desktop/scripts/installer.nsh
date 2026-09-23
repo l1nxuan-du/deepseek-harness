@@ -19,6 +19,7 @@
     !include "${INSTALLER_SOURCE_DIR}\path.nsh"
 
     Function dshShortcutPageCreate
+
       !insertmacro MUI_HEADER_TEXT "$(INSTALLER_SHORTCUTS_HEADER)" "$(INSTALLER_SHORTCUTS_SUBTEXT)"
       nsDialogs::Create 1018
       Pop $0
@@ -35,6 +36,7 @@
     FunctionEnd
 
     Function dshShortcutPageLeave
+
       ${NSD_GetState} $dshShortcutPageDesktop $0
       ${If} $0 == ${BST_CHECKED}
         StrCpy $dshDesktopShortcut "1"
@@ -47,6 +49,23 @@
       ${Else}
         StrCpy $dshStartMenuShortcut "0"
       ${EndIf}
+      ; The directory page accepts any folder and the stock installer appends the product folder when it
+      ; is missing, so the folder that the progress page replaces is validated before it starts.
+      StrCpy $InstallerPath $INSTDIR
+      StrCpy $0 $InstallerPath 1 -1
+      ${If} $0 == "\"
+        StrCpy $InstallerPath $InstallerPath -1
+      ${EndIf}
+      ${GetFileName} $InstallerPath $0
+      ${If} $0 != "${APP_FILENAME}"
+        StrCpy $InstallerPath "$InstallerPath\${APP_FILENAME}"
+      ${EndIf}
+      Call InstallerPreflight
+
+      ${If} $InstallerError != ""
+        MessageBox MB_OK|MB_ICONEXCLAMATION "$InstallerError" /SD IDOK
+        Abort
+      ${EndIf}
     FunctionEnd
   !endif
 !macroend
@@ -56,13 +75,13 @@
   !insertmacro MUI_PAGE_WELCOME
 !macroend
 
-; The two shortcut choices share one plain page between the welcome and progress pages.
+; The two shortcut choices share one plain page between the directory and progress pages.
 !macro customPageAfterChangeDir
   Page custom dshShortcutPageCreate dshShortcutPageLeave
 !macroend
 
 !macro customInit
-  ; A silent installation skips the page and keeps both shortcuts.
+  ; A silent installation skips the pages and keeps both shortcuts.
   StrCpy $dshDesktopShortcut "1"
   StrCpy $dshStartMenuShortcut "1"
   ${If} ${Silent}
