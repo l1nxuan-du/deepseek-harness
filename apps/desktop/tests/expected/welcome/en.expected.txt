@@ -1,6 +1,6 @@
-DeepSeek Harness
-DeepSeek Harness
-Welcome to DeepSeek Harness
+DSH Remake
+DSH Remake
+Welcome to DSH Remake
 Build potential. Explore intelligence.
 Sign in
 Add API Key

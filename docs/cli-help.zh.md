@@ -28,8 +28,8 @@
 Usage: dsh [--profile] <name> [options] [app-args...]
        dsh plugin --profile <name> <pnpm-args...>
 
-dsh: boot a DeepSeek Harness profile — an ordered stack of plugin-bundle patch
-layers under your own overrides.
+dsh: boot a DSH Remake profile — an ordered stack of plugin-bundle patch layers
+under your own overrides.
 
 Arguments:
   args                           arguments for the booted profile's app (see:
@@ -136,7 +136,7 @@ Examples:
 ```text
 Usage: dsh --profile sdk [options]
 
-Serve DeepSeek Harness SDK clients over stdio JSON-RPC.
+Serve DSH Remake SDK clients over stdio JSON-RPC.
 
 Options:
   -h, --help  show this help
@@ -154,7 +154,7 @@ Example:
 ```text
 Usage: dsh --profile sdk-minimal [options]
 
-Serve DeepSeek Harness SDK clients over stdio JSON-RPC.
+Serve DSH Remake SDK clients over stdio JSON-RPC.
 
 Options:
   -h, --help  show this help
@@ -172,7 +172,7 @@ Example:
 ```text
 Usage: dsh --profile web [options]
 
-Serve the DeepSeek Harness browser UI.
+Serve the DSH Remake browser UI.
 
 Options:
   --host <host>                  bind address: one IPv4 or IPv6 literal; a

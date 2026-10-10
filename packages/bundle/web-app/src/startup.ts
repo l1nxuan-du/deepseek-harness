@@ -59,7 +59,7 @@ interface WebOptions {
 function webCommand(): Command {
   return new Command()
     .name('dsh --profile web')
-    .description('Serve the DeepSeek Harness browser UI.')
+    .description('Serve the DSH Remake browser UI.')
     .helpOption('-h, --help', 'show this help')
     .option('--host <host>', 'bind address: one IPv4 or IPv6 literal; a wildcard literal binds every interface (the default)')
     .option('--no-open', 'do not open the Web UI in the default browser')

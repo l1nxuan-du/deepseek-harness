@@ -1,5 +1,5 @@
-DeepSeek Harness
-DeepSeek Harness
+DSH Remake
+DSH Remake
 Sign in timed out
 Sign in again
 Add API Key

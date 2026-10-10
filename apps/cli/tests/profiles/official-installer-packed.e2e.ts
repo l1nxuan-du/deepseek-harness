@@ -133,7 +133,10 @@ it.skipIf(!built)('installs the exported registry\'s local closure and switches 
   }] }]))
   const child = execa(process.execPath, [join(installation, 'node_modules/@deepseek-ai/dsh/lib/bin.js'),
     'web', '--patch', patch, '--no-open', '--port', '0'], {
-    cwd: temporary, env: environment, extendEnv: false, reject: false, timeout: 240_000,
+    // Two packed dependency closures, an installed product, and a plugin install with a cold
+    // store run against this child's budget; a slower registry or a deeper closure exhausted the
+    // old 240s before the observer could report, which surfaced as "exited before observation".
+    cwd: temporary, env: environment, extendEnv: false, reject: false, timeout: 600_000,
   })
   if (child.stdout === null) throw new Error('installed Web process has no stdout')
   const lines = createInterface({ input: child.stdout })

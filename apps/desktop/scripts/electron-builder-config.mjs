@@ -13,6 +13,7 @@ import {
 } from './desktop-release-environment.mjs'
 import { notarizeMacOSDiskImageArtifact } from './notarize-macos-disk-images.mjs'
 import { verifyMacOSSignatureAfterSign } from './verify-macos-signature.mjs'
+import { DESKTOP_EXECUTABLE_NAME, DESKTOP_PRODUCT_NAME } from './desktop-product-identity.mjs'
 import {
   createWindowsTokenSigner,
   installWindowsNsisBootstrapSigner,
@@ -98,14 +99,18 @@ export function createElectronBuilderConfig(
   const packaged = resolveDesktopBuildCommit(env)
   return {
     appId,
-    protocols: [{ name: 'DeepSeek Harness', schemes: ['dsh'] }],
+    protocols: [{ name: DESKTOP_PRODUCT_NAME, schemes: ['dsh'] }],
     extraMetadata: {
       dshDesktopAppId: appId,
       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
     },
-    productName: 'DeepSeek Harness',
+    productName: DESKTOP_PRODUCT_NAME,
+    // The install folder and the executable keep the kebab-case name: electron-builder
+    // derives the Windows default directory from `executableName`, so this is what makes
+    // the installer open on `C:\Program Files\dsh-remake` instead of the display name.
+    executableName: DESKTOP_EXECUTABLE_NAME,
     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
     artifactName: `deepseek-harness-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
     directories: { output: unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts },
@@ -155,7 +160,7 @@ export function createElectronBuilderConfig(
       identity: unsigned ? '-' : macOSSigning?.signingIdentity,
       forceCodeSigning: !unsigned,
       hardenedRuntime: true,
-      extendInfo: { NSMicrophoneUsageDescription: 'DeepSeek Harness uses your microphone to transcribe speech into message drafts.' },
+      extendInfo: { NSMicrophoneUsageDescription: `${DESKTOP_PRODUCT_NAME} uses your microphone to transcribe speech into message drafts.` },
       entitlements: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       entitlementsInherit: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       // Prepared runtime files retain their signatures; PAK resources are sealed by their enclosing bundle.
