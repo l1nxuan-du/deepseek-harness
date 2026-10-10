@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import LlmRuntime, { createUserMessage, ToolCallId, HarnessError, type ContentBlock  } from '@deepseek-ai/dsh-llm'
+import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -14,6 +15,19 @@ import ToolRuntime, {
   type JsonSchemaNode, type ToolDefinition, type ToolDispatchExecution, type ToolExecutionResult, type ToolExecutionToken,
 } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'blocker': { kind: 'blocker' } & ContextFormed
+    'child': { kind: 'child' } & ContextFormed
+    'nested': { kind: 'nested' } & ContextFormed
+    'nested-1': { kind: 'nested-1' } & ContextFormed
+    'nested-2': { kind: 'nested-2' } & ContextFormed
+    'post': { kind: 'post' } & ContextFormed
+    'test': { kind: 'test' } & ContextFormed
+    'wrapper': { kind: 'wrapper' } & ContextFormed
+  }
+}
 
 const testToolSignal = new AbortController().signal
 
@@ -38,11 +52,22 @@ const echoTool = defineTool({
 })
 
 describe('ToolRuntime', () => {
-  it('uses a process-global scheduler key across source and built package copies', () => {
-    // Source launch resolves agent-loop's bare import through tsx `paths` while
-    // the profile loader imports this package from `lib`; the two copies still
-    // have to address the same scheduler slot on the registered ToolRuntime.
+  it('addresses one scheduler key across source and built package copies', () => {
+    // A source launch resolves this package through tsx `paths` while a built
+    // plugin profile imports it from `lib`; the two copies still have to
+    // address the same scheduler slot on the registered ToolRuntime.
     expect(TOOL_RUNTIME_SCHEDULER).toBe(Symbol.for('@deepseek-ai/dsh-tools.scheduler'))
+  })
+
+  it('preserves deferred loading through registry and prompt schema projection', async () => {
+    const ctx = await setup()
+    try {
+      ctx.tools.register(defineContentToolFixture({ name: 'deferred', description: '', parameters: {}, deferLoading: true, async execute() { return [] } }))
+      expect(ctx.tools.schemas()[0]?.deferLoading).toBe(true)
+      expect((await ctx.systemPrompt.assemble()).tools[0]?.deferLoading).toBe(true)
+    } finally {
+      await ctx.fiber.dispose()
+    }
   })
 
   it('registers tools, exposes schemas, and feeds the system-prompt assembly', async () => {
@@ -81,6 +106,46 @@ describe('ToolRuntime', () => {
     expect(schema.presentCall).toBeUndefined()
     expect(schema.presentResult).toBeUndefined()
     expect(schema.execute).toBeUndefined()
+  })
+
+  it('runs the captured content projector before policy and keeps later replacement authoritative', async () => {
+    const ctx = await setup()
+    const definition = defineTool({
+      name: 'projected', description: 'projected result', parameters: {},
+      output: { schema: { type: 'string' }, render: () => [{ type: 'text', text: 'fallback' }] },
+      async execute() { return 'canonical' },
+      projectContent() { return [{ type: 'text', text: 'prepared' }] },
+    })
+    ctx.tools.register(definition)
+    ctx.on('tools/pre-execute', async (_exec, next) => {
+      definition.projectContent = () => [{ type: 'text', text: 'later definition' }]
+      return next()
+    })
+    ctx.on('tools/post-execute', async (_exec, result, next): Promise<PostToolDecision> => {
+      await next()
+      expect(result.content).toEqual([{ type: 'text', text: 'prepared' }])
+      return { kind: 'accept', content: [{ type: 'text', text: 'policy result' }] }
+    })
+    try {
+      expect(Object.keys(ctx.tools.schemas()[0]!)).not.toContain('projectContent')
+      const result = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('projection'), name: 'projected', arguments: {} })
+      expect(result.content).toEqual([{ type: 'text', text: 'policy result' }])
+      if (result.isError) throw new Error('expected successful projection')
+      expect(result.value).toBe('canonical')
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('normalizes a throwing content projector without running post-execute', async () => {
+    const ctx = await setup()
+    let postCalls = 0
+    ctx.tools.register({ ...echoTool, projectContent() { throw new Error('projection failed') } })
+    ctx.on('tools/post-execute', async (_exec, _result, next) => { postCalls++; return next() })
+    try {
+      const result = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('projection-error'), name: 'echo', arguments: {} })
+      expect(result.isError).toBe(true)
+      expect(JSON.stringify(result.content)).toContain('projection failed')
+      expect(postCalls).toBe(0)
+    } finally { await ctx.fiber.dispose() }
   })
 
   it('schemas() excludes timeoutMs — the budget must never reach the model', async () => {
@@ -333,10 +398,10 @@ describe('ToolRuntime', () => {
       output: {
         schema: { type: 'string' },
         render: () => projector === 'render'
-          ? hostile as unknown as ContentBlock[]
+          ? hostile as ContentBlock[]
           : [{ type: 'text', text: 'ok' }],
         presentationMeta: () => projector === 'presentationMeta'
-          ? hostile as unknown as JsonValue
+          ? hostile as JsonValue
           : null,
       },
       execute: async () => 'ok',
@@ -376,7 +441,7 @@ describe('ToolRuntime', () => {
         kind: 'accept',
         value: { text: 'policy value' },
         additionalContexts: [createUserMessage({
-          content: [{ type: 'text', text: 'value context' }], source: { kind: 'plugin', plugin: 'test' },
+          content: [{ type: 'text', text: 'value context' }], source: { kind: 'test' },
         })],
       }
     })
@@ -400,7 +465,7 @@ describe('ToolRuntime', () => {
         id: expect.any(String) as unknown,
         role: 'user',
         content: [{ type: 'text', text: 'value context' }],
-        source: { kind: 'plugin', plugin: 'test' },
+        source: { kind: 'test' },
       }],
     })
   })
@@ -524,7 +589,7 @@ describe('ToolRuntime', () => {
       content: [{ type: 'text', text: 'wrapper content' }],
       meta: { wrapped: true },
       additionalContexts: [createUserMessage({
-        content: [{ type: 'text', text: 'wrapper context' }], source: { kind: 'plugin', plugin: 'test' },
+        content: [{ type: 'text', text: 'wrapper context' }], source: { kind: 'test' },
       })],
     }))
 
@@ -538,7 +603,7 @@ describe('ToolRuntime', () => {
         id: expect.any(String) as unknown,
         role: 'user',
         content: [{ type: 'text', text: 'wrapper context' }],
-        source: { kind: 'plugin', plugin: 'test' },
+        source: { kind: 'test' },
       }],
     })
   })
@@ -558,7 +623,7 @@ describe('ToolRuntime', () => {
     })
   })
 
-  it('suppresses presentation metadata only for nested composite dispatches', async () => {
+  it('projects presentation metadata for native and nested composite dispatches', async () => {
     const ctx = await setup()
     ctx.tools.register({
       ...echoTool,
@@ -574,7 +639,8 @@ describe('ToolRuntime', () => {
       parent: Symbol('outer') as ToolExecutionToken,
     })
     expect(direct.meta).toEqual({ card: true })
-    expect(nested.meta).toBeUndefined()
+    expect(nested.meta).toEqual({ card: true })
+    expect(Object.isFrozen(nested.meta)).toBe(true)
     expect(nested.isError ? undefined : nested.value).toBe('')
   })
 
@@ -769,7 +835,7 @@ describe('ToolRuntime', () => {
         return Promise.resolve<ApprovalOutcome>('allowed-once')
       })
       ctx.on('tools/pre-execute', async (_exec, _next): Promise<PreToolDecision> =>
-        ({ kind: 'ask', reason: 'hook wants a human' }))
+        ({ kind: 'ask', reason: 'hook wants a human', displayReason: { en: 'Allow it?', zh: '允许吗？' } }))
 
       const result = await ctx.tools.execute({
         callId: ToolCallId('c1'), name: 'echo', arguments: { text: 'hi' }, agent, signal: controller.signal,
@@ -777,7 +843,9 @@ describe('ToolRuntime', () => {
 
       expect(result).toMatchObject({ isError: false, content: [{ type: 'text', text: 'hi' }] })
       expect(seen).toHaveLength(1)
-      expect(seen[0]).toMatchObject({ agent, toolName: 'echo', callId: 'c1', reason: 'hook wants a human' })
+      expect(seen[0]).toMatchObject({
+        agent, toolName: 'echo', callId: 'c1', reason: 'hook wants a human', displayReason: { en: 'Allow it?', zh: '允许吗？' },
+      })
       expect(seen[0]?.signal).toBe(controller.signal)
     })
 
@@ -958,14 +1026,14 @@ describe('ToolRuntime', () => {
         kind: 'block',
         feedback: [{ type: 'text', text: 'rejected' }],
         additionalContexts: [createUserMessage({
-          content: [{ type: 'text', text: 'why it was rejected' }], source: { kind: 'plugin', plugin: 'test' },
+          content: [{ type: 'text', text: 'why it was rejected' }], source: { kind: 'test' },
         })],
       }))
 
     const result = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('c1'), name: 'echo', arguments: { text: 'hi' } })
     expect(result.isError).toBe(true)
     expect(result.content[0]).toMatchObject({ text: 'rejected' })
-    expect(result.additionalContexts).toMatchObject([{ content: [{ text: 'why it was rejected' }], source: { kind: 'plugin', plugin: 'test' } }])
+    expect(result.additionalContexts).toMatchObject([{ content: [{ text: 'why it was rejected' }], source: { kind: 'test' } }])
   })
 
   it('post-execute additionalContexts ride on the result for the loop to buffer', async () => {
@@ -974,11 +1042,11 @@ describe('ToolRuntime', () => {
 
     ctx.on('tools/post-execute', async (_exec, _result, _next): Promise<PostToolDecision> =>
       ({ kind: 'accept', additionalContexts: [createUserMessage({
-        content: [{ type: 'text', text: 'fyi' }], source: { kind: 'plugin', plugin: 'test' },
+        content: [{ type: 'text', text: 'fyi' }], source: { kind: 'test' },
       })] }))
 
     const result = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('c1'), name: 'echo', arguments: { text: 'hi' } })
-    expect(result.additionalContexts).toMatchObject([{ content: [{ text: 'fyi' }], source: { kind: 'plugin', plugin: 'test' } }])
+    expect(result.additionalContexts).toMatchObject([{ content: [{ text: 'fyi' }], source: { kind: 'test' } }])
   })
 
   it('preserves tool-deferred, execute-wrapper, and post-execute contexts in order', async () => {
@@ -989,10 +1057,10 @@ describe('ToolRuntime', () => {
       parameters: {},
       async execute(_args, exec) {
         exec.deferContext(createUserMessage({
-          content: [{ type: 'text', text: 'nested-1' }], source: { kind: 'plugin', plugin: 'nested-1' },
+          content: [{ type: 'text', text: 'nested-1' }], source: { kind: 'nested-1' },
         }))
         exec.deferContext(createUserMessage({
-          content: [{ type: 'text', text: 'nested-2' }], source: { kind: 'plugin', plugin: 'nested-2' },
+          content: [{ type: 'text', text: 'nested-2' }], source: { kind: 'nested-2' },
         }))
         return [{ type: 'text', text: 'done' }]
       },
@@ -1004,7 +1072,7 @@ describe('ToolRuntime', () => {
         additionalContexts: [
           ...result.additionalContexts ?? [],
           createUserMessage({
-            content: [{ type: 'text', text: 'wrapper' }], source: { kind: 'plugin', plugin: 'wrapper' },
+            content: [{ type: 'text', text: 'wrapper' }], source: { kind: 'wrapper' },
           }),
         ],
       }
@@ -1015,7 +1083,7 @@ describe('ToolRuntime', () => {
         ...downstream,
         additionalContexts: [
           createUserMessage({
-            content: [{ type: 'text', text: 'post' }], source: { kind: 'plugin', plugin: 'post' },
+            content: [{ type: 'text', text: 'post' }], source: { kind: 'post' },
           }),
           ...downstream.additionalContexts ?? [],
         ],
@@ -1025,10 +1093,10 @@ describe('ToolRuntime', () => {
     const result = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('composite'), name: 'composite', arguments: {} })
 
     expect(result.additionalContexts?.map(context => context.source)).toEqual([
-      { kind: 'plugin', plugin: 'nested-1' },
-      { kind: 'plugin', plugin: 'nested-2' },
-      { kind: 'plugin', plugin: 'wrapper' },
-      { kind: 'plugin', plugin: 'post' },
+      { kind: 'nested-1' },
+      { kind: 'nested-2' },
+      { kind: 'wrapper' },
+      { kind: 'post' },
     ])
   })
 
@@ -1040,7 +1108,7 @@ describe('ToolRuntime', () => {
       parameters: {},
       async execute(_args, exec) {
         exec.deferContext(createUserMessage({
-          content: [{ type: 'text', text: 'nested' }], source: { kind: 'plugin', plugin: 'nested' },
+          content: [{ type: 'text', text: 'nested' }], source: { kind: 'nested' },
         }))
         throw new Error('outer failure')
       },
@@ -1048,18 +1116,18 @@ describe('ToolRuntime', () => {
 
     const failed = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('failed'), name: 'failing-composite', arguments: {} })
     expect(failed.isError).toBe(true)
-    expect(failed.additionalContexts?.map(context => context.source)).toEqual([{ kind: 'plugin', plugin: 'nested' }])
+    expect(failed.additionalContexts?.map(context => context.source)).toEqual([{ kind: 'nested' }])
 
     ctx.on('tools/post-execute', async (): Promise<PostToolDecision> => ({
       kind: 'block',
       feedback: [{ type: 'text', text: 'blocked' }],
       additionalContexts: [createUserMessage({
-        content: [{ type: 'text', text: 'block-only' }], source: { kind: 'plugin', plugin: 'blocker' },
+        content: [{ type: 'text', text: 'block-only' }], source: { kind: 'blocker' },
       })],
     }))
     const blocked = await ctx.tools.execute({ signal: testToolSignal, callId: ToolCallId('blocked'), name: 'failing-composite', arguments: {} })
     expect(blocked.isError).toBe(true)
-    expect(blocked.additionalContexts?.map(context => context.source)).toEqual([{ kind: 'plugin', plugin: 'blocker' }])
+    expect(blocked.additionalContexts?.map(context => context.source)).toEqual([{ kind: 'blocker' }])
   })
 
   it('composes pre + post waterfalls around dispatch (sandbox-wrap pattern)', async () => {
@@ -1324,7 +1392,7 @@ describe('ToolRuntime', () => {
         isError: false,
         additionalContexts: [createUserMessage({
           content: [{ type: 'text', text: 'wrapper context' }],
-          source: { kind: 'plugin', plugin: 'wrapper' },
+          source: { kind: 'wrapper' },
         })],
       }
     })
@@ -1344,7 +1412,7 @@ describe('ToolRuntime', () => {
       content: [{ type: 'text', text: 'Error: tool call aborted before dispatch' }],
       isError: true,
       error: { info: { name: 'AbortError', code: TOOL_ABORTED_BEFORE_DISPATCH } },
-      additionalContexts: [{ source: { kind: 'plugin', plugin: 'wrapper' } }],
+      additionalContexts: [{ source: { kind: 'wrapper' } }],
     })
     expect(dispatched).toBe(0)
   })
@@ -1357,7 +1425,7 @@ describe('ToolRuntime', () => {
       async execute(_args, exec) {
         exec.deferContext(createUserMessage({
           content: [{ type: 'text', text: 'completed child work' }],
-          source: { kind: 'plugin', plugin: 'child' },
+          source: { kind: 'child' },
         }))
         return 'body complete'
       },
@@ -1382,7 +1450,7 @@ describe('ToolRuntime', () => {
       content: [{ type: 'text', text: 'Error: tool call aborted' }],
       isError: true,
       error: { info: { name: 'AbortError', code: TOOL_ABORTED } },
-      additionalContexts: [{ source: { kind: 'plugin', plugin: 'child' } }],
+      additionalContexts: [{ source: { kind: 'child' } }],
     })
   })
 
@@ -1394,7 +1462,7 @@ describe('ToolRuntime', () => {
       async execute(_args, exec) {
         exec.deferContext(createUserMessage({
           content: [{ type: 'text', text: 'completed child work' }],
-          source: { kind: 'plugin', plugin: 'child' },
+          source: { kind: 'child' },
         }))
         return 'body complete'
       },
@@ -1409,7 +1477,7 @@ describe('ToolRuntime', () => {
         ...decision,
         additionalContexts: [createUserMessage({
           content: [{ type: 'text', text: 'post context' }],
-          source: { kind: 'plugin', plugin: 'post' },
+          source: { kind: 'post' },
         })],
       }
     })
@@ -1426,8 +1494,8 @@ describe('ToolRuntime', () => {
       isError: true,
       error: { info: { name: 'AbortError', code: TOOL_ABORTED } },
       additionalContexts: [
-        { source: { kind: 'plugin', plugin: 'child' } },
-        { source: { kind: 'plugin', plugin: 'post' } },
+        { source: { kind: 'child' } },
+        { source: { kind: 'post' } },
       ],
     })
   })
@@ -1599,7 +1667,7 @@ describe('ToolRuntime', () => {
       execute(_args, exec) {
         exec.deferContext(createUserMessage({
           content: [{ type: 'text', text: 'nested outcome' }],
-          source: { kind: 'plugin', plugin: 'nested' },
+          source: { kind: 'nested' },
         }))
         entered.resolve(undefined)
         return release.promise
@@ -1621,7 +1689,7 @@ describe('ToolRuntime', () => {
     await expect(pending).resolves.toMatchObject({
       isError: true,
       error: { info: { name: 'AbortError', code: TOOL_ABORTED } },
-      additionalContexts: [{ source: { kind: 'plugin', plugin: 'nested' } }],
+      additionalContexts: [{ source: { kind: 'nested' } }],
     })
   })
 
@@ -1889,7 +1957,7 @@ describe('ToolRuntime', () => {
       value: 'short-circuited with context',
       additionalContexts: [createUserMessage({
         content: [{ type: 'text', text: 'from around dispatch' }],
-        source: { kind: 'plugin', plugin: 'test' },
+        source: { kind: 'test' },
       })],
     }))
 
@@ -1901,7 +1969,7 @@ describe('ToolRuntime', () => {
       id: expect.any(String) as unknown,
       role: 'user',
       content: [{ type: 'text', text: 'from around dispatch' }],
-      source: { kind: 'plugin', plugin: 'test' },
+      source: { kind: 'test' },
     }])
   })
 

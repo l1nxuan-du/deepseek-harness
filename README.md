@@ -10,10 +10,6 @@ Documentation: [https://deepseek-harness.github.io/deepseek-harness/](https://de
 
 ## Screenshots
 
-![Web UI, dark theme](docs/assets/screenshot-web-ui-dark.png)
-
-![Web UI, light theme](docs/assets/screenshot-web-ui-light.png)
-
 ## Developer preview
 
 DeepSeek Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
@@ -54,7 +50,7 @@ An unsigned Windows x64 installer is attached to the [0.1.6 fork alpha release](
 
 - Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
 - Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.
+- Join <a href="https://discord.gg/4MrtZUhpxg">DeepSeek Harness Discord community</a>.
 
 ## Contributing
 
@@ -63,6 +59,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Development
 
 Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
+
+`pnpm run dev:web` builds, serves, and rebuilds client bundles on source edits in one terminal, and `make help` lists the matching Make targets for Web and Desktop; the guide's application commands section owns the full table.
 
 For agents, follow [AGENTS.md](AGENTS.md).
 

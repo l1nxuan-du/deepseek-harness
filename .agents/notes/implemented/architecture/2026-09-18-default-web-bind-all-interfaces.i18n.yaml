@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-18-default-web-bind-all-interfaces.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-18-default-web-bind-all-interfaces.md
-2026-09-18-default-web-bind-all-interfaces.md: e6b27344549358e93e35b90c04e9ad894ebc005e
-2026-09-18-default-web-bind-all-interfaces.zh.md: b3b5027320897c77704d7ac2834c725f2a09f3e4
+/agent-note-default-web-bind-on-all-ipv4-interfaces:
+  en: 2e255cba2ff665c4
+  zh: 79e1a1aeab8d9857
+/agent-note-default-web-bind-on-all-ipv4-interfaces/problem:
+  en: 71da148967220d61
+  zh: ef17f9d076e7ae09
+/agent-note-default-web-bind-on-all-ipv4-interfaces/decision:
+  en: b0a16c8aab1a286f
+  zh: b612319cac093b82
+/agent-note-default-web-bind-on-all-ipv4-interfaces/alternatives-considered:
+  en: 14ee127af0cbebec
+  zh: d002fa94cda9d253
+/agent-note-default-web-bind-on-all-ipv4-interfaces/consequences:
+  en: 294bd9458507dbb5
+  zh: e1f04c49dac06e51
+/agent-note-default-web-bind-on-all-ipv4-interfaces/verification:
+  en: d099a21cb431a685
+  zh: 1d5a2e21208caf9d

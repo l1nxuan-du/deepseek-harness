@@ -14,7 +14,7 @@ Status: implemented
 
 由单个客户端包 `@deepseek-ai/dsh-client-ui-skin` 持有该选择并把它投影到文档上。
 
-持久值存放在 `ui-skin` 分区（默认 `material`），由宿主半注册、由通用分区的“界面”项写入。`SkinRuntime` 持有当前取值，向设置项的 store 发布不可变快照，并负责该取值在文档层面的全部写入：`document.documentElement` 上的 `data-dsh-skin` 属性、通过 `ctx.theme.overrideTokens` 写入的一层别名 token，以及背景场元素。宿主半会在 shell 挂载前把持久值发布到根元素上，运行时以该发布值作为起点，因此页面已画出的界面与运行时投影的界面保持一致。选择 `classic` 会撤销 token 层与背景场，并让属性标明当前是经典界面，因此卸载本插件或选择经典时，界面与之前完全一致。
+实时取值存放在 `ui-skin` 配置项（默认 `material`），由宿主半声明为易变字段，并由通用分区的“界面”项通过 `ctx.configForms` 读取。`SkinRuntime` 持有当前取值，向设置项的 store 发布不可变快照，并负责该取值在文档层面的全部写入：`document.documentElement` 上的 `data-dsh-skin` 属性、通过 `ctx.theme.overrideTokens` 写入的一层别名 token，以及背景场元素。宿主半会在 shell 挂载前把该取值发布到根元素上，运行时以该发布值作为起点，因此页面已画出的界面与运行时投影的界面保持一致。选择 `classic` 会撤销 token 层与背景场，并让属性标明当前是经典界面，因此卸载本插件或选择经典时，界面与之前完全一致。
 
 新版样式表的每条规则都要求根属性，因此该样式表虽是全局的，作用域却是选中的界面本身。规则通过现有组件渲染所在的 slot 座位及其稳定类名后缀抵达它们；配色轴则走别名 token 层，因此菜单、浮层与卡片无需复制样式即可跟随新版配色。背景场是普通 DOM——一个固定元素，CSS 渐变之上是一块运行设计稿流动图案着色器的 WebGL2 画布——因为它不承载产品状态，也不该让任何 React 树为之重挂载。
 

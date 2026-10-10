@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-client-ui-skin` lets Web GUI users choose the interface chrome in Settings: `material`, the new interface built from the study's glass surfaces and gradient field, or `classic`, the shipped chrome. Material is the default. A loopback client stores the choice in the `ui-skin` settings namespace, which the local provider persists in `$DSH_HOME/settings.yaml` by default. The plugin projects the choice onto the document — a root attribute, an alias-token layer, and a backdrop element — and ships the material stylesheet, whose every rule selects on that attribute.
+`dsh-client-ui-skin` lets Web GUI users choose the interface chrome in Settings: `material`, the new interface built from the study's glass surfaces and gradient field, or `classic`, the shipped chrome. Material is the default. A loopback client stores the choice in the `ui-skin` configuration entry, which the local provider persists in `$DSH_HOME/cordis.patch.yml` by default. The plugin projects the choice onto the document — a root attribute, an alias-token layer, and a backdrop element — and ships the material stylesheet, whose every rule selects on that attribute.
 
 ## Table of Contents
 
@@ -25,11 +25,11 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Users switch the interface from the Interface row in Settings (General section); the choice persists across restarts on a loopback browser. Deployments mount the plugin like any other client package: the Host half registers the `ui-skin` settings section and answers each index render with the bootstrap row, and the browser half registers the row and applies the chrome.
+Users switch the interface from the Interface row in Settings (General section); the choice persists across restarts on a loopback browser. Deployments mount the plugin like any other client package: the Host half declares the `ui-skin` configuration entry and answers each index render with the bootstrap row, and the browser half registers the rows and applies the chrome.
 
 ### The Interface row
 
-The row offers two cubes. `material` is the default and adds the glass surfaces, the inset conversation pane, and the field the chrome floats on; `classic` renders the shipped chrome with the frame's own geometry. Each accepted change writes through the Host settings API, so a rejected write reloads the durable value.
+The row offers two cubes. `material` is the default and adds the glass surfaces, the inset conversation pane, and the field the chrome floats on; `classic` renders the shipped chrome with the frame's own geometry. Each accepted change writes through the configuration form the settings provider exposes, so a rejected write reloads the stored value.
 
 ### The strength row
 
@@ -37,7 +37,7 @@ A second row next to it — material strength, 0 to 100 in steps of ten, 80 by d
 
 ### Selecting the chrome before the shell mounts
 
-The Host half embeds the durable variant in each index response. A body script publishes it as `html[data-dsh-skin]` before the application module runs, a head style paints the material canvas, and the browser runtime adopts the published value as its starting point — so the chrome the page painted and the chrome the runtime projects agree.
+The Host half embeds the live variant in each index response. A body script publishes it as `html[data-dsh-skin]` before the application module runs, a head style paints the material canvas, and the browser runtime adopts the published value as its starting point — so the chrome the page painted and the chrome the runtime projects agree.
 
 -----
 
@@ -49,13 +49,13 @@ The Host half embeds the durable variant in each index response. A body script p
 
 ### What the runtime projects
 
-`SkinRuntime` holds the selected variant and publishes an immutable snapshot for the settings row. One projection step owns every document-level write for the variant:
+`SkinRuntime` holds the selected variant and publishes an immutable snapshot for the settings rows. One projection step owns every document-level write for the variant:
 
 - the `data-dsh-skin` attribute on `document.documentElement`, which states the selection and gates every rule in the material stylesheet;
 - one alias-token layer through `ctx.theme.overrideTokens`, covering the palette axes the shipped components already consume (page, layered surfaces, labels, borders, link, interactive fills, the sidebar fill, bubbles, menus);
 - the field backdrop, a fixed element prepended to the body: a wash under the WebGL2 flow pattern.
 
-Selecting `classic` retracts the token layer and the backdrop and leaves the attribute naming the classic chrome, so the shipped chrome renders exactly as it does without this plugin. The plugin provides no service; the row reaches the variant through its registration's inject face, and reads changes through a store the runtime writes.
+Selecting `classic` retracts the token layer and the backdrop and leaves the attribute naming the classic chrome, so the shipped chrome renders exactly as it does without this plugin. The plugin provides no service; each row reaches the variant through its registration's inject face, and reads changes through a store the runtime writes.
 
 ### Styling scope
 
@@ -107,4 +107,4 @@ The material values come from the two `harness-chat` study pages (`index.html`, 
 
 </details>
 
-**Runtime invariant:** No companion is published. One runtime holds the variant and one settings scope persists it, while the document projection is a pure function of the runtime's snapshot; the runtime, store, and apply specs pin that agreement directly.
+**Runtime invariant:** No companion is published. One runtime holds the variant and one configuration form persists it, while the document projection is a pure function of the runtime's snapshot; the runtime, store, and apply specs pin that agreement directly.

@@ -1,3 +1,4 @@
+import { isVisibleChatNode } from '../contract/chat-visibility.ts'
 import type { ChatNode } from '../contract/chat-nodes.ts'
 import type {
   ChatLocationNodeIndex, ChatNodeStore, ChatTurnProcessPresentation,
@@ -16,10 +17,11 @@ function samePresentation(
   return left === right || (left !== undefined && right !== undefined
     && left.spec === right.spec
     && left.turn === right.turn
+    && left.turnStarted === right.turnStarted
     && left.turnClosed === right.turnClosed
-    && left.turnFullyLoaded === right.turnFullyLoaded
     && left.hasExternalProcess === right.hasExternalProcess
-    && left.foldedAnswer === right.foldedAnswer)
+    && left.hasInterleavedInput === right.hasInterleavedInput
+    && left.compactAnswer === right.compactAnswer)
 }
 
 function derivePresentation(
@@ -39,21 +41,22 @@ function derivePresentation(
   let openingHumanAnchor: number | undefined
   for (const key of keys) {
     const node = nodes.get(key) as ChatNode | undefined
-    if ((node?.kind === 'user' || node?.kind === 'steering')
-      && node.anchorSeq < spec.controlAnchorSeq) {
-      openingHumanAnchor = Math.min(openingHumanAnchor ?? node.anchorSeq, node.anchorSeq)
+    if ((node?.kind === 'user' || node?.kind === 'steering' || node?.kind === 'turn-trigger')
+      && (spec.controlAnchorSeq === location.turn.start?.seq || node.anchorSeq < spec.controlAnchorSeq)) {
+      openingHumanAnchor = Math.max(openingHumanAnchor ?? node.anchorSeq, node.anchorSeq)
     }
   }
 
   let hasExternalProcess = false
-  let foldedAnswer = true
+  let hasInterleavedInput = false
+  let compactAnswer = true
   for (const key of keys) {
     const node = nodes.get(key) as ChatNode | undefined
-    if (node === undefined || node.kind === 'turn-process') continue
-    if ((node.kind === 'user' || node.kind === 'steering')
-      && (openingHumanAnchor === undefined || node.anchorSeq > openingHumanAnchor)
-      && (spec.answerAnchorSeq === null || node.anchorSeq < spec.answerAnchorSeq)) {
-      foldedAnswer = false
+    if (node === undefined || !isVisibleChatNode(node) || node.kind === 'turn-process') continue
+    if ((node.kind === 'user' || node.kind === 'steering' || node.kind === 'turn-trigger')
+      && (openingHumanAnchor === undefined || node.anchorSeq > openingHumanAnchor)) {
+      hasInterleavedInput = true
+      if (spec.answerAnchorSeq === null || node.anchorSeq < spec.answerAnchorSeq) compactAnswer = false
     }
     if (TURN_PROCESS_INDEPENDENT_KINDS.has(node.kind)
       || node.anchorSeq < spec.processStartSeq
@@ -65,10 +68,11 @@ function derivePresentation(
   return {
     turn,
     spec,
+    turnStarted: location.turn.start !== undefined,
     turnClosed: location.turn.status === 'closed',
-    turnFullyLoaded: location.turn.start !== undefined && location.turn.end !== undefined,
     hasExternalProcess,
-    foldedAnswer,
+    hasInterleavedInput,
+    compactAnswer,
   }
 }
 

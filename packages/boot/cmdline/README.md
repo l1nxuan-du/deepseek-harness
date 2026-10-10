@@ -55,7 +55,7 @@ Rows configured from the parsed values inject the published service and read it 
   name: '@deepseek-ai/dsh-host-webserver'
   inject: [webStartup]
   config:
-    host: !!js ctx.webStartup.host ?? '0.0.0.0'
+    host: !!js ctx.webStartup.host ?? '127.0.0.1'
     port: !!js ctx.webStartup.port ?? 3080
 ```
 
@@ -97,7 +97,6 @@ The parse path is one small family with two owners: `provideCmdline` freezes the
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | `CmdlineArgs`/`AppExit` types, `provideCmdline`, `parseCmdline`, commander exit/output routing |
-| — | No runtime invariant companion is published; `cmdlineArgs` is an immutable launcher fact that any number of ordinary plugins may read. App-owned providers and consumers use normal Cordis service injection, whose missing dependencies are already reported by Loader settlement. |
 
 </details>
 

@@ -29,7 +29,7 @@ function seedLog(): string {
     at(1, { type: 'step/start', data: { turn: 1, step: 1 } }),
     at(2, {
       type: 'system/message',
-      data: { turn: 1, step: 1, message: createSystemMessage('', '@deepseek-ai/dsh-system-prompt') },
+      data: { turn: 1, step: 1, message: createSystemMessage('') },
       surfaceOp: 'append',
     }),
     at(3, {
@@ -57,10 +57,15 @@ const FIELD_SELECTOR = '[data-dsh-field]'
 
 /** Open the seeded session through the sidebar's session search. */
 async function openSeededSession(page: Page): Promise<void> {
+  // The frame mounts before the asynchronous session-list baseline lands, so
+  // wait for the seeded workspace's own bucket row before searching.
+  await page.getByText('Ungrouped', { exact: true }).waitFor({ timeout: 30_000 })
   const searchButton = page.getByRole('button', { name: 'Search sessions' })
   if (await searchButton.getAttribute('aria-expanded') !== 'true') await searchButton.click()
-  await page.getByRole('textbox', { name: 'Search sessions...', exact: true }).fill('Reply with exactly one word: PONG')
-  await page.getByRole('tree', { name: 'Search results' }).getByRole('treeitem').click()
+  await page.getByPlaceholder('Search session names', { exact: false }).fill('PONG')
+  const result = page.getByRole('tree', { name: 'Search results' }).getByRole('treeitem')
+  await expect.poll(() => result.count(), { timeout: 15_000 }).toBe(1)
+  await result.click()
   await page.getByRole('tab', { name: 'Chat', exact: true }).waitFor({ timeout: 30_000 })
 }
 
@@ -68,6 +73,9 @@ async function openSeededSession(page: Page): Promise<void> {
  * Conversation pane, right panel, and the gap the material chrome keeps between
  * them. Returns null until the panel has settled: while it slides in, the frame
  * has not reserved its track yet and the box still sits off the frame's edge.
+ * The frame's own `data-animating` flag gates the read as well, because the
+ * pane's `margin-right` eases on that same track toggle — reading before the
+ * grid transition ends samples the margin part-way through its own transition.
  * @param page - the scenario page.
  * @returns the settled measurements, or null while the panel is still moving.
  */
@@ -88,6 +96,7 @@ async function geometry(page: Page): Promise<{
     if (frame === null || pane === null || column === null || panel === null) return null
     if (!panel.hasAttribute('data-sidebar-right-open')) return null
     if (frame.hasAttribute('data-rightbar-collapsed')) return null
+    if (frame.hasAttribute('data-animating')) return null
     if (getComputedStyle(panel).transform !== 'none') return null
     const paneBox = column.getBoundingClientRect()
     const panelBox = panel.getBoundingClientRect()
@@ -109,7 +118,7 @@ describe('web e2e: interface skin', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
-    await seedSession(scaffold, seedLog(), SEED_ID, 'anchored-standard')
+    await seedSession(scaffold, seedLog(), SEED_ID, 'standard')
     browser = await chromium.launch()
     page = await newEnglishPage(browser, 900)
     tripwire = watchConsole(page)

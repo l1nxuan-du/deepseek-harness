@@ -43,8 +43,7 @@ function systemPrompts(events: readonly SessionEvent[]): string[] {
 function runtimeContexts(events: readonly SessionEvent[]): string[] {
   return events.flatMap((event) => {
     if (event.type !== 'user/message'
-      || event.data.source.kind !== 'plugin'
-      || event.data.source.plugin !== '@deepseek-ai/dsh-system-prompt') return []
+      || event.data.source.kind !== 'runtime-context') return []
     return event.data.content.flatMap(block => block.type === 'text' ? [block.text] : [])
   })
 }
@@ -74,8 +73,6 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
-      profile: { packages: [] },
-      agentPresets: { roots: [], default: 'cordis' },
       ...MODE === 'record' ? {} : { replayFixture: FIXTURE, compareReplaySession: true },
       ...process.platform === 'win32' ? {} : {
         extraOverlayPath: fileURLToPath(new URL('./fixtures/sidebar-terminal.patch.yml', import.meta.url)),

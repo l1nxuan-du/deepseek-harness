@@ -18,8 +18,7 @@ import { fileURLToPath } from 'node:url'
 import yaml from 'js-yaml'
 import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
 import { evaluate } from '@deepseek-ai/cordis-plugin-loader'
-import { SHIPPED_PRESET_ROOT } from '@deepseek-ai/dsh-agent-presets'
-import { composeEntries, initProfile, loadProfile, PROFILES_DIR } from '@deepseek-ai/dsh-app-boot'
+import { bundlePatchPaths, composeEntries, initProfile, loadProfile, PROFILES_DIR } from '@deepseek-ai/dsh-app-boot'
 
 /**
  * The effective disabled state of one row on one platform: a `!!js` expression
@@ -102,13 +101,15 @@ describe('the shipped shell composition (real bundle layers)', () => {
 })
 
 describe('shipped agent presets gate both shell tools by platform', () => {
-  const presetRoot = SHIPPED_PRESET_ROOT
+  const webBundle = fileURLToPath(new URL('../../../packages/bundle/web-app/', import.meta.url))
+  const webManifest = JSON.parse(readFileSync(join(webBundle, 'package.json'), 'utf8')) as { dsh: { bundle: { patch: string[] } } }
+  const presetRows = composeEntries([bundlePatchPaths(webBundle, webManifest.dsh.bundle).flatMap(file =>
+    yaml.load(readFileSync(file, 'utf8'), { schema: entryListSchema }) as import('@deepseek-ai/cordis-plugin-include').PatchOptions[])])
 
-  it.each(['s1mple-mode', 'ptc', 'cordis', 'linx-mode'])('preset %s gates its shell tool rows by platform', (preset) => {
-    const entries: unknown = yaml.load(
-      readFileSync(join(presetRoot, preset, 'agent.cordis.yml'), 'utf8'),
-      { schema: entryListSchema },
-    )
+  const definitions = presetRows.filter(row => row.name === '@deepseek-ai/dsh-agent-preset').map(row => row.config as import('@deepseek-ai/dsh-agent-preset-registry').PresetDefinition)
+
+  it.each(['standard', 'ptc', 'cordis'])('preset %s gates its shell tool rows by platform', (preset) => {
+    const entries: unknown = definitions.find(row => row.id === preset)!.plugins
     if (!Array.isArray(entries)) throw new TypeError(`preset ${preset} must parse to an entry array`)
     for (const [id, win32] of [['tool-bash', true], ['tool-pwsh', false]] as const) {
       const row = entries.find((entry): entry is Record<string, unknown> => (
@@ -123,25 +124,18 @@ describe('shipped agent presets gate both shell tools by platform', () => {
     }
   })
 
-  it.each(['anchored-standard', 'codex-v5', 'codex-v6'])('preset %s disables its one-shot shell rows and gates its persistent shell stack by platform', (preset) => {
-    const entries: unknown = yaml.load(
-      readFileSync(join(presetRoot, preset, 'agent.cordis.yml'), 'utf8'),
-      { schema: entryListSchema },
-    )
-    if (!Array.isArray(entries)) throw new TypeError(`${preset} preset must parse to an entry array`)
-    const oneShot = new Map(entries
-      .filter((entry): entry is Record<string, unknown> => typeof entry === 'object' && entry !== null)
-      .map(entry => [entry.id, entry]))
-    expect(oneShot.get('tool-bash')?.disabled).toBe(true)
-    const pwsh = oneShot.get('tool-pwsh')
-    if (pwsh === undefined) throw new TypeError(`${preset} must mount tool-pwsh`)
-    expect(disabledOn(pwsh, 'win32')).toBe(true)
-    expect(disabledOn(pwsh, 'linux')).toBe(false)
-
+  it('minimal mounts no shell tool row and gates its persistent shell stack by platform', () => {
+    const entries: unknown = definitions.find(row => row.id === 'minimal')!.plugins
+    if (!Array.isArray(entries)) throw new TypeError('minimal preset must parse to an entry array')
+    for (const id of ['tool-bash', 'tool-pwsh']) {
+      expect(entries.some(entry => (
+        typeof entry === 'object' && entry !== null && (entry as Record<string, unknown>).id === id
+      )), `${id} must be absent from minimal`).toBe(false)
+    }
     const group = entries.find((entry): entry is Record<string, unknown> => (
       typeof entry === 'object' && entry !== null && (entry as Record<string, unknown>).id === 'persistent-shell'
     ))
-    if (group === undefined) throw new TypeError(`${preset} must mount persistent-shell`)
+    if (group === undefined) throw new TypeError('minimal preset must mount persistent-shell')
     const rows = group.config as unknown[]
     if (!Array.isArray(rows)) throw new TypeError('persistent-shell must carry a row list')
     const byId = new Map(rows

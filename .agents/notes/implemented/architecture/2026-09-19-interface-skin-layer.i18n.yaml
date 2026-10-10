@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-19-interface-skin-layer.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-19-interface-skin-layer.md
-2026-09-19-interface-skin-layer.md: b0ab35fc4f5739c5e583b74fd4ba4d697c20e25b
-2026-09-19-interface-skin-layer.zh.md: f04603358364d52f9fc339080a157c2d64e3af89
+/agent-note-the-interface-skin-layer:
+  en: 20cd28d530c7e582
+  zh: b9cbbe268aa9c806
+/agent-note-the-interface-skin-layer/problem:
+  en: 33b9518d65a2c94c
+  zh: b43f13feb4115714
+/agent-note-the-interface-skin-layer/decision:
+  en: ec019e72cbd3bc7c
+  zh: c2054a7a7cd94299
+/agent-note-the-interface-skin-layer/alternatives-considered:
+  en: 0c9b08ec3736cf4a
+  zh: c2f52be83b9041e6
+/agent-note-the-interface-skin-layer/consequences:
+  en: 85c57ab79575cfea
+  zh: 51d89892971c2bd7

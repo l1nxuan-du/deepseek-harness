@@ -25,6 +25,8 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
+A new shell starts in the Session's current working directory. Once created, its directory and environment remain independent of later Session directory changes.
+
 Load this plugin in any composition where the agent should keep PowerShell state between commands — the persistent counterpart of `dsh-tool-pwsh` for work that needs cross-call state. It registers the `pwsh` tool and requires the `ctx.tools` and `ctx.terminals` services plus an owning agent session at execution time.
 
 ### When to choose it
@@ -54,11 +56,11 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### What the agent can rely on
 
-Commands share one shell per agent, so cwd, `$env:` variables, functions, and background jobs persist across calls. Results exclude the private completion markers, the shell prompt, and the echoed input line. A non-zero wrapped command appends `[exit code: N]` — the exact native exit code when the command ran a native program, `1` for a terminating PowerShell error. A shell that exits before reporting that status instead appends `[shell exited: code N]`, `[shell killed by signal: SIG]`, or `[shell exited]` (Windows forced termination reports exit 1 without a signal), then resets and tells the agent the next call starts fresh. Long output keeps the earliest retained prefix plus a clipping notice; if the terminal has already dropped that prefix, the result says so explicitly.
+Commands share one shell per agent, so cwd, `$env:` variables, functions, and background jobs persist across calls. Results exclude the private completion markers and the echoed input line. When the shell reads stdin again without having printed the completion marker — an interrupt, a replaced shell, or an interactive foreground child whose stdin wait the provider proves — the call returns the captured partial output, which can end with the backend's own prompt text. A non-zero wrapped command appends `[exit code: N]` — the exact native exit code when the command ran a native program, `1` for a terminating PowerShell error. A shell that exits before reporting that status instead appends `[shell exited: code N]`, `[shell killed by signal: SIG]`, or `[shell exited]` (Windows forced termination reports exit 1 without a signal), then resets and tells the agent the next call starts fresh. Long output keeps the earliest retained prefix plus a clipping notice; if the terminal has already dropped that prefix, the result says so explicitly.
 
 ### What can go wrong
 
-A call without an owning agent session fails with `pwsh requires an owning agent session`, and a composition without a pwsh-dialect PTY backend activates the tool but fails its first call with `no PTY backend registered for "shell"`. A model redefinition of the `prompt` function removes the readiness marker, and the shell then settles on the silence tier instead of the marker fast path. Raw ESC characters inside a command are consumed by PSReadLine before execution and are unsupported. A timeout or cancellation closes the uncertain shell, discards the result, and reports the reset.
+A call without an owning agent session fails with `pwsh requires an owning agent session`, and a composition without a pwsh-dialect PTY backend activates the tool but fails its first call with `no PTY backend registered for "shell"`. A model redefinition of the `prompt` function removes the readiness marker, and the shell then settles on the silence tier instead of the marker fast path. Raw ESC characters inside a command are consumed by PSReadLine before execution and are unsupported. A timeout closes the uncertain shell and reports bounded partial output and the reset. Cancellation resets the shell and discards command output. After cleanup settles, ToolRuntime publishes `Error: tool call aborted` with code `ABORTED`; cancellation reasons are not rendered as command output. A queued cancelled call sends no command.
 
 -----
 
@@ -73,20 +75,20 @@ This section explains the design decisions behind the tool and points at the cod
 ### Design philosophy
 
 - **A deliberate twin of `dsh-tool-bash-persistent`.** The session registry, polling loop, and reset contract mirror the persistent bash tool by design ([pwsh persistent PTY Agent Note](../../../.agents/notes/archived/architecture/2026-08-11-pwsh-persistent-pty.md)).
-- **Prompt-function readiness.** The tool installs its own `prompt` function that prints a BEL-terminated OSC marker plus a printable prompt; the OSC marker carries the last exit code and the printable prompt settles every command, so a model redefinition of `prompt` degrades readiness to the silence tier.
-- **PSReadLine echo stripped by anchoring.** PowerShell renders submitted input back into the stream. Extraction starts after the START marker the shell printed, or — when the submission's first statement failed and no marker was printed — after the echoed line's END marker, so wrapper source reaches the result only when the scrollback window cut the echo itself.
+- **Backend-owned prompt readiness.** The shell's `prompt` function belongs to the backend: it prints a BEL-terminated OSC marker plus the controlled printable prompt. The backend accepts recognized prompt text through its fast path and otherwise uses its own readiness checks or silence tier. The tool neither installs nor matches a prompt of its own.
+- **Readiness after scrolling and restart.** The [Loader composition test](tests/loader-composition.spec.ts) checks the complete send-settlement sequence, including a command on the same shell after large output and the first command after `exit`. Its failure timeline distinguishes the bundled OpenConsole used on Windows from the unused system conhost.
+- **PSReadLine echo stripped by anchoring.** PowerShell renders submitted input back into the stream; the marker-anchored extraction and a wrapper-source strip remove the echo, and a wrapper that wraps across the terminal width may leave a partial echo in partial-output results.
 - **Reset, never repair.** Any uncertain state — an explicit `exit`, a timeout, a send failure, an abort — closes the shell and starts the next call fresh.
 
 ### Source map
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | Plugin entry: shell registry, prompt setup, command wrapping, scrollback polling, extraction and rendering |
-| — | No runtime invariant companion is published; the adapter's private owner-to-shell cache has no observable event or data relation. Lifecycle tests prove its cleanup without adding a public API solely for an invariant. |
+| [`src/index.ts`](src/index.ts) | Plugin entry: shell registry, command wrapping, scrollback polling, extraction and rendering |
 
 ### Command flow
 
-A first command spawns the shell through `ctx.terminals.spawn`, installs the `prompt` override, and waits for readiness. Each command is wrapped into one physical line — `Write-Output` of the start marker, the body escaped with backtick escapes into a double-quoted string, and `Write-Output` of the end marker plus the exit status — so PSReadLine's echo of a wrapped line cannot fabricate completion. The tool polls the scrollback in 1,000-line pages until the end marker or a completed prompt appears, extracts the span that starts after the printed START marker or after the echoed line, strips prompts, and renders it with any status marker. A timeout aborts the deadline, captures the partial output, and resets the shell.
+A first command spawns the shell through `ctx.terminals.spawn`, whose pwsh startup installs the controlled `prompt` function and returns only once the shell reached readiness. Each command is wrapped into one physical line — `Write-Output` of the start marker, the body escaped with backtick escapes into a double-quoted string, and `Write-Output` of the end marker plus the exit status — so PSReadLine's echo of a wrapped line cannot fabricate completion. The parser accepts ASCII-space padding after the status digits but still requires LF or CRLF. Spaces in command output remain unchanged. The tool polls the scrollback in 1,000-line pages until a complete end-marker status line is available or the send settles as `stdin_read`, extracts the span, strips the echoed wrapper, and renders it with any status marker. A timeout aborts the deadline, captures the partial output, and resets the shell.
 
 </details>
 
@@ -128,7 +130,7 @@ Prefix-stable while the configured description and schema remain unchanged.
 
 #### What the model sees
 
-Commands share one shell per Agent, so cwd, `$env:` variables, functions, and background jobs persist across calls. Results exclude private completion markers, the shell prompt, and the echoed input line (PSReadLine renders submitted input back into the stream; extraction starts after the START marker the shell printed, or after the echoed line when the shell printed no marker). A nonzero wrapped command appends `[exit code: N]` — the exact native exit code when the command ran a native program, `1` for a terminating PowerShell error. A shell that exits before reporting that status instead appends `[shell exited: code N]`, `[shell killed by signal: SIG]`, or `[shell exited]` when the backend supplies neither (Windows forced termination reports exit 1 without a signal), then resets and tells the model that the next call starts fresh. Long output keeps the earliest retained prefix plus a clipping notice; if the terminal has already dropped that prefix, the result says so explicitly. Timeout returns bounded partial output, closes the uncertain shell, and reports the reset.
+Commands share one shell per Agent, so cwd, `$env:` variables, functions, and background jobs persist across calls. Results exclude private completion markers and the echoed input line (PSReadLine renders submitted input back into the stream; the marker-anchored extraction and the wrapper-source strip remove it). When the shell reads stdin again without having printed the completion marker — an interrupt, a replaced shell, or an interactive foreground child whose stdin wait the provider proves — the call returns the captured partial output, which can end with the backend's own prompt text. A nonzero wrapped command appends `[exit code: N]` — the exact native exit code when the command ran a native program, `1` for a terminating PowerShell error. A shell that exits before reporting that status instead appends `[shell exited: code N]`, `[shell killed by signal: SIG]`, or `[shell exited]` when the backend supplies neither (Windows forced termination reports exit 1 without a signal), then resets and tells the model that the next call starts fresh. Long output keeps the earliest retained prefix plus a clipping notice; if the terminal has already dropped that prefix, the result says so explicitly. Timeout returns bounded partial output, closes the uncertain shell, and reports the reset.
 
 #### Token effect
 
@@ -150,7 +152,7 @@ These limits define when the tool is a poor fit or needs special care. They are 
 - **A pwsh shell that leaves PSReadLine's inline prediction enabled can truncate a submitted command** — rendering a predicted history entry crashes PSReadLine 2.4.5 (`IndexOutOfRangeException` from `ConvertOffsetToPoint`) and the crashed reader drops the character it was inserting, while this tool depends on each command arriving as one intact line. The `dsh-terminal-bash` pwsh bootstrap turns prediction and history saving off before the first submitted line; a deployment that supplies another pwsh-dialect backend must do the same.
 - **Raw ESC characters inside model commands are unsupported** — PSReadLine consumes them before execution. The wrapper escapes the control bytes it needs (`[char]27`-built OSC markers, backtick escapes for the body).
 - **A model redefinition of the `prompt` function removes the readiness marker** — the shell then settles on the silence tier instead of the marker fast path.
-- **There is no interactive stdin during a command** — a foreground command that reads input blocks until the command timeout, which resets the shell.
+- **There is no interactive stdin during a command** — where the provider proves a foreground stdin wait, a child that reads input returns early with partial output and leaves the session open, so that child can consume the next call's command until the call reaches `timeoutMs` and resets the shell. Everywhere else the original call itself runs to `timeoutMs`, which resets the shell.
 - **SIGTSTP/SIGHUP are unavailable on Windows** (backend-rejected); SIGINT is delivered as a console-wide Ctrl-C input write, which at a prompt cancels the pending line instead of signalling a process.
 - **Under the Windows ACL sandbox's read-only mode, pwsh starts in ConstrainedLanguage**, which may deny the bootstrap's `[Console]::` encoding pin and prompt marker. Commands can still settle through the printable prompt and silence tier, but non-ASCII output may follow the host code page.
 - **The BEL-terminated OSC marker remains a readiness signal only** — a BEL event channel to the model stays deferred, aligned with the current implementation.

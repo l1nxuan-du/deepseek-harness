@@ -1,11 +1,5 @@
 - menu:
-  - 'menuitem "S1mple mode Full tool set with no opening system prompt: an empty persona and runtime-context injection suppressed."':
-    - text: "S1mple mode Full tool set with no opening system prompt: an empty persona and runtime-context injection suppressed."
-    - img
-  - menuitem "Anchored Standard (experimental) Starts on the Minimal condition with a persistent shell and str_replace_editor, suppresses workspace and skill context, then opens the Standard catalog and unlocks heavy tools on demand."
-  - menuitem "PTC mode Full coding agent without the workflow tool; other tools are exposed through the PTC mode SDK so the model can combine multi-step operations in one TypeScript program."
-  - menuitem "Creator mode Built for creating custom agent presets, with the full tool set plus runtime inspection, persistent plugin management, and preset-authoring guidance."
-  - menuitem "Codex V5 The GPT-5 Codex instructions ported to DSH, with one persistent shell per agent, apply_patch editing, grep/glob search, jobs, planning, goals, subagents, and present."
-  - menuitem "Codex V6 The GPT-6/Astra Codex instructions ported to DSH with the same tool set as Codex V5; only the persona and identity copy differ."
-  - menuitem "LINX Mode Full coding agent with linx.md as its base prompt; the bundled .agent and docs references resolve to the installed preset directory."
-  - menuitem "Refusing mode Resolves, then refuses to start."
+  - menuitem "Standard mode Work with code, files, and information. Suitable for most tasks, with search, editing, terminal commands, and other tools available as needed."
+  - menuitem "PTC mode Includes all Standard mode capabilities. Better suited to tasks that call tools in batches and then filter, organize, deduplicate, count, or summarize the results."
+  - menuitem "Minimal mode The agent works using only a terminal tool. Useful for testing and comparing its basic performance."
+  - menuitem "Creator mode Customize DSH through conversation. Let the agent write plugins that add features or UI, or combine tools and prompts to create your own mode."

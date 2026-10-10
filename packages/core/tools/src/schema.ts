@@ -3,14 +3,7 @@
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import type {
-  ToolDefinition,
-  ToolExecution,
-  ToolExecutionResult,
-  ToolFreeformDefinition,
-  ToolRunContext,
-  ToolResult,
-} from './index.ts'
+import type { ToolDefinition, ToolExecution, ToolExecutionResult, ToolRunContext, ToolResult } from './index.ts'
 import { assertSupportedJsonSchema, isJsonSchemaRecord, isPlainJsonArray, JsonSchemaError, validateJsonSchemaValue } from './json-schema.ts'
 import type { JsonSchemaNode, JsonSchemaScalar, ObjectJsonSchema } from './json-schema.ts'
 import type { ToolCallView, ToolResultView } from './presentation.ts'
@@ -494,23 +487,17 @@ export interface DefineToolOptions<S extends ParameterSchemaSpec, O extends Valu
   readonly description: string
   /** Per-property parameter schema compiled to an implicit open object root. */
   readonly parameters: S
-  /**
-   * Optional grammar presentation. A wire that supports grammar-constrained
-   * custom tools offers this tool as freeform text, and the registry delivers
-   * that text as {@link ToolFreeformDefinition.parameter}; the parameter must be
-   * one of {@link DefineToolOptions.parameters} so every wire validates the same
-   * shape.
-   */
-  readonly freeform?: ToolFreeformDefinition
   /** Canonical output schema plus pure Native and presentation projections. */
   readonly output: {
     /** Schema enforced against every successful body or policy-replaced value. */
     readonly schema: O
     /** Pure Native/model rendering of one validated canonical value. */
     render(args: InferArgs<S>, value: InferValue<NoInfer<O>>): ContentBlock[]
-    /** Pure replayable presentation metadata for direct top-level calls. */
+    /** Pure replayable presentation metadata for native and nested calls. */
     presentationMeta?(args: InferArgs<S>, value: InferValue<NoInfer<O>>): JsonValue
   }
+  /** Requests deferred loading of the tool definition; see {@link @deepseek-ai/dsh-llm#ToolSchema.deferLoading}. */
+  readonly deferLoading?: true
   /** Optional positive cooperative timeout budget in milliseconds. */
   readonly timeoutMs?: number
   /**
@@ -526,6 +513,13 @@ export interface DefineToolOptions<S extends ParameterSchemaSpec, O extends Valu
    * @returns The canonical value declared by `output.schema`.
    */
   execute(args: InferArgs<S>, exec: ToolRunContext): Promise<InferValue<NoInfer<O>>>
+  /**
+   * Install execution-prepared content before result policies.
+   * @param exec - immutable execution identity and arguments.
+   * @param result - normalized outcome entering post-execute.
+   * @returns replacement content, or undefined to preserve it.
+   */
+  projectContent?(exec: Readonly<ToolExecution>, result: Readonly<ToolExecutionResult>): ContentBlock[] | undefined
   /**
    * Optional last-mile content transform for every normalized outcome. Unlike
    * `execute`, arguments remain `unknown` because invalid-input failures also
@@ -566,6 +560,8 @@ export function defineTool<const S extends ParameterSchemaSpec, const O extends 
   // oxlint-disable-next-line typescript/unbound-method
   const userFinalizeContent = options.finalizeContent
   // oxlint-disable-next-line typescript/unbound-method
+  const userProjectContent = options.projectContent
+  // oxlint-disable-next-line typescript/unbound-method
   const userRender = options.output.render
   // oxlint-disable-next-line typescript/unbound-method
   const userPresentationMeta = options.output.presentationMeta
@@ -579,33 +575,33 @@ export function defineTool<const S extends ParameterSchemaSpec, const O extends 
     throw new Error(`defineTool(${options.name}): timeoutMs must be a positive finite number`)
   }
   const parameters = parameterSchemaSpecToJsonSchema(options.parameters)
-  if (options.freeform !== undefined && !Object.hasOwn(options.parameters, options.freeform.parameter)) {
-    throw new Error(`defineTool(${options.name}): freeform.parameter must name one of the declared parameters`)
-  }
   const outputSchema = valueSchemaSpecToJsonSchema(options.output.schema)
   const validate = (args: unknown): string[] => validateJsonSchemaValue(parameters, args, '')
   const tool: ToolDefinition = {
     name: options.name,
     description: options.description,
     parameters: parameters as unknown as Record<string, unknown>,
-    ...options.freeform === undefined ? {} : { freeform: options.freeform },
     output: {
       schema: outputSchema,
       render(args: unknown, value: JsonValue): ContentBlock[] {
-        return userRender(args as InferArgs<S>, value as unknown as InferValue<NoInfer<O>>)
+        return userRender(args as InferArgs<S>, value as InferValue<NoInfer<O>>)
       },
       ...userPresentationMeta !== undefined ? {
         presentationMeta(args: unknown, value: JsonValue): JsonValue {
-          return userPresentationMeta(args as InferArgs<S>, value as unknown as InferValue<NoInfer<O>>)
+          return userPresentationMeta(args as InferArgs<S>, value as InferValue<NoInfer<O>>)
         },
       } : {},
     },
+    ...(options.deferLoading === true ? { deferLoading: options.deferLoading } : {}),
     ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
     async execute(args: unknown, exec: ToolRunContext): Promise<JsonValue> {
       const violations = validate(args)
       if (violations.length > 0) throw new ToolArgsError(violations)
       return userExecute(args as InferArgs<S>, exec) as Promise<JsonValue>
     },
+  }
+  if (userProjectContent) {
+    tool.projectContent = (exec, result) => userProjectContent(exec, result)
   }
   if (userFinalizeContent) {
     tool.finalizeContent = (exec, result) => userFinalizeContent(exec, result)

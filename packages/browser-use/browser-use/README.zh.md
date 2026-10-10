@@ -45,8 +45,6 @@ kind: "package-reference"
 
 一个私有名称拥有该注册位。Cordis effect 在插件卸载时移除贡献；重复调用清理器不能移除后续注册。[源码](src/index.ts) 不包含浏览器对象、操作接口、资源生命周期或 提供方 选择器。
 
-不发布运行时不变量伴随入口：注册表只有一个权威字段，不暴露可能与之偏离的独立维护观测值。所属测试覆盖重复注册拒绝与插件清理。
-
 </details>
 
 -----
@@ -55,7 +53,6 @@ kind: "package-reference"
 ## 延伸阅读
 
 - [浏览器操作](../../../docs/subsystems/browser-use.zh.md) — 提供方 选择与 Session 所有权。
-- [Playwright 原生提供方](../../experimental/browser-use-playwright-native/README.zh.md) — 通过 CDP 使用由提供方持有的 Chromium。
 - [Playwright MCP 提供方](../../experimental/browser-use-playwright-mcp/README.zh.md) — Playwright 浏览器工具。
 - [Chrome DevTools MCP 提供方](../../experimental/browser-use-chrome-devtools-mcp/README.zh.md) — Chromium 检查与控制。
 - [Stagehand 提供方](../../experimental/browser-use-stagehand-native/README.zh.md) — 支持 AI（人工智能）辅助的原生浏览器操作。

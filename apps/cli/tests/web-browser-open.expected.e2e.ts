@@ -45,7 +45,6 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       '--import', openerHook,
       builtBin,
       'web',
-      '--host', '127.0.0.1',
       '--port', '0',
     ], {
       cwd: root,
@@ -92,7 +91,7 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
         "opening": true,
         "readyUrl": "http://127.0.0.1:{{port}}/?token={{token}}",
         "status": 200,
-        "stderr": "",
+        "stderr": "dsh web: listening on 0.0.0.0 over plain HTTP; restrict this port to a trusted proxy or network",
       }
     `)
   })
@@ -104,7 +103,6 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       '--import', openerHook,
       builtBin,
       'web',
-      '--host', '127.0.0.1',
       '--port', '0',
     ], {
       cwd: root,
@@ -153,7 +151,6 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       '--import', openerHook,
       builtBin,
       'web',
-      '--host', '127.0.0.1',
       '--port', '0',
     ], {
       cwd: root,
@@ -188,7 +185,7 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
         "opened": false,
         "opening": false,
         "readyUrl": "http://127.0.0.1:{{port}}/?token={{token}}",
-        "stderr": "",
+        "stderr": "dsh web: listening on 0.0.0.0 over plain HTTP; restrict this port to a trusted proxy or network",
       }
     `)
   })
@@ -201,7 +198,6 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       '--import', openerHook,
       builtBin,
       'web',
-      '--host', '127.0.0.1',
       '--port', '0',
     ], {
       cwd: root,

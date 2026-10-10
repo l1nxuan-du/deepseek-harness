@@ -55,7 +55,7 @@ kind: "package-library"
   name: '@deepseek-ai/dsh-host-webserver'
   inject: [webStartup]
   config:
-    host: !!js ctx.webStartup.host ?? '0.0.0.0'
+    host: !!js ctx.webStartup.host ?? '127.0.0.1'
     port: !!js ctx.webStartup.port ?? 3080
 ```
 
@@ -97,7 +97,6 @@ kind: "package-library"
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | `CmdlineArgs`/`AppExit` 类型、`provideCmdline`、`parseCmdline`、commander 退出／输出路由 |
-| — | 不发布运行时不变式配套条目；`cmdlineArgs` 是不可变的启动器事实，任意数量的普通插件都可以读取它。应用自有提供方与消费方使用普通 Cordis 服务注入；Loader 结算已会报告缺失的依赖。 |
 
 </details>
 
