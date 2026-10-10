@@ -52,17 +52,17 @@ export interface SkinSettings {
   strength: number
 }
 
-/**
- * Field schemas of the durable skin section, shared by the Host `Config`
- * (which marks them volatile) and the client form.
- */
-export const SkinSettingsFields = {
-  [SKIN_VARIANT_FIELD]: z.union([...SKIN_VARIANTS]).default(DEFAULT_SKIN_VARIANT),
-  [STRENGTH_FIELD]: z.number().step(1).min(STRENGTH_MIN).max(STRENGTH_MAX).default(DEFAULT_STRENGTH),
-}
+/** Field schema of the selected skin; the Host `Config` marks its copy volatile. */
+export const SkinVariantField = z.union([...SKIN_VARIANTS]).default(DEFAULT_SKIN_VARIANT)
+
+/** Field schema of the material strength; the Host `Config` marks its copy volatile. */
+export const SkinStrengthField = z.number().step(1).min(STRENGTH_MIN).max(STRENGTH_MAX).default(DEFAULT_STRENGTH)
 
 /** Durable skin schema; also the wire envelope the browser form validates against. */
-export const SkinSettingsSchema: z<SkinSettings> = z.object(SkinSettingsFields)
+export const SkinSettingsSchema: z<SkinSettings> = z.object({
+  [SKIN_VARIANT_FIELD]: SkinVariantField,
+  [STRENGTH_FIELD]: SkinStrengthField,
+})
 
 /**
  * Narrow one wire, configuration, or registry value to a selectable skin.

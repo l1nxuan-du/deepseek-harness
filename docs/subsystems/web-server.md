@@ -39,8 +39,10 @@ interface Config {
    * literal (any address in 127/8, `::1`, or a mapped form of either) keeps the
    * server on this machine; any other literal serves the network that address
    * belongs to, over plain HTTP unless `tls` is set. The unspecified address —
-   * IPv4 any, IPv6 any, and the IPv4-mapped forms of IPv4 any — is rejected at
-   * load: it would expose the port on every interface at once.
+   * IPv4 any, IPv6 any, and the IPv4-mapped forms of IPv4 any — binds every
+   * interface at once, so it exposes the port on the whole network; the
+   * composed Web bundle chooses it as its default and this deployment accepts
+   * the exposure (see [the bind note](../../../../.agents/notes/implemented/architecture/2026-09-18-default-web-bind-all-interfaces.md)).
    */
   host: string
   /** Listen port; zero requests an OS-assigned port. */

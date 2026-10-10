@@ -173,9 +173,9 @@ Usage: dsh --profile web [options]
 Serve the DeepSeek Harness browser UI.
 
 Options:
-  --host <host>                  bind address: one concrete IPv4 or IPv6 literal
-                                 of a local interface; wildcard addresses are
-                                 rejected
+  --host <host>                  bind address: one IPv4 or IPv6 literal; a
+                                 wildcard literal binds every interface (the
+                                 default)
   --no-open                      do not open the Web UI in the default browser
   --port <port>                  listen port; pass 0 to let the OS pick a free
                                  one
@@ -191,7 +191,9 @@ Options:
   -h, --help                     show this help
 
 Examples:
-  dsh --profile web                          serve on the composed host and port
+  dsh --profile web                          serve on all IPv4 interfaces and port 3080
+  dsh --profile web --host 127.0.0.1         restrict the server to this machine
+  dsh --profile web --host 0.0.0.0           name the default all-interfaces bind explicitly
   dsh --profile web --no-open                serve without opening a browser
   dsh --profile web --port 8080              serve on another port
   dsh --profile web --host 10.0.0.7          bind one local interface address

@@ -22,7 +22,7 @@ import z from '@deepseek-ai/schemastery'
 import { addHarnessSourceSection, auditStartupEntries } from '@deepseek-ai/dsh-app-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import * as FrontendStatic from '@deepseek-ai/dsh-host-frontend-static'
-import { isLoopbackHost, normalizeBindAddress } from '@deepseek-ai/dsh-host-webserver'
+import { isLoopbackHost, isWildcardHost, normalizeBindAddress } from '@deepseek-ai/dsh-host-webserver'
 import { launchedThroughSsh, launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
@@ -34,6 +34,9 @@ export const name = 'web-app'
 
 /** This dsh installation's root, from either this package's source or built entry. */
 const SOURCE_ROOT = fileURLToPath(new URL('../../../..', import.meta.url))
+
+/** Advertised host for a wildcard bind, which names no dialable destination. */
+const LOOPBACK_HOST = '127.0.0.1'
 const ANNOUNCED_ROOTS = new WeakSet<Context>()
 
 /** Services required before the web runtime can mount. */
@@ -125,8 +128,9 @@ function localWebUrl(ctx: Context): string {
  * so browsers treat them as local, trustworthy origins: a genuinely mapped
  * literal such as `::ffff:127.0.0.1` reads as `127.0.0.1`, and a dotted-quad
  * tail reads as the address it names, so `::0.0.0.1` reads as `::1` rather
- * than as `0.0.0.1`. Interface zone IDs cannot appear in a URL; only a
- * redundant loopback zone can be dropped.
+ * than as `0.0.0.1`. A wildcard bind advertises loopback, because the
+ * unspecified address names no destination a browser can dial. Interface zone
+ * IDs cannot appear in a URL; only a redundant loopback zone can be dropped.
  * @param host - webserver bind address.
  * @returns the zone-free URL host.
  * @throws when a non-loopback zone requires an explicit public URL.
@@ -135,6 +139,7 @@ function advertisedBindHost(host: string): string {
   const zoneAt = host.indexOf('%')
   const bare = zoneAt === -1 ? host : host.slice(0, zoneAt)
   if (isLoopbackHost(bare)) return normalizeBindAddress(bare)
+  if (isWildcardHost(bare)) return LOOPBACK_HOST
   if (zoneAt === -1) return host
   throw new Error(
     `web-app: bind address ${JSON.stringify(host)} carries an interface zone id, which no URL can express;`

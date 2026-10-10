@@ -647,6 +647,28 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-sidebar-documentpreview -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-skin -->
+<a id="deepseek-aidsh-client-ui-skin"></a>
+
+## `@deepseek-ai/dsh-client-ui-skin`
+
+- `refs`: `Volatile` (`@deepseek-ai/cordis`)
+- `source`: [`packages/client/ui-skin/src/index.ts:18`](../packages/client/ui-skin/src/index.ts)
+
+```ts config-catalog
+/** Runtime skin preferences projected to the browser. */
+export interface Config {
+  /** Selected interface skin. */
+  variant: Volatile<SkinVariant>
+  /** Material strength in percent within {@link STRENGTH_MIN}..{@link STRENGTH_MAX}. */
+  strength: Volatile<number>
+}
+
+/** The skin selected by the product Interface row. */
+export type SkinVariant = typeof SKIN_VARIANTS[number]
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-skin -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
 <a id="deepseek-aidsh-client-ui-theme"></a>
 
@@ -1637,8 +1659,10 @@ export interface Config {
    * literal (any address in 127/8, `::1`, or a mapped form of either) keeps the
    * server on this machine; any other literal serves the network that address
    * belongs to, over plain HTTP unless `tls` is set. The unspecified address —
-   * IPv4 any, IPv6 any, and the IPv4-mapped forms of IPv4 any — is rejected at
-   * load: it would expose the port on every interface at once.
+   * IPv4 any, IPv6 any, and the IPv4-mapped forms of IPv4 any — binds every
+   * interface at once, so it exposes the port on the whole network; the
+   * composed Web bundle chooses it as its default and this deployment accepts
+   * the exposure (see [the bind note](../../../../.agents/notes/implemented/architecture/2026-09-18-default-web-bind-all-interfaces.md)).
    */
   host: string
   /** Listen port; zero requests an OS-assigned port. */
@@ -3873,7 +3897,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-pwsh-persistent`
 
 - `inject`: `tools` · `terminals` · `workingDirectory`
-- `source`: [`packages/shell/tool-pwsh-persistent/src/index.ts:458`](../packages/shell/tool-pwsh-persistent/src/index.ts)
+- `source`: [`packages/shell/tool-pwsh-persistent/src/index.ts:474`](../packages/shell/tool-pwsh-persistent/src/index.ts)
 
 ```ts config-catalog
 /** Configuration for the persistent pwsh tool. */
@@ -4154,7 +4178,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tools`
 
 - `inject`: `systemPrompt`
-- `source`: [`packages/core/tools/src/index.ts:675`](../packages/core/tools/src/index.ts)
+- `source`: [`packages/core/tools/src/index.ts:678`](../packages/core/tools/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config: how the registered tools are presented to the model. */
@@ -4264,7 +4288,7 @@ export interface WebRuntimeConfig {
 ## `@deepseek-ai/dsh-web-app`
 
 - `inject`: `webServer`
-- `source`: [`packages/bundle/web-app/src/index.ts:43`](../packages/bundle/web-app/src/index.ts)
+- `source`: [`packages/bundle/web-app/src/index.ts:46`](../packages/bundle/web-app/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config: composed deployment settings plus per-invocation command-line values. */

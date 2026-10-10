@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决定
 
-`dsh-web-app` 将组合后的 `webserver.host` 默认值改为 `0.0.0.0`；端口仍为 `3080`。CLI 接受 `--host 0.0.0.0`，也接受 `--host 127.0.0.1` 以恢复仅本机监听。规范 URL 和自动浏览器交接仍使用 `http://127.0.0.1:<port>`；绑定所有接口时，URL 行仍会公告启动时采样到的 LAN 地址。`--trusted-host` 仍是允许额外主机名的方式。
+`dsh-web-app` 将组合后的 `webserver.host` 默认值改为 `0.0.0.0`；端口仍为 `3080`。CLI 接受 `--host 0.0.0.0`，也接受 `--host 127.0.0.1` 以恢复仅本机监听。规范 URL 和自动浏览器交接仍使用 `http://127.0.0.1:<port>`：通配绑定公告回环地址，因为未指定地址并不是浏览器可以拨号的目的地址。绑定所有接口时，URL 行仍会公告启动时采样到的 LAN 地址；非回环的明文 HTTP 绑定会在启动时给出警告。`--trusted-host` 仍是允许额外主机名的方式。
 
 Electron Desktop 宿主组合同一个 Web bundle，但传入 `--host 127.0.0.1`，因此其 `19387` 监听器仍仅限 loopback。浏览器信任保持不变：绑定所有接口时，Connection 插件会推导非 internal IPv4 authority，执行 Host/Origin 校验，并要求每个 API route 与 stream 都持有进程令牌交换后的浏览器会话。载体仍不提供 TLS 或自身认证，因此默认网络暴露使用明文 HTTP。
 

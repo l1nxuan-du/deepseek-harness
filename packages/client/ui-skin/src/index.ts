@@ -5,15 +5,12 @@ import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import z from '@deepseek-ai/schemastery'
 import { bootSkinInjections } from './boot-skin.ts'
-import {
-  SKIN_VARIANT_FIELD, STRENGTH_FIELD, SkinSettingsFields,
-  type SkinVariant,
-} from './skin-settings.ts'
+import { SkinStrengthField, SkinVariantField, type SkinVariant } from './skin-settings.ts'
 
 export {
   CLASSIC_SKIN_VARIANT, DEFAULT_SKIN_VARIANT, DEFAULT_STRENGTH, SKIN_ATTRIBUTE, SKIN_SETTINGS_NAMESPACE,
   SKIN_VARIANT_FIELD, SKIN_VARIANTS, STRENGTH_FIELD, STRENGTH_MAX, STRENGTH_MIN, STRENGTH_STEP,
-  SkinSettingsSchema, isSkinVariant,
+  SkinSettingsSchema, SkinStrengthField, SkinVariantField, isSkinVariant,
   type SkinSettings, type SkinVariant,
 } from './skin-settings.ts'
 
@@ -27,8 +24,8 @@ export interface Config {
 
 /** Live interface-skin preferences. */
 export const Config = z.object({
-  [SKIN_VARIANT_FIELD]: SkinSettingsFields[SKIN_VARIANT_FIELD].volatile(),
-  [STRENGTH_FIELD]: SkinSettingsFields[STRENGTH_FIELD].volatile(),
+  variant: SkinVariantField.volatile(),
+  strength: SkinStrengthField.volatile(),
 })
 
 /**
