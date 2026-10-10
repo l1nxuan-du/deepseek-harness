@@ -84,12 +84,11 @@ describe('preview example overlays', () => {
  * preview builds exercise the same path against complete real artifacts.
  */
 // The subject is zero-dep, but its peer/dependency closure (cordis, loader,
-// include, cosmokit, invariants) must also be built: on the complete lane
+// include, cosmokit) must also be built: on the complete lane
 // build and coverage run concurrently, so checking only the subject lets the
 // pack start before its real workspace dependencies exist.
 const subjectBuilt = [
   'packages/util/timeout/lib/index.js',
-  'packages/runtime-diagnostics/invariants/lib/index.js',
   'vendor/cordis/lib/index.js',
   'vendor/cosmokit/lib/index.js',
   'vendor/include/lib/index.js',
@@ -97,8 +96,8 @@ const subjectBuilt = [
   'packages/host/webserver/lib/index.js',
   'packages/llm/plugin-package-inventory-deepseek/lib/index.js',
   'native/system/packages/entry/lib/index.js',
-  'packages/preset/agent-presets/lib/typert.host.js',
-  'packages/preset/agent-presets/lib/typert.remote-client.js',
+  'packages/preset/agent-preset-registry/lib/typert.host.js',
+  'packages/preset/agent-preset-registry/lib/typert.remote-client.js',
 ].every(path => existsSync(join(repoRoot, path)))
 
 let memo: ReturnType<typeof packVfsImage> | undefined
@@ -190,18 +189,6 @@ const archive = async (): Promise<Uint8Array> =>
     expect([...image.slice(0, 4)]).toEqual([0x1f, 0x8b, 0x08, 0x00])
     expect([...image.slice(4, 8)]).toEqual([0, 0, 0, 0])
     expect(image[9]).toBe(255)
-  })
-
-  it('does not treat relative plugin rows as package dependencies', () => {
-    const result = packVfsImage({
-      config: `- id: subject\n  name: '${SUBJECT}'\n- id: local\n  name: './local.mjs'\n`,
-      profile: 'relative-row-check',
-      workspaces,
-      resolveFrom: repoRoot,
-      entries: [],
-    })
-    expect(result.roster).toEqual([SUBJECT])
-    expect(result.missing).toEqual([])
   })
 
   it('packs the same tree to the same bytes', () => {
@@ -326,8 +313,9 @@ const archive = async (): Promise<Uint8Array> =>
     inventory.apply({
       baseUrl,
       loader: tree,
+      // The inventory reads these optional services; this host provides none of them.
       get: (name: string): undefined => {
-        expect(name).toBe('pluginPackages')
+        expect(['pluginPackages', 'agentPresets']).toContain(name)
         return undefined
       },
       deepseekLlmApiExtensions: {

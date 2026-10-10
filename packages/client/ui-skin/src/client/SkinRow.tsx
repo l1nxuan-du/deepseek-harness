@@ -5,7 +5,7 @@
  * variant, never a resolved fallback.
  */
 import clsx from 'clsx'
-import { IconPanelLeftOutline16, IconSparkle16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPanelLeftOutlineRegular, IconSparkleRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SkinVariant } from '../skin-settings.ts'
 import type { SkinKey } from './locales.ts'
@@ -25,9 +25,9 @@ export type SkinRowComponentProps =
   & PropsLocale<'settings.skin'> & SkinRowInjected
 
 /** Cube order and icons: classic first, the opt-in material skin second. */
-const CUBES: readonly { id: SkinVariant; labelKey: SkinKey; Icon: typeof IconSparkle16 }[] = [
-  { id: 'classic', labelKey: 'interface.classic', Icon: IconPanelLeftOutline16 },
-  { id: 'material', labelKey: 'interface.material', Icon: IconSparkle16 },
+const CUBES: readonly { id: SkinVariant; labelKey: SkinKey; Icon: typeof IconSparkleRegular }[] = [
+  { id: 'classic', labelKey: 'interface.classic', Icon: IconPanelLeftOutlineRegular },
+  { id: 'material', labelKey: 'interface.material', Icon: IconSparkleRegular },
 ]
 
 /**

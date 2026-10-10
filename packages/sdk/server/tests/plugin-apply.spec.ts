@@ -1,4 +1,5 @@
 import { MESSAGES_RESPONSE } from './messages-response.ts'
+import { mountWorkingDirectoryFixture } from '../../../subagent/subagent/tests/working-directory-fixture.ts'
 import { createServer } from 'node:http'
 import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -13,7 +14,6 @@ import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-test
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
 import * as jsonrpc from '../src/index.ts'
 
 /**
@@ -78,6 +78,7 @@ async function mountPlugin(
 ): Promise<ApplyHarness> {
   const ctx = new Context()
   await mountAgentLoopTestDependencies(ctx)
+  await mountWorkingDirectoryFixture(ctx)
   await ctx.plugin(AgentLoop, { agents: [] })
   await ctx.plugin(JsonlSessionPersistence, { root: storageDir })
   await new Promise(resolve => setTimeout(resolve, 50))
@@ -249,13 +250,7 @@ describe('dsh-sdk-jsonrpc-server plugin apply', () => {
     const llmServer = await mockCompletionServer()
     vi.stubEnv('DEEPSEEK_API_KEY', 'test-key')
     vi.stubEnv('DEEPSEEK_BASE_URL', llmServer.url)
-    // The keyless endpoint below speaks the Messages wire, so this case owns the
-    // adapter; the shipped default is the Responses protocol.
-    const harness = await mountPlugin(storageDir, {
-      beforeServer: async (ctx) => {
-        await ctx.plugin(LlmDeepSeek, { protocol: 'messages' })
-      },
-    })
+    const harness = await mountPlugin(storageDir)
     try {
       harness.send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { cwd: storageDir, provider: 'deepseek-official', model: 'dsagent-model' } })
       await harness.waitForFrame(frame => frame.id === 1, 'initialize response')

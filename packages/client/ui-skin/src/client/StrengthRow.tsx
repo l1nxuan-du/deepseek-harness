@@ -6,7 +6,7 @@
  * value follows the persisted setting, never the click echo.
  */
 import {
-  IconChevronDownOutline14, IconChevronUpOutline14,
+  IconChevronDownOutlineRegular, IconChevronUpOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { STRENGTH_MAX, STRENGTH_MIN, STRENGTH_STEP } from '../skin-settings.ts'
@@ -49,7 +49,7 @@ export function StrengthRow({ t, setStrength, useStore }: StrengthRowComponentPr
               disabled={strength >= STRENGTH_MAX}
               onClick={() => { setStrength(strength + STRENGTH_STEP) }}
             >
-              <IconChevronUpOutline14 size={9} />
+              <IconChevronUpOutlineRegular size={9} />
             </button>
             <button
               type="button"
@@ -58,7 +58,7 @@ export function StrengthRow({ t, setStrength, useStore }: StrengthRowComponentPr
               disabled={strength <= STRENGTH_MIN}
               onClick={() => { setStrength(strength - STRENGTH_STEP) }}
             >
-              <IconChevronDownOutline14 size={9} />
+              <IconChevronDownOutlineRegular size={9} />
             </button>
           </span>
         </div>

@@ -3,7 +3,7 @@
  * catalog supplies defaults keyed by model id, and a profile's own model
  * entries override them field by field, so a route naming a catalog provider
  * stays configuration-free while a route pi-ai has never heard of is fully
- * describable from `settings.yaml`.
+ * describable from `cordis.patch.yml`.
  *
  * Strict resolution rejects unserviceable models before settings writes.
  * Deferred resolution retains their diagnostics so stored catalog drift does
@@ -12,7 +12,7 @@
  * @module dsh-llm-pi-ai/catalog
  */
 
-import { builtinProviders, getBuiltinModels, getBuiltinProviders } from '@earendil-works/pi-ai/providers/all'
+import { builtinProviders, getAllBuiltinModels, getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
 import type { BuiltinProvider } from '@earendil-works/pi-ai/providers/all'
 import type {
   AnthropicMessagesCompat,
@@ -20,6 +20,7 @@ import type {
   BedrockCompat,
   ChatTemplateKwargValue,
   KnownApi,
+  MistralConversationsCompat,
   Model,
   ModelCost,
   ModelThinkingLevel,
@@ -165,37 +166,53 @@ export const CHAT_TEMPLATE_VARS = Object.keys(CHAT_TEMPLATE_VAR_GATE) as readonl
 let providerIndex: Map<string, Provider> | undefined
 
 /**
- * Installed catalog providers by id, constructed once. Each entry owns the API
- * implementations for its own models, which is why a catalog route reuses this
- * provider instead of being rebuilt from parts.
- * @returns the catalog provider index.
+ * Whether this adapter serves one installed catalog provider. It dispatches
+ * chat requests only, so a provider whose catalog lists models but no chat
+ * model (image-generation or classifier models alone) is not a catalog route;
+ * a provider whose catalog lists no models at all stays one.
+ * @param provider - the installed provider.
+ * @returns whether the provider ships a chat model or lists no models.
+ */
+function servesChat(provider: Provider): boolean {
+  const id = provider.id as BuiltinProvider
+  return getBuiltinModels(id).length > 0 || getAllBuiltinModels(id).length === 0
+}
+
+/**
+ * Installed catalog providers this adapter serves, by id, constructed once.
+ * Each entry owns the API implementations for its own models, which is why a
+ * catalog route reuses this provider instead of being rebuilt from parts.
+ * @returns the catalog provider index, in catalog order.
  */
 function catalogProviders(): Map<string, Provider> {
-  providerIndex ??= new Map(builtinProviders().map(provider => [provider.id, provider]))
+  providerIndex ??= new Map(builtinProviders().filter(servesChat).map(provider => [provider.id, provider]))
   return providerIndex
 }
 
 /**
- * The installed catalog provider for one route, when pi-ai ships one.
+ * The installed catalog provider for one route, when pi-ai ships one this
+ * adapter serves.
  * @param provider - provider route key.
- * @returns the catalog provider, or `undefined` for a route pi-ai does not ship.
+ * @returns the catalog provider, or `undefined` for a route pi-ai does not ship
+ *   or ships without a chat model.
  */
 export function catalogProvider(provider: string): Provider | undefined {
   return catalogProviders().get(provider)
 }
 
 /**
- * Every provider route the installed pi-ai catalog ships.
- * @returns the catalog provider ids.
+ * Every provider route the installed pi-ai catalog ships and this adapter
+ * serves: a provider whose catalog lists models but no chat model is left out.
+ * @returns the catalog provider ids, in catalog order.
  */
 export function catalogProviderIds(): readonly string[] {
-  return getBuiltinProviders()
+  return [...catalogProviders().keys()]
 }
 
 /**
  * The installed catalog models for one route, indexed by model id.
  * @param provider - provider route key.
- * @returns catalog models by id; empty for a route pi-ai does not ship.
+ * @returns catalog models by id; empty for a route {@link catalogProvider} does not return.
  */
 export function catalogModels(provider: string): Map<string, Model<Api>> {
   if (!catalogProviders().has(provider)) return new Map()
@@ -253,7 +270,8 @@ const COMPLETIONS_COMPAT_GATE = {
   zaiToolStream: 'withhold',
   supportsOpenAIGrammarTools: 'withhold',
   sendSessionAffinityHeaders: 'withhold',
-  deferredToolsMode: 'withhold',
+  supportsMidConvoSystemMessages: 'withhold',
+  supportsMidConvoToolAdditions: 'withhold',
   sessionAffinityFormat: 'withhold',
 } as const satisfies Record<keyof OpenAICompletionsCompat, CompatDisposition>
 
@@ -268,6 +286,7 @@ const RESPONSES_COMPAT_GATE = {
   supportsAdditionalTools: 'withhold',
   supportsToolSearch: 'withhold',
   supportsExplicitPromptCacheMode: 'withhold',
+  supportsMidConvoSystemMessages: 'withhold',
 } as const satisfies Record<keyof OpenAIResponsesCompat, CompatDisposition>
 
 /** Disposition of every `AnthropicMessagesCompat` field; a drift gate like the one above. */
@@ -280,7 +299,9 @@ const ANTHROPIC_COMPAT_GATE = {
   allowEmptySignature: 'offer',
   supportsStrictTools: 'offer',
   sendSessionAffinityHeaders: 'withhold',
-  supportsToolReferences: 'withhold',
+  sessionAffinityFormat: 'withhold',
+  supportsMidConvoSystemMessages: 'withhold',
+  supportsMidConvoToolChanges: 'withhold',
   supportsMidConvoEffort: 'withhold',
   allowedFallbackModels: 'withhold',
 } as const satisfies Record<keyof AnthropicMessagesCompat, CompatDisposition>
@@ -289,6 +310,11 @@ const ANTHROPIC_COMPAT_GATE = {
 const BEDROCK_COMPAT_GATE = {
   supportsStrictMode: 'offer',
 } as const satisfies Record<keyof BedrockCompat, CompatDisposition>
+
+/** Disposition of every `MistralConversationsCompat` field. */
+const MISTRAL_COMPAT_GATE = {
+  supportsMidConvoSystemMessages: 'withhold',
+} as const satisfies Record<keyof MistralConversationsCompat, CompatDisposition>
 
 /**
  * Every wire protocol pi-ai gives a compat type. Derived from `Model.compat`'s
@@ -309,6 +335,7 @@ type ApiWithCompat = { [K in KnownApi]: NonNullable<Model<K>['compat']> extends 
  * models declare.
  */
 const COMPAT_GATES: Readonly<Record<ApiWithCompat, Readonly<Record<string, CompatDisposition>>>> = {
+  'mistral-conversations': MISTRAL_COMPAT_GATE,
   'openai-completions': COMPLETIONS_COMPAT_GATE,
   'openai-responses': RESPONSES_COMPAT_GATE,
   'azure-openai-responses': RESPONSES_COMPAT_GATE,
@@ -337,6 +364,8 @@ type OfferedCompatField =
   | OfferedIn<typeof RESPONSES_COMPAT_GATE>
   | OfferedIn<typeof ANTHROPIC_COMPAT_GATE>
   | OfferedIn<typeof BEDROCK_COMPAT_GATE>
+  // oxlint-disable-next-line typescript/no-redundant-type-constituents -- Include gates whose current offering is empty.
+  | OfferedIn<typeof MISTRAL_COMPAT_GATE>
 
 /**
  * pi-ai wire-compatibility switches, set on the route (its models' default) or
@@ -450,7 +479,7 @@ export type EveryOfferedFieldIsDocumented = AssertNever<Exclude<OfferedCompatFie
 type AssertTrue<T extends true> = T
 
 /** Every compat type a gate classifies, merged so one `Pick` reaches all offered fields. */
-type UpstreamCompat = OpenAICompletionsCompat & OpenAIResponsesCompat & AnthropicMessagesCompat & BedrockCompat
+type UpstreamCompat = OpenAICompletionsCompat & OpenAIResponsesCompat & AnthropicMessagesCompat & BedrockCompat & MistralConversationsCompat
 
 /**
  * Proof that each documented field carries its upstream type, not a hand-copied
@@ -624,10 +653,7 @@ export interface RouteCatalogRequest {
   provider: string
   /** Wire protocol override; absent defers to each catalog model's own API. */
   api?: string
-  /**
-   * Endpoint override; absent defers to the catalog model, catalog provider,
-   * then the one endpoint shared by catalog siblings speaking the selected API.
-   */
+  /** Endpoint override; absent defers to the catalog model, then the catalog provider. */
   baseURL?: string
   /** Configured catalog; absent means the whole installed catalog for this route. */
   models?: readonly PiAiModelProfile[]
@@ -663,24 +689,6 @@ function sharedCatalogApi(defaults: ReadonlyMap<string, Model<Api>>): string | u
   const apis = new Set<string>()
   for (const model of defaults.values()) apis.add(model.api)
   return apis.size === 1 ? [...apis][0] : undefined
-}
-
-/**
- * The one endpoint shared by catalog models speaking a selected wire protocol.
- * A mixed-protocol route often keeps one endpoint per protocol even though the
- * catalog has no provider-level endpoint, so a new model can inherit that
- * endpoint after it names the protocol. Disagreement keeps the endpoint
- * required, because no catalog sibling identifies which one the model uses.
- * @param defaults - the installed catalog models for the route.
- * @param api - the wire protocol selected for the new model.
- * @returns the shared endpoint, or undefined when the catalog does not select one.
- */
-function sharedCatalogBaseUrl(defaults: ReadonlyMap<string, Model<Api>>, api: string): string | undefined {
-  const urls = new Set<string>()
-  for (const model of defaults.values()) {
-    if (model.api === api) urls.add(model.baseUrl)
-  }
-  return urls.size === 1 ? [...urls][0] : undefined
 }
 
 /** The reasoning fields one materialized model carries. */
@@ -765,7 +773,7 @@ function resolveModelReasoning(
 }
 
 /** The compat block a materialized model carries, whichever protocol it speaks. */
-type ModelCompat = OpenAICompletionsCompat | OpenAIResponsesCompat | AnthropicMessagesCompat | BedrockCompat
+type ModelCompat = OpenAICompletionsCompat | OpenAIResponsesCompat | AnthropicMessagesCompat | BedrockCompat | MistralConversationsCompat
 
 /**
  * Resolve one model's compat block from the profile's switches.
@@ -911,7 +919,7 @@ export function resolveRouteModels(
       invalid(provider, `model "${entry.id}" needs an api; the installed catalog does not describe it, so set the`
         + ' route\'s api to the wire protocol its endpoint speaks')
     }
-    const baseUrl = request.baseURL ?? base?.baseUrl ?? providerBaseUrl ?? sharedCatalogBaseUrl(defaults, api)
+    const baseUrl = request.baseURL ?? base?.baseUrl ?? providerBaseUrl
     if (baseUrl === undefined) {
       invalid(provider, `model "${entry.id}" needs a baseURL; the installed catalog does not describe this route`)
     }

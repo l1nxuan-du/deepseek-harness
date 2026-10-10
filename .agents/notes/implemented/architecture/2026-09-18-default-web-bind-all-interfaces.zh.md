@@ -30,7 +30,7 @@ Electron Desktop 宿主组合同一个 Web bundle，但传入 `--host 127.0.0.1`
 
 默认传输是明文 HTTP。静态资源与根路径令牌交换可从网络访问；API 仍有 Host/Origin 校验和浏览器认证，但 bearer cookie 未标记 `Secure`。操作者必须使用可信网络、以 `--host 127.0.0.1` 仅限本机访问，或为网络可访问的部署加一层 TLS 反向代理。
 
-本决定部分取代[载体级浏览器信任决策](2026-07-28-api-browser-trust-boundary.zh.md)和[浏览器启动令牌认证](2026-08-24-browser-token-authentication.zh.md)中关于默认 loopback 和 CLI 拒绝的条款；它们的信任与认证机制仍是有效权威。
+本决定部分取代[载体级浏览器信任决策](2026-07-28-api-browser-trust-boundary.zh.md)和[浏览器启动令牌认证](2026-08-24-browser-token-authentication.zh.md)中关于默认 loopback 和 CLI 拒绝的条款，以及[绑定一个具体的 Web 地址](2026-09-19-concrete-web-bind-address.zh.md)中拒绝通配地址的条款；它们的信任、认证与地址分类机制仍是有效权威。
 
 ## 验证
 

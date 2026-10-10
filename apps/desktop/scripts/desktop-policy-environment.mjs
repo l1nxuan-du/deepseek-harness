@@ -12,11 +12,11 @@ function origin(value, name) {
 
 /**
  * Resolve mandatory policy metadata before preparing artifacts or accessing signing hardware.
- * A build that opts out publishes no policy, so its application starts without the login gate.
  * @param {NodeJS.ProcessEnv} environment File-owned release settings; the unselected origin is not required.
- * @returns {{ origin: string, allowedPageOrigins: string[], authentication: 'anonymous' | 'feishu-test', [key: string]: unknown } | undefined} Selected policy.
+ * @returns {{ origin: string, allowedPageOrigins: string[], authentication: 'anonymous' | 'feishu-test', [key: string]: unknown } | undefined} Selected policy, or undefined for a build that opts out.
  */
 export function resolveDesktopPolicyEnvironment(environment) {
+  // A build that ships no deployment policy publishes none, so its application starts without the login gate.
   if (environment.DSH_DESKTOP_DISABLE_POLICY === '1') return undefined
   const deployment = resolveDesktopAutoUpdateEnvironment(environment)
   const name = deployment === 'test' ? 'DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN' : 'DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN'
@@ -32,7 +32,15 @@ export function resolveDesktopPolicyEnvironment(environment) {
   }
   const pages = settings.allowedPageOrigins ?? [selected]
   if (!Array.isArray(pages) || pages.length === 0) throw new Error('desktop package: allowedPageOrigins must be a nonempty array')
+  const authOrigins = settings.allowedAuthOrigins
+  if (deployment === 'test' && (!Array.isArray(authOrigins) || authOrigins.length === 0)) {
+    throw new Error('desktop package: test policy requires nonempty allowedAuthOrigins')
+  }
+  if (deployment === 'production' && authOrigins !== undefined) {
+    throw new Error('desktop package: production policy must not configure allowedAuthOrigins')
+  }
   return { ...settings, origin: selected,
     allowedPageOrigins: pages.map(value => origin(value, 'allowedPageOrigins')),
+    ...(deployment === 'test' ? { allowedAuthOrigins: authOrigins.map(value => origin(value, 'allowedAuthOrigins')) } : {}),
     authentication: deployment === 'test' ? 'feishu-test' : 'anonymous' }
 }

@@ -138,7 +138,6 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
       dshBin,
       '--profile', 'web',
       '--patch', fixture.patch,
-      '--host', '127.0.0.1',
       '--no-open',
       '--port', '0',
     ], {
@@ -218,7 +217,6 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
         dshBin,
         '--profile', 'web',
         '--patch', fixture.patch,
-        '--host', '127.0.0.1',
         '--no-open',
         '--port', '0',
       ], {
@@ -272,7 +270,6 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
       const result = await execa(process.execPath, [
         dshBin,
         '--profile', 'web',
-        '--host', '127.0.0.1',
         '--no-open',
         '--port', String(address.port),
       ], {
@@ -299,7 +296,7 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
       expect(result.stderr).toContain('Failed plugins (1):')
       expect(result.stderr).toContain('  webserver (required)\n    Package: @deepseek-ai/dsh-host-webserver')
       expect(result.stderr).toContain('Plugins waiting for services (')
-      expect(result.stderr).toMatch(/connection \(required\) +webRuntime/u)
+      expect(result.stderr).toMatch(/web-runtime \(required\) +webServer/u)
       expect(result.stderr).toContain('at Server.setupListenHandle')
       const summary = result.stderr.split(/\n\n(?:Full diagnostics:|dsh: warning:)/u)[0]!
       expect(summary.match(/EADDRINUSE/gu)).toHaveLength(1)
@@ -322,7 +319,7 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
       expect(report).toContain('configurationPath:')
       expect(report).toContain("code: 'EADDRINUSE'")
       expect(report).toContain(`port: ${String(address.port)}`)
-      expect(report).toContain("module: '@deepseek-ai/dsh-client-connection'")
+      expect(report).toContain("module: '@deepseek-ai/dsh-web-app'")
       expect(report).toContain('at auditStartupEntries')
     } finally {
       await new Promise<void>((resolve, reject) => {
@@ -354,7 +351,6 @@ describe.skipIf(!builtArtifactsExist)('dsh Web profile best-effort startup', () 
         dshBin,
         '--profile', 'web',
         '--patch', fixture.patch,
-        '--host', '127.0.0.1',
         '--no-open',
         '--port', '0',
       ], {

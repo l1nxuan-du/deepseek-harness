@@ -9,7 +9,7 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: the ctx.theme Context merge (the token override entry point).
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import {
   CLASSIC_SKIN_VARIANT, DEFAULT_SKIN_VARIANT, DEFAULT_STRENGTH, SKIN_ATTRIBUTE, SKIN_VARIANT_FIELD,
   STRENGTH_FIELD, STRENGTH_MAX, STRENGTH_MIN, isSkinVariant,
@@ -57,19 +57,19 @@ export class SkinRuntime {
   private field: FieldBackdrop | undefined
 
   /**
-   * @param ctx - owning context (theme token layers and the scope listener are released through it).
-   * @param host - durable variant scope owned by the same plugin.
+   * @param ctx - owning context (theme token layers and the form subscription are released through it).
+   * @param host - configuration form owned by the same plugin.
    * @param onChange - sink notified after every accepted variant change.
    */
   constructor(
     private readonly ctx: ClientContext,
-    private readonly host: SettingsScope<SkinSettings>,
+    private readonly host: ConfigForm<SkinSettings>,
     private readonly onChange: (snapshot: SkinSnapshot) => void = () => {},
   ) {
     this.variant = bootstrapVariant()
     this.strength = DEFAULT_STRENGTH
     this.snapshot = { variant: this.variant, strength: this.strength, revision: this.revision }
-    this.ctx.effect(() => host.subscribe(() => { this.adopt() }), 'ui-skin: settings scope adoption')
+    this.ctx.effect(() => host.subscribe(() => { this.adopt() }), 'ui-skin: configuration form adoption')
     // The flow pattern carries its own palette, so the field follows the
     // resolved colour scheme instead of only the stylesheet's tokens.
     this.ctx.effect(() => this.ctx.on('theme/change', (snapshot) => {
@@ -92,7 +92,7 @@ export class SkinRuntime {
 
   /**
    * Switch the interface skin — the only user preference write entry. The
-   * write goes through the settings scope; unknown variants throw.
+   * write goes through the configuration form; unknown variants throw.
    * @param variant - a selectable skin.
    */
   setSkin(variant: SkinVariant): void {
@@ -111,7 +111,7 @@ export class SkinRuntime {
 
   /**
    * Change the material strength — the density of the surfaces the sheet
-   * derives. The write goes through the settings scope; out-of-range or
+   * derives. The write goes through the configuration form; out-of-range or
    * fractional values throw.
    * @param percent - integer percent within STRENGTH_MIN..STRENGTH_MAX.
    */
@@ -135,7 +135,7 @@ export class SkinRuntime {
     this.field = undefined
   }
 
-  /** Adopt the scope's accepted durable variant without writing it back. */
+  /** Adopt the form's accepted section without writing it back. */
   private adopt(): void {
     const section = this.host.getSnapshot().value
     if (section === undefined) return

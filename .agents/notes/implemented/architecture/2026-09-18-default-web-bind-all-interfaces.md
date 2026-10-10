@@ -30,7 +30,7 @@ Port `3080` is reachable on every non-internal IPv4 interface unless a host fire
 
 The default transport is plain HTTP. Static assets and the root token exchange are reachable from the network; the API remains behind Host/Origin checks and browser authentication, but the bearer cookie is not marked `Secure`. Operators must use a trusted network, `--host 127.0.0.1` for local-only access, or a TLS reverse proxy for a network-accessible deployment.
 
-This decision partially supersedes the loopback-default and CLI-rejection clauses in [the carrier-level browser-trust decision](2026-07-28-api-browser-trust-boundary.md) and [browser launch-token authentication](2026-08-24-browser-token-authentication.md). Their trust and authentication mechanisms remain active authority.
+This decision partially supersedes the loopback-default and CLI-rejection clauses in [the carrier-level browser-trust decision](2026-07-28-api-browser-trust-boundary.md) and [browser launch-token authentication](2026-08-24-browser-token-authentication.md), and the wildcard-rejection clause in [Bind one concrete Web address](2026-09-19-concrete-web-bind-address.md). Their trust, authentication, and address-classification mechanisms remain active authority.
 
 ## Verification
 

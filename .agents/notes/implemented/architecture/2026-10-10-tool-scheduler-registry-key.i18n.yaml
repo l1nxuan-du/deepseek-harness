@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-10-tool-scheduler-registry-key.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-10-tool-scheduler-registry-key.md
+/agent-note-a-process-global-registry-key-for-the-tool-scheduler:
+  en: 01aa896aae3989ea
+  zh: bbba9c686f188df5
+/agent-note-a-process-global-registry-key-for-the-tool-scheduler/problem:
+  en: b12ebb123dc4aded
+  zh: 2375f0b9c156caf8
+/agent-note-a-process-global-registry-key-for-the-tool-scheduler/decision:
+  en: 100ae55b6f753cde
+  zh: 6747261b5dad1761
+/agent-note-a-process-global-registry-key-for-the-tool-scheduler/alternatives-considered:
+  en: 8e3f1ea306220571
+  zh: 781214f71384c16b
+/agent-note-a-process-global-registry-key-for-the-tool-scheduler/consequences:
+  en: f0cc32624a064b59
+  zh: fedb666bb9bfb184

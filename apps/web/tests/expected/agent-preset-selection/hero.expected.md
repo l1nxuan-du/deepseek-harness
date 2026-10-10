@@ -1,8 +1,2 @@
-- button "Choose workspace":
-  - img
-  - text: workspace
-  - img
-- button "S1mple mode":
-  - img
-  - text: S1mple mode
-  - img
+- button "Choose workspace": workspace
+- button "Standard mode"

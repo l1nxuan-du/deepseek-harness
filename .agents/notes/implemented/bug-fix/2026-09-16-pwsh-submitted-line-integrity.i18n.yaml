@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-16-pwsh-submitted-line-integrity.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-16-pwsh-submitted-line-integrity.md
-2026-09-16-pwsh-submitted-line-integrity.md: 27a4be39cb719d9b0b7990b909a55a0e97da9ba1
-2026-09-16-pwsh-submitted-line-integrity.zh.md: 797bcf1fc524b4f8fe07600b90ed3c23916a3707
+/agent-note-persistent-pwsh-submitted-line-integrity:
+  en: d7113a543b4de952
+  zh: dc4ad1c141e6d0ae
+/agent-note-persistent-pwsh-submitted-line-integrity/problem:
+  en: c8b8a822e3329e2e
+  zh: 9ff292f9c2995fff
+/agent-note-persistent-pwsh-submitted-line-integrity/decision:
+  en: 8ddf34134092946a
+  zh: 27037eb46db44a8f
+/agent-note-persistent-pwsh-submitted-line-integrity/decision/why-the-first-character-vanished:
+  en: b04d8859f72c2c9e
+  zh: 4fb1b52b8f29d404
+/agent-note-persistent-pwsh-submitted-line-integrity/decision/why-the-echo-reached-the-model:
+  en: 3637ae116f0cad3c
+  zh: 9c62c67ec5c41c29
+/agent-note-persistent-pwsh-submitted-line-integrity/alternatives-considered:
+  en: 7988416a068913ac
+  zh: 804a28752a284a98
+/agent-note-persistent-pwsh-submitted-line-integrity/consequences:
+  en: aa85b279ce0319bd
+  zh: 2c6d6811bcd6342a

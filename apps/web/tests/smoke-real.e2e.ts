@@ -29,6 +29,9 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import WebSocket from 'ws'
 import { REPO_ROOT, connectFreshWorkspace, newEnglishPage, probeFreePort, requireDist, saveFailureShot } from './support.ts'
 
+const WEB_SURFACE_PROMPT = fileURLToPath(new URL('./expected/web-runtime-context/web-surface-prompt.expected.md', import.meta.url))
+/** Framed user text that marks the auxiliary title request's own messages. */
+const TITLE_PROMPT_MARKER = 'Generate the session title from this JSON array of human messages'
 const authenticatedCookies = new Map<string, Promise<{ origin: string; cookie: string }>>()
 
 /** Frame a complete text turn or an open block before a transport failure. */
@@ -308,13 +311,13 @@ const notReady = UI_PLUGIN_DIRS.filter((dir) => {
 if (notReady.length > 0) console.warn(`[smoke-real] skipped — client bundles not ready: ${notReady.join(', ')}`)
 
 describe('dsh web keyless CLI smoke', () => {
-  it('serves a usable app from two immutable plugin batches', async () => {
+  it('serves a usable app from three immutable plugin batches', async () => {
     requireDist()
     const sessionsDir = mkdtempSync(join(tmpdir(), 'dsh-web-keyless-'))
     const tsxLoader = pathToFileURL(createRequire(join(REPO_ROOT, 'package.json')).resolve('tsx')).href
     const child = spawn(
       process.execPath,
-      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--host', '127.0.0.1', '--no-open', '--port', '0'],
+      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--no-open', '--port', '0'],
       {
         cwd: sessionsDir,
         env: {
@@ -355,15 +358,19 @@ describe('dsh web keyless CLI smoke', () => {
       await page.goto(readyUrl)
       await page.getByRole('button', { name: 'New session', exact: true }).first().waitFor({ timeout: 30_000 })
       const batchPaths = [...new Set(pluginScripts)].sort()
-      expect(batchPaths).toHaveLength(2)
-      expect(batchPaths).toContainEqual(expect.stringMatching(
-        /^\/plugins\/\?\?.+\/client\.js,.+\/client\.js&rev=[a-f\d]{12}$/,
-      ))
+      // The bootstrap phase is the modules package alone; the application phase
+      // spans two combos because its map-form URL is over the 3 KiB combo limit
+      // since the four settings companions joined the composition.
+      expect(batchPaths).toHaveLength(3)
+      expect(batchPaths.filter(path => (
+        /^\/plugins\/\?\?.+\/client\.js,.+\/client\.js&rev=[a-f\d]{12}$/.test(path)
+      ))).toHaveLength(2)
       expect(batchPaths).toContainEqual(expect.stringMatching(
         /^\/plugins\/\?\?@deepseek-ai\/dsh-client-modules\/client\.js&rev=[a-f\d]{12}$/,
       ))
       const readyOrigin = new URL(readyUrl).origin
       expect([...cacheHeaders.values()]).toEqual([
+        'public, max-age=31536000, immutable',
         'public, max-age=31536000, immutable',
         'public, max-age=31536000, immutable',
       ])
@@ -398,7 +405,7 @@ describe('dsh web keyless CLI smoke', () => {
     }
   })
 
-  it('keeps the s1mple-mode prompt and workspace context suppressed through the real CLI request', async () => {
+  it('routes web runtime context and workspace instructions through the real CLI request', async () => {
     requireDist()
     const workspace = mkdtempSync(join(tmpdir(), 'dsh-web-workspace-'))
     mkdirSync(join(workspace, '.git'))
@@ -432,7 +439,7 @@ describe('dsh web keyless CLI smoke', () => {
     const tsxLoader = pathToFileURL(createRequire(join(REPO_ROOT, 'package.json')).resolve('tsx')).href
     const child = spawn(
       process.execPath,
-      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--host', '127.0.0.1', '--no-open', '--port', '0'],
+      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--no-open', '--port', '0'],
       {
         cwd: workspace,
         env: {
@@ -468,8 +475,22 @@ describe('dsh web keyless CLI smoke', () => {
       const workspaceMessage = captured.messages?.filter(message => message.role === 'user')
         .flatMap(message => message.content ?? [])
         .find(block => block.type === 'text' && block.text?.includes('web-workspace-context-probe'))
-      expect(captured.system).toBeUndefined()
-      expect(workspaceMessage).toBeUndefined()
+      const expectedWebSection = readFileSync(WEB_SURFACE_PROMPT, 'utf8').trimEnd()
+        .replace('{{webUrl}}', new URL(baseUrl).origin)
+      expect(captured.system).toContain(expectedWebSection)
+      expect(workspaceMessage).toMatchInlineSnapshot(`
+        {
+          "text": "<system-reminder>
+        The following workspace instructions may be relevant to your work. Use them as guidance when applicable. More specific instructions take precedence over broader ones. They do not override system, developer, or direct user instructions.
+
+        Instructions from: AGENTS.md
+
+        web-workspace-context-probe
+
+        </system-reminder>",
+          "type": "text",
+        }
+      `)
       expect(captured.tools?.map(tool => tool.name)
         .filter(name => name === 'web_search' || name === 'web_fetch'))
         .toMatchInlineSnapshot(`
@@ -500,8 +521,11 @@ describe('dsh web keyless CLI smoke', () => {
       request.setEncoding('utf8')
       request.on('data', (chunk: string) => { body += chunk })
       request.on('end', () => {
-        const parsed = JSON.parse(body) as { max_tokens?: number; messages?: unknown[] }
-        const titleRequest = parsed.max_tokens === 64
+        // The request body also carries the session log, whose recorded title
+        // request contains the marker, so only this request's own messages
+        // decide what the request is.
+        const parsed = JSON.parse(body) as { messages?: unknown[] }
+        const titleRequest = JSON.stringify(parsed.messages ?? null).includes(TITLE_PROMPT_MARKER)
         const mainRequest = !titleRequest && body.includes(promptMarker)
         response.writeHead(200, { 'content-type': 'text/event-stream' })
         if (!mainRequest) {
@@ -520,20 +544,17 @@ describe('dsh web keyless CLI smoke', () => {
     await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve))
     const address = provider.address()
     if (address === null || typeof address === 'string') throw new Error('mock provider did not bind a TCP port')
-    const dshHome = join(workspace, '.dsh')
-    mkdirSync(dshHome, { recursive: true })
-    writeFileSync(join(dshHome, 'settings.yaml'), 'llm-deepseek:\n  protocol: messages\n')
     const tsxLoader = pathToFileURL(createRequire(join(REPO_ROOT, 'package.json')).resolve('tsx')).href
     const child = spawn(
       process.execPath,
-      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--host', '127.0.0.1', '--no-open', '--port', '0'],
+      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--no-open', '--port', '0'],
       {
         cwd: workspace,
         env: {
           ...process.env,
           DEEPSEEK_API_KEY: 'keyless-web-retry',
           DEEPSEEK_BASE_URL: `http://127.0.0.1:${address.port}`,
-          DSH_HOME: dshHome,
+          DSH_HOME: join(workspace, '.dsh'),
           TSX_TSCONFIG_PATH: join(REPO_ROOT, 'tsconfig.json'),
         },
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -582,9 +603,7 @@ describe('dsh web keyless CLI smoke', () => {
     const workspace = mkdtempSync(join(tmpdir(), 'dsh-web-ptc-'))
 
     interface PtcModeProviderRequest {
-      instructions?: string
       system?: string
-      max_tokens?: number
       messages?: { role?: string; content?: { type?: string; text?: string }[] }[]
       tools?: { name?: string }[]
     }
@@ -597,27 +616,18 @@ describe('dsh web keyless CLI smoke', () => {
       request.setEncoding('utf8')
       request.on('data', (chunk: string) => { body += chunk })
       request.on('end', () => {
-        const parsed = JSON.parse(body) as PtcModeProviderRequest
+        resolveProviderRequest(JSON.parse(body) as PtcModeProviderRequest)
         response.writeHead(200, { 'content-type': 'text/event-stream' })
-        if (parsed.max_tokens === 64) {
-          response.end(messagesResponse('PTC title'))
-          return
-        }
-        resolveProviderRequest(parsed)
         response.end(messagesResponse('done'))
       })
     })
     await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve))
     const address = provider.address()
     if (address === null || typeof address === 'string') throw new Error('mock provider did not bind a TCP port')
-    const dshHome = join(workspace, '.dsh')
-    mkdirSync(dshHome, { recursive: true })
-    writeFileSync(join(dshHome, 'settings.yaml'), 'agent-presets:\n  default: ptc\nllm-deepseek:\n  protocol: messages\n')
-    writeFileSync(join(dshHome, 'cordis.patch.yml'), '- id: agent-presets\n  config:\n    default: ptc\n')
     const tsxLoader = pathToFileURL(createRequire(join(REPO_ROOT, 'package.json')).resolve('tsx')).href
     const child = spawn(
       process.execPath,
-      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--host', '127.0.0.1', '--no-open', '--port', '0'],
+      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--no-open', '--port', '0'],
       {
         cwd: workspace,
         env: {
@@ -625,7 +635,7 @@ describe('dsh web keyless CLI smoke', () => {
           DEEPSEEK_API_KEY: 'keyless-web-ptc',
           DEEPSEEK_BASE_URL: `http://127.0.0.1:${address.port}`,
           DSH_TOOLS_MODE: 'ptc',
-          DSH_HOME: dshHome,
+          DSH_HOME: join(workspace, '.dsh'),
           DSH_AGENTS_HOME: join(workspace, '.agents'),
           TSX_TSCONFIG_PATH: join(REPO_ROOT, 'tsconfig.json'),
         },
@@ -648,8 +658,8 @@ describe('dsh web keyless CLI smoke', () => {
         }),
       ])
       expect(captured.tools?.map(tool => tool.name)).toEqual(['run_code'])
-      expect(captured.instructions ?? captured.system).toContain('## Writing code for run_code')
-      expect(captured.instructions ?? captured.system).toContain('declare const tools')
+      expect(captured.system).toContain('## Writing code for run_code')
+      expect(captured.system).toContain('declare const tools')
     } finally {
       const closed = child.exitCode === null
         ? new Promise<void>((resolveClose) => { child.once('close', () => { resolveClose() }) })
@@ -687,7 +697,6 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
         // Pin the in-browser picker: the shipped `-auto` row would resolve to
         // the native OS chooser on this bind, and no page can drive that.
         '--patch', fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
-        '--host', '127.0.0.1',
         '--no-open',
         '--port', String(port),
       ],

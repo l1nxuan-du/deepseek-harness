@@ -4,6 +4,7 @@
  * @module @deepseek-ai/dsh-tools
  */
 
+import type {} from '@deepseek-ai/dsh-working-directory'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { AnonymousEntries, NamedEntries, ScopedLayers, scopeOf, scopeTarget } from '@deepseek-ai/dsh-scope'
@@ -27,6 +28,13 @@ import type { PtcSdkLanguage } from './ptc.ts'
 import { renderToolsSdk } from './ts-types.ts'
 import type { ToolSdkSchema } from './ts-types.ts'
 import { renderToolsSdkPy } from './py-types.ts'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** Tool availability changes supplied by the tool registry. */
+    'tool-registry': { kind: 'tool-registry' }
+  }
+}
 
 /**
  * Language → SDK-section renderer. The registry looks up the loaded
@@ -208,19 +216,12 @@ export interface ToolOutputDefinition {
   readonly schema: JsonSchemaNode
   /** Pure projection from validated arguments and value to Native/model content. */
   render(args: unknown, value: JsonValue): ContentBlock[]
-  /** Pure replayable presentation projection, computed only for top-level calls. */
+  /** Pure replayable presentation projection for native and nested calls. */
   presentationMeta?(args: unknown, value: JsonValue): JsonValue
 }
 
 /** A registered tool: its schema plus the execution function. */
 export interface ToolDefinition extends ToolSchema {
-  /**
-   * Optional grammar presentation of this tool's single input. A wire that
-   * supports grammar-constrained custom tools presents the tool as freeform
-   * text and the model's text reaches execution as {@link ToolFreeformDefinition.parameter};
-   * every other wire uses {@link ToolSchema.parameters} and the JSON call shape.
-   */
-  readonly freeform?: ToolFreeformDefinition
   /** Mandatory canonical output declaration. */
   readonly output: ToolOutputDefinition
   /**
@@ -234,6 +235,16 @@ export interface ToolDefinition extends ToolSchema {
    * @returns the canonical value declared by `output.schema`.
    */
   execute(args: unknown, exec: ToolRunContext): Promise<unknown>
+  /**
+   * Install execution-prepared content before `tools/post-execute` policies.
+   * The callback is captured when the call starts and runs once for a
+   * normalized outcome entering post-execute. Policy replacements remain
+   * authoritative; pipeline failures that bypass post-execute skip projection.
+   * @param exec - immutable execution identity and arguments.
+   * @param result - normalized result before post-execute policy.
+   * @returns replacement content, or undefined to preserve the renderer output.
+   */
+  projectContent?(exec: Readonly<ToolExecution>, result: Readonly<ToolExecutionResult>): ContentBlock[] | undefined
   /**
    * Synchronous last-mile transform for model-facing content. The registry
    * snapshots this callback when execution starts and invokes it exactly once
@@ -250,7 +261,7 @@ export interface ToolDefinition extends ToolSchema {
    * Cooperative tool-call timeout budget in milliseconds. Omit for no deadline.
    * Enforced by `@deepseek-ai/dsh-tool-call-timeout-policy` (a `tools/execute` wrapper); it
    * is NEVER sent to the model — `schemas()` whitelists only name/description/
-   * parameters/format. Declaring it asserts this tool forwards `exec.signal` to a
+   * parameters. Declaring it asserts this tool forwards `exec.signal` to a
    * cooperative implementation that can reach quiescence when the signal aborts.
    */
   timeoutMs?: number
@@ -288,16 +299,6 @@ export interface ToolDefinition extends ToolSchema {
   presentResult?(args: unknown, result: ToolResult): ToolResultView | undefined
 }
 
-/** Grammar-backed freeform presentation of one tool. */
-export interface ToolFreeformDefinition {
-  /** Grammar language the provider constrains the input with. */
-  syntax: 'lark'
-  /** Complete grammar definition text, as the provider receives it. */
-  definition: string
-  /** Parameter that receives the model's raw text when the call arrives freeform. */
-  parameter: string
-}
-
 /** The completed outcome handed to {@link ToolDefinition.presentResult}. */
 export interface ToolResult {
   /** The final model-facing content (or the rendered error text on failure). */
@@ -306,9 +307,9 @@ export interface ToolResult {
   isError: boolean
   /**
    * The tool-private presentation payload projected by its output declaration.
-   * It is persisted verbatim on `tool/result` for Host presenters and Client
-   * renderers to narrow independently. Absent when the tool declared no
-   * projector or the call was nested under a composite transport.
+   * It is persisted on `tool/result` or `tool/ptc-dispatch` for Host presenters
+   * and Client renderers to narrow independently. Absent when the tool
+   * declared no projector.
    */
   meta?: JsonValue
 }
@@ -603,14 +604,15 @@ export type ToolExecutionResult = ToolExecutionSuccess | ToolExecutionFailure
  * model-facing reason and optional structured error identity; `cancel` selects
  * the canonical cancellation result without presenting a policy denial; `ask`
  * runs only after an approval service returns `allowed-once` and otherwise
- * denies. Input rewriting is excluded because arguments are already logged and
+ * denies; its `reason` is the audited approval reason and its optional
+ * `displayReason` is the localized prompt text. Input rewriting is excluded because arguments are already logged and
  * presented.
  */
 export type PreToolDecision =
   | { kind: 'allow' }
   | { kind: 'deny'; reason: string; info?: ToolErrorInfo }
   | { kind: 'cancel' }
-  | { kind: 'ask'; reason?: string }
+  | { kind: 'ask'; reason?: string; displayReason?: { readonly en: string; readonly [locale: string]: string } }
 
 /**
  * Post-dispatch decision: accept, replace one projection, attach context for the
@@ -670,7 +672,7 @@ function errorInfo(error: unknown): ToolErrorInfo | undefined {
 }
 
 /** How the registry presents its tools to the model (see {@link Config.mode}). */
-export type ToolPresentationMode = 'native' | 'ptc' | 'both'
+export type ToolPresentationMode = 'native' | 'ptc'
 
 /** Plugin config: how the registered tools are presented to the model. */
 export interface Config {
@@ -678,9 +680,9 @@ export interface Config {
    * Model presentation. `native` (default) sends every visible schema; `ptc`
    * sends only `run_code` plus a generated SDK prompt and collapses the
    * executor to the same surface (a model-direct call may only name
-   * `run_code`; `run_code` SDK sub-dispatches keep every visible tool); `both`
-   * sends both forms. PTC mode requires a `ctx.ptcRuntime` whose `language`
-   * has a registered SDK renderer (TypeScript or Python) and fail prompt
+   * `run_code`; `run_code` SDK sub-dispatches keep every visible tool).
+   * PTC mode requires a `ctx.ptcRuntime` whose `language`
+   * has a registered SDK renderer (TypeScript or Python) and fails prompt
    * assembly when it is absent or has no renderer. Under `ptc`, native names
    * in `toolOrder` are invalid.
    */
@@ -810,7 +812,7 @@ export class ToolRuntime extends Service {
   static inject = ['systemPrompt']
 
   static Config: z<Config> = z.object({
-    mode: z.union(['native', 'ptc', 'both'] as const).default('native'),
+    mode: z.union(['native', 'ptc'] as const).default('native'),
     maxParallelSubCalls: z.natural().min(1).default(10),
   })
 
@@ -830,6 +832,8 @@ export class ToolRuntime extends Service {
   private cancellationStates = new WeakMap<ToolRunContext, ToolCancellationState>()
   /** Definition-owned final content transform snapshotted before policy begins. */
   private contentFinalizers = new WeakMap<ToolRunContext, ToolDefinition['finalizeContent']>()
+  /** Execution-prepared content installed before post-execute policy. */
+  private contentProjectors = new WeakMap<ToolRunContext, ToolDefinition['projectContent']>()
   private readonly layers = new ScopedLayers(
     scope => new ToolLayer(scope),
     () => { this.ctx.emit('tools/change') },
@@ -870,7 +874,7 @@ export class ToolRuntime extends Service {
    * the deployment is inconsistent. Its order places the rule before that
    * guidance rather than after it.
    *
-   * `both` renders empty: native calls do execute there, so the rule is false.
+   * Native scopes render no instruction.
    * @returns the section registration.
    */
   private collapseSection(): PromptSection {
@@ -943,6 +947,14 @@ export class ToolRuntime extends Service {
    */
   private requirePtcTransport(): ToolDefinition {
     this.ptcTransport ??= createRunCodeTool(this, {
+      resolveWorkingDirectory: async (exec) => {
+        // Only Agent-owned PTC requires directory state; native registries
+        // and unowned programs can run without this service.
+        if (exec.agent === undefined) return undefined
+        const directories = this.ctx.get('workingDirectory')
+        if (directories === undefined) throw new Error('dsh-tools: run_code with an Agent requires workingDirectory')
+        return directories.ensure(exec.agent, exec.signal)
+      },
       requireRuntime: () => this.requirePtcRuntime(this.defaultMode),
       peekApprover: () => this.ctx.get('approval'),
       resolveSandboxPolicy: (exec) => {
@@ -1019,13 +1031,10 @@ export class ToolRuntime extends Service {
     // language with no SDK renderer.
     this.requirePtcRuntime(mode)
     const schemas = [...view.visible.values()].map(definition => this.schemaOf(definition, false))
-    if (mode === 'ptc') {
-      return {
-        schemas: schemas.filter(schema => schema.name === RUN_CODE_NAME),
-        knownNames: [RUN_CODE_NAME],
-      }
+    return {
+      schemas: schemas.filter(schema => schema.name === RUN_CODE_NAME),
+      knownNames: [RUN_CODE_NAME],
     }
-    return { schemas, knownNames: [...view.knownNames, RUN_CODE_NAME] }
   }
 
   /**
@@ -1280,7 +1289,7 @@ export class ToolRuntime extends Service {
 
   /** Project one definition onto the model-facing schema fields. */
   private schemaOf(definition: ToolDefinition, detachParameters: boolean): ToolSchema {
-    const { name, description, parameters, freeform } = definition
+    const { name, description, parameters, deferLoading } = definition
     const detached = detachParameters ? snapshotJsonValue(parameters) : parameters
     if (detached === undefined) {
       throw new Error(`tool "${name}" parameters must be lossless JSON before schema projection`)
@@ -1289,9 +1298,7 @@ export class ToolRuntime extends Service {
       name,
       description,
       parameters: detached,
-      ...freeform === undefined ? {} : {
-        format: { type: 'grammar' as const, syntax: freeform.syntax, definition: freeform.definition },
-      },
+      ...deferLoading === true ? { deferLoading } : {},
     }
   }
 
@@ -1436,22 +1443,18 @@ export class ToolRuntime extends Service {
     // invalid-args failure of a NON-ABORTED collapsed call drop it (the call
     // could never execute).
     const capturedFinalizer = visible?.finalizeContent?.bind(visible)
+    const capturedProjector = visible?.projectContent?.bind(visible)
     const finalizerFor = (): ToolDefinition['finalizeContent'] | undefined =>
       collapsed && !signal.aborted ? undefined : capturedFinalizer
     try {
-      // A grammar-backed tool's call arrives as the model's raw text (the wire's
-      // custom-tool input), because it is not JSON; deliver it as the parameter
-      // the definition declared so the body reads the same shape on every wire.
-      const incoming = visible?.freeform !== undefined && typeof exec.arguments === 'string'
-        ? { [visible.freeform.parameter]: exec.arguments }
-        : exec.arguments
-      const detached = snapshotJsonValue(incoming)
+      const detached = snapshotJsonValue(exec.arguments)
       if (detached === undefined) {
         throw new TypeError('tool execution arguments must be losslessly JSON-serializable')
       }
       const execution: MutableToolRunContext = { ...base, arguments: deepFreeze(detached) }
       this.deferredContexts.set(execution, deferredContexts)
       this.contentFinalizers.set(execution, finalizerFor())
+      if (!collapsed) this.contentProjectors.set(execution, capturedProjector)
       this.cancellationStates.set(execution, {
         callerSignal: signal,
         bodyInvoked: false,
@@ -1646,7 +1649,13 @@ export class ToolRuntime extends Service {
    */
   private async finalizeScheduledExecution(exec: ToolRunContext, result: ToolExecutionResult): Promise<ToolExecutionResult> {
     try {
-      const postResult = await this.postExecute(exec, result)
+      const project = this.contentProjectors.get(exec)
+      this.contentProjectors.delete(exec)
+      const content = project?.(exec, result)
+      const projected = content === undefined
+        ? result
+        : this.markCanonical(exec, this.materializeFinalResult({ ...result, content }))
+      const postResult = await this.postExecute(exec, projected)
       return this.finishScheduledExecution(
         exec,
         this.callerCancelled(exec) && !postResult.isError
@@ -1746,6 +1755,7 @@ export class ToolRuntime extends Service {
       toolName: exec.name,
       callId: exec.callId,
       ...ask.reason !== undefined ? { reason: ask.reason } : {},
+      ...ask.displayReason !== undefined ? { displayReason: ask.displayReason } : {},
       signal: exec.signal,
     })
     switch (outcome) {
@@ -1841,7 +1851,7 @@ export class ToolRuntime extends Service {
     }
     const content = snapshotProjection(tool.name, 'render', rendered)
     let meta: JsonValue | undefined
-    if (exec.parent === undefined && tool.output.presentationMeta !== undefined) {
+    if (tool.output.presentationMeta !== undefined) {
       let projected: JsonValue
       try {
         projected = tool.output.presentationMeta(exec.arguments, value)

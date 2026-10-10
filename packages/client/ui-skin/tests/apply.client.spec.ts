@@ -35,7 +35,7 @@ async function bench() {
     ns: SKIN_SETTINGS_NAMESPACE,
     schema: SkinSettingsSchema.toJSON(),
     value: { ...section },
-    applies: 'live' as const,
+    autoGenerate: true, applies: 'live' as const,
     secrets: [],
     revision: 0,
   })
@@ -82,7 +82,7 @@ function faceOf(slots: SlotRegistry) {
 
 describe('ui-skin apply', () => {
   it('declares the services it consumes', () => {
-    expect(inject).toEqual(['slots', 'locale', 'theme', 'remote', 'settingsScope'])
+    expect(inject).toEqual(['slots', 'locale', 'theme', 'remote', 'configForms'])
   })
 
   it('installs the scoped sheet, registers copy, and registers the row after the slot arrives', async () => {
@@ -98,10 +98,10 @@ describe('ui-skin apply', () => {
     declareItems(b.slots)
     await Promise.resolve()
     const { entry } = faceOf(b.slots)
-    expect(entry.options).toMatchObject({ id: 'interface', order: 12 })
+    expect(entry.options).toMatchObject({ id: 'interface', order: 13 })
     expect(entry.locale).toBe(SETTINGS_NS)
     const strengthEntry = b.slots.entries(SLOT).find(e => e.component === StrengthRow)!
-    expect(strengthEntry.options).toMatchObject({ id: 'interface-strength', order: 13 })
+    expect(strengthEntry.options).toMatchObject({ id: 'interface-strength', order: 14 })
     expect(strengthEntry.locale).toBe(SETTINGS_NS)
     await fiber.dispose()
     expect(document.head.querySelectorAll(`style[data-plugin="${PLUGIN_ID}"]`)).toHaveLength(0)

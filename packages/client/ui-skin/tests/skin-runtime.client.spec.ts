@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** Skin runtime: scope adoption, document projection, and retraction. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SKIN_ATTRIBUTE, type SkinSettings } from '../src/skin-settings.ts'
 import { FIELD_ATTRIBUTE } from '../src/client/field-backdrop.ts'
@@ -19,7 +19,7 @@ function bench(initial?: Partial<SkinSettings>) {
     for (const listener of [...listeners]) listener()
   })
   const host = {
-    getSnapshot: (): SettingsScopeSnapshot<SkinSettings> => ({
+    getSnapshot: (): ConfigFormSnapshot<SkinSettings> => ({
       status: 'ready', value: section, base: section, user: {}, revision: 0, writable: true, mode: 'host',
     }),
     subscribe: (listener: () => void) => {
@@ -27,7 +27,7 @@ function bench(initial?: Partial<SkinSettings>) {
       return () => { listeners.delete(listener) }
     },
     set,
-  } as unknown as SettingsScope<SkinSettings>
+  } as unknown as ConfigForm<SkinSettings>
   const disposeTokens = vi.fn()
   const overrideTokens = vi.fn(() => disposeTokens)
   const disposers: (() => void)[] = []

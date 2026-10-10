@@ -1,4 +1,4 @@
-/** Interface-skin preference stored in the Host user-settings document. */
+/** Interface-skin preference projected from the Host configuration entry. */
 
 import z from '@deepseek-ai/schemastery'
 
@@ -11,7 +11,7 @@ export const SKIN_VARIANTS = ['classic', 'material'] as const
  */
 export const CLASSIC_SKIN_VARIANT: SkinVariant = 'classic'
 
-/** Settings namespace owned by the interface-skin plugin. */
+/** Configuration entry and namespace owned by the interface-skin plugin. */
 export const SKIN_SETTINGS_NAMESPACE = 'ui-skin'
 
 /** Field carrying the selected interface skin. */
@@ -26,7 +26,7 @@ export const STRENGTH_MIN = 0
 /** Strongest accepted material strength (percent). */
 export const STRENGTH_MAX = 100
 
-/** Material strength when the user-settings document has no override. */
+/** Material strength when no override is stored (percent). */
 export const DEFAULT_STRENGTH = 80
 
 /** Strength step the settings row writes. */
@@ -36,15 +36,15 @@ export const STRENGTH_STEP = 10
 export type SkinVariant = typeof SKIN_VARIANTS[number]
 
 /**
- * Skin used when the user-settings document has no override. The material
- * chrome is the product default; the classic chrome remains selectable.
+ * Skin used when no override is stored. The material chrome is the product
+ * default; the classic chrome remains selectable.
  */
 export const DEFAULT_SKIN_VARIANT: SkinVariant = 'material'
 
 /** Root attribute selecting the material chrome; absent means classic. */
 export const SKIN_ATTRIBUTE = 'data-dsh-skin'
 
-/** Durable skin section shared by the Host schema and the browser scope. */
+/** Resolved skin section shared by the Host schema and the browser form. */
 export interface SkinSettings {
   /** Selected interface skin. */
   variant: SkinVariant
@@ -52,15 +52,21 @@ export interface SkinSettings {
   strength: number
 }
 
-/** Durable skin schema; also the wire envelope the browser scope validates against. */
-export const SkinSettingsSchema: z<SkinSettings> = z.object({
+/**
+ * Field schemas of the durable skin section, shared by the Host `Config`
+ * (which marks them volatile) and the client form.
+ */
+export const SkinSettingsFields = {
   [SKIN_VARIANT_FIELD]: z.union([...SKIN_VARIANTS]).default(DEFAULT_SKIN_VARIANT),
   [STRENGTH_FIELD]: z.number().step(1).min(STRENGTH_MIN).max(STRENGTH_MAX).default(DEFAULT_STRENGTH),
-})
+}
+
+/** Durable skin schema; also the wire envelope the browser form validates against. */
+export const SkinSettingsSchema: z<SkinSettings> = z.object(SkinSettingsFields)
 
 /**
- * Narrow one wire, settings, or registry value to a selectable skin.
- * @param value - value crossing the settings or bootstrap boundary.
+ * Narrow one wire, configuration, or registry value to a selectable skin.
+ * @param value - value crossing the configuration or bootstrap boundary.
  * @returns whether the value names an interface skin.
  */
 export function isSkinVariant(value: unknown): value is SkinVariant {

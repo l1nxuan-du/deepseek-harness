@@ -1,6 +1,31 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/cli/reference/README.md
-README.md: 1d7947b99dcdeb52f1a9284aa85e97441a274388
-README.zh.md: 2be10205c198f9ccaa656a49d97d97786f5a547f
+/dsh-cli-behavior-reference:
+  en: 5a4f43756dae900e
+  zh: d58c479481cfa5fe
+/dsh-cli-behavior-reference/profile-boot:
+  en: e3a159750f5f9ed3
+  zh: e02d9004fcc239f9
+/dsh-cli-behavior-reference/profile-boot/app-arguments:
+  en: 3d2f4cf6a0afc3cd
+  zh: 9fe7e8f6a4acb596
+/dsh-cli-behavior-reference/profile-boot/config-schema-dump:
+  en: a356f8a68f3b3685
+  zh: c718713b5d709295
+/dsh-cli-behavior-reference/startup-diagnostics:
+  en: d6368bf97a02bd57
+  zh: 2ab7888a108961ce
+/dsh-cli-behavior-reference/plugin-management:
+  en: 8d2cfff9bab7327f
+  zh: 21515ab6e6798504
+/dsh-cli-behavior-reference/web-profile:
+  en: f5f82128b1165fb5
+  zh: 752fdce962b9b1b0
+/dsh-cli-behavior-reference/shared-deployment-behavior:
+  en: 6a7abc9339e8f37f
+  zh: 133adb834c8e195d
+/dsh-cli-behavior-reference/source-execution:
+  en: 05c2b23790f7b296
+  zh: 51f809020fb230a1

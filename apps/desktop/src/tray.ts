@@ -1,80 +1,48 @@
-/** Shell-owned system tray: keeps the window reachable while the app runs in the background. */
-import { app, Menu, Tray, nativeImage } from 'electron'
+/** Windows system tray: the always-present way back to a hidden window and the explicit quit entry. */
+
+import { Menu, nativeImage, Tray } from 'electron'
 import type { DesktopLocale } from './locale.ts'
 
-/** Tray presence and the two actions the tray owns. */
-export interface DesktopTray {
-  /** Icon and menu are installed and the process survives an empty window list. */
-  readonly active: boolean
-  /** Bring the application window back to the foreground. */
-  open(): void
-  /** Apply the current shell locale to the tray menu. */
-  update(): void
-  /** Remove the icon before the process quits. */
-  dispose(): void
-}
-
-/** Callbacks the tray invokes on the shell's behalf. */
+/** Main-process actions the tray triggers; both run the same paths as the window and application menu. */
 export interface DesktopTrayOptions {
-  /** Absolute PNG shown in the notification area. */
+  /** Multi-size ICO rendered by `scripts/render-tray-icon.ts`; Windows picks the bitmap for the display scale. */
   readonly iconPath: string
-  /** Current shell copy; read on every menu rebuild so a language change is reflected. */
   readonly locale: () => DesktopLocale
-  /** Reveal the application window. */
-  readonly show: () => void
-  /** Stop the application, including its Host process. */
+  /** Show and focus the primary window. */
+  readonly open: () => void
+  /** Request quit through the same confirmation as every other quit entry. */
   readonly quit: () => void
 }
 
-/** One tray icon whose menu stays valid while the shell locale changes. */
-class ShellTray implements DesktopTray {
-  private readonly tray: Tray
-  private disposed = false
+/** Tray icon present for the whole run, not only while the window is hidden. */
+export class DesktopTray {
+  private tray: Tray | undefined
 
+  /** @param options - Icon path, locale reader, and the open and quit actions. */
   constructor(private readonly options: DesktopTrayOptions) {
-    this.tray = new Tray(nativeImage.createFromPath(options.iconPath))
-    this.tray.setToolTip(app.getName())
-    this.update()
-    this.tray.on('click', () => { this.open() })
+    const tray = new Tray(nativeImage.createFromPath(options.iconPath))
+    this.tray = tray
+    tray.on('click', () => { options.open() })
+    this.relabel()
   }
 
-  get active(): boolean { return true }
-
-  open(): void {
-    if (this.disposed) return
-    this.options.show()
-  }
-
-  update(): void {
-    if (this.disposed) return
+  /** Rebuild the tooltip and context menu in the current locale. */
+  relabel(): void {
+    const tray = this.tray
+    if (tray === undefined) return
     const { messages } = this.options.locale()
-    this.tray.setToolTip(app.getName())
-    this.tray.setContextMenu(Menu.buildFromTemplate([
-      { label: messages.trayOpen, click: () => { this.open() } },
+    tray.setToolTip(messages.aboutProduct)
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: messages.openApplication, click: () => { this.options.open() } },
       { type: 'separator' },
-      { label: messages.trayExit, click: () => { this.options.quit() } },
+      { label: messages.quitApplication, click: () => { this.options.quit() } },
     ]))
   }
 
+  /** Remove the icon; called once the quit is confirmed so no dead icon outlives the process. */
   dispose(): void {
-    if (this.disposed) return
-    this.disposed = true
-    this.tray.destroy()
-  }
-}
-
-
-
-/**
- * Install the shell tray when the platform can host one.
- * @param options - icon, copy, and the two shell actions the tray triggers.
- * @returns the installed tray, or undefined when the platform cannot support one.
- */
-export function installDesktopTray(options: DesktopTrayOptions): DesktopTray | undefined {
-  try {
-    return new ShellTray(options)
-  } catch (error) {
-    console.error('Desktop tray unavailable:', error)
-    return undefined
+    const tray = this.tray
+    this.tray = undefined
+    tray?.destroy()
   }
 }

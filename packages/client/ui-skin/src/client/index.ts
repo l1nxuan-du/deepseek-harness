@@ -1,7 +1,7 @@
 /**
  * Interface skin plugin: the product's chrome selection. The plugin owns the
- * durable `ui-skin` section, publishes immutable snapshots to the General
- * section's Interface row, and projects the selection onto the document — the
+ * `ui-skin` configuration form, publishes immutable snapshots to the General
+ * section's Interface rows, and projects the selection onto the document — the
  * root attribute the material stylesheet selects on, the material alias-token
  * layer, and the field backdrop. The material chrome is the default; the
  * classic variant retracts all three, so a user who selects it gets the
@@ -9,9 +9,9 @@
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
-// Type-only: the ctx.settingsScope Context merge. Cross-plugin collaboration
-// goes through services, never a value import (client bundle purity gate).
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
+// Type-only: the ctx.configForms Context merge. Cross-plugin collaboration
+// goes through the service, never a value import (client bundle purity gate).
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the SlotRegistry service merge (ctx.slots).
@@ -53,22 +53,20 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /**
- * Required services: slots and locale for the Interface row, theme for the
- * material token layer, and the settings transport that carries the variant.
+ * Required services: slots and locale for the Interface rows, theme for the
+ * material token layer, and the configuration forms that carry the variant.
  */
-export const inject = ['slots', 'locale', 'theme', 'remote', 'settingsScope']
+export const inject = ['slots', 'locale', 'theme', 'remote', 'configForms']
 
 /**
- * Client plugin body: install the scoped stylesheet, bind the durable variant
- * scope, project the selection onto the document, and register the Interface
- * row into the General section.
+ * Client plugin body: install the scoped stylesheet, bind the skin form,
+ * project the selection onto the document, and register the Interface rows
+ * into the General section.
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
   installSkinStyles(ctx)
-  const host: SettingsScope<SkinSettings> = ctx.settingsScope.bind<SkinSettings>({
-    namespace: SKIN_SETTINGS_NAMESPACE,
-  })
+  const host: ConfigForm<SkinSettings> = ctx.configForms.get<SkinSettings>(SKIN_SETTINGS_NAMESPACE)
 
   const store = createSkinRowStore()
   const strengthStore = createStrengthRowStore()
@@ -95,7 +93,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({
     name: 'settings.general.item',
     id: 'interface',
-    order: 12,
+    order: 13,
     store,
     locale: SETTINGS_NS,
     inject: injected,
@@ -112,7 +110,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({
     name: 'settings.general.item',
     id: 'interface-strength',
-    order: 13,
+    order: 14,
     store: strengthStore,
     locale: SETTINGS_NS,
     inject: strengthInjected,

@@ -34,7 +34,7 @@
 }
 
 /* Stepper pill + unit label. The pill reuses the selector-pill geometry
-   (h36 r18, module fill) holding the px value and an always-visible arrow
+   (h36 capsule, module fill) holding the px value and an always-visible arrow
    column; the unit sits outside the pill. */
 .control {
   display: inline-flex;
@@ -49,7 +49,8 @@
   justify-content: center;
   min-width: 72px;
   height: 36px;
-  border-radius: 18px;
+  border-radius: 999px;
+  corner-shape: round;
   background: var(--dsw-alias-bg-module-platform);
 }
 
