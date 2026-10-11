@@ -38,14 +38,21 @@ describe('manual Windows package inputs', () => {
     expect(() => { validateDesktopPackageEnvironment(parseEnv(result.settings), { platform: 'win32', arch: 'x64' }, { unsigned: true }) }).not.toThrow()
   })
 
+  it('ships no deployment policy when the run names no origin', () => {
+    const result = windowsCiSettings({ ...inputs, PACKAGE_POLICY_ORIGIN: '', PACKAGE_LOGIN_ORIGINS: '' },
+      productVersion, now)
+    const settings = parseEnv(result.settings)
+    expect(Object.keys(settings).sort()).toEqual(['DSH_DESKTOP_APP_ID', 'DSH_DESKTOP_DISABLE_POLICY'])
+    expect(() => { validateDesktopPackageEnvironment(settings, { platform: 'win32', arch: 'x64' }, { unsigned: true }) }).not.toThrow()
+  })
+
   it.each([
     { PACKAGE_BUILD_VERSION: '' },
     { PACKAGE_BUILD_VERSION: '0.3.0' },
     { PACKAGE_DEPLOYMENT: 'staging' },
-    { PACKAGE_POLICY_ORIGIN: '' },
     { PACKAGE_POLICY_ORIGIN: 'http://policy.example.com' },
     { PACKAGE_POLICY_ORIGIN: 'https://policy.example.com/path' },
-    { PACKAGE_LOGIN_ORIGINS: '' },
+    { PACKAGE_POLICY_ORIGIN: 'https://policy.example.com', PACKAGE_LOGIN_ORIGINS: '' },
     { PACKAGE_LOGIN_ORIGINS: 'https://user:password@login.example.com' },
     { PACKAGE_DEPLOYMENT: 'production' },
     { GITHUB_RUN_NUMBER: '0' },

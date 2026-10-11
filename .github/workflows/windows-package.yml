@@ -15,9 +15,9 @@ on:
         default: test
         required: true
       policy_origin:
-        description: 'Required update policy HTTPS origin (no path)'
+        description: 'Optional update policy HTTPS origin (no path); empty ships no policy'
         type: string
-        required: true
+        required: false
       login_origins:
         description: 'Required for test: comma-separated allowed login HTTPS origins'
         type: string
@@ -32,7 +32,9 @@ concurrency:
 
 jobs:
   package:
-    runs-on: dsh-win-package-trial
+    # This checkout packages on a hosted Windows runner; a deployment with a dedicated
+    # self-hosted one sets DSH_WIN_PACKAGE_RUNNER to its label.
+    runs-on: ${{ vars.DSH_WIN_PACKAGE_RUNNER || 'windows-latest' }}
     timeout-minutes: 120
     defaults:
       run:

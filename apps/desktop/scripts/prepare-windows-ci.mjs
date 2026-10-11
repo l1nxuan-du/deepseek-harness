@@ -18,11 +18,17 @@ export function windowsCiSettings(environment, productVersion, now = new Date())
   if (deployment === 'production' && loginOrigins.length > 0) throw new Error('Production must not supply login origins')
   const originKey = deployment === 'test' ? 'DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN' : 'DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN'
   const config = deployment === 'test' ? { allowedAuthOrigins: loginOrigins } : {}
-  const policy = resolveDesktopPolicyEnvironment({
-    DSH_DESKTOP_AUTO_UPDATE_ENV: deployment,
-    [originKey]: environment.PACKAGE_POLICY_ORIGIN,
-    DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify(config),
-  })
+  // An origin is optional: without one the build ships no deployment policy, so the installed
+  // application starts without the login gate. Supplying an origin keeps the official behaviour,
+  // which requires it to be a bare HTTPS origin.
+  const requestedOrigin = environment.PACKAGE_POLICY_ORIGIN?.trim()
+  const policy = requestedOrigin
+    ? resolveDesktopPolicyEnvironment({
+      DSH_DESKTOP_AUTO_UPDATE_ENV: deployment,
+      [originKey]: requestedOrigin,
+      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify(config),
+    })
+    : undefined
   const requested = environment.PACKAGE_BUILD_VERSION?.trim()
   if (!requested) throw new Error('Build version is required; use auto or a full version')
   let candidate = requested
@@ -34,12 +40,17 @@ export function windowsCiSettings(environment, productVersion, now = new Date())
     candidate = `${desktopBuildVersionPrefix(productVersion)}${date}.${environment.GITHUB_RUN_NUMBER}.${environment.GITHUB_RUN_ATTEMPT}`
   }
   const version = validateDesktopBuildVersion(candidate, productVersion)
-  const settings = [
-    'DSH_DESKTOP_APP_ID=com.deepseek.harness',
-    `DSH_DESKTOP_AUTO_UPDATE_ENV=${deployment}`,
-    `${originKey}=${policy.origin}`,
-    `DSH_DESKTOP_MANDATORY_UPDATE_CONFIG=${JSON.stringify(config)}`,
-  ].join('\n') + '\n'
+  const settings = policy === undefined
+    ? [
+      'DSH_DESKTOP_APP_ID=com.deepseek.harness',
+      'DSH_DESKTOP_DISABLE_POLICY=1',
+    ].join('\n') + '\n'
+    : [
+      'DSH_DESKTOP_APP_ID=com.deepseek.harness',
+      `DSH_DESKTOP_AUTO_UPDATE_ENV=${deployment}`,
+      `${originKey}=${policy.origin}`,
+      `DSH_DESKTOP_MANDATORY_UPDATE_CONFIG=${JSON.stringify(config)}`,
+    ].join('\n') + '\n'
   return { version, settings }
 }
 
