@@ -34,14 +34,6 @@ extern "C" __declspec(dllexport) int __cdecl InstallerReportExtractFailure(
     }
 }
 
-// Runs 7-Zip under a job object and writes its UTF-8 error output to the log the failure report reads.
-// The stage properties the call publishes belong to the installer's own progress window, which stock NSIS pages do not show.
-// Returns 0-255 for 7-Zip exit codes, small negative values for launch failures, and any other value as the raw process status.
-extern "C" __declspec(dllexport) int __cdecl InstallerExtract(HWND parent, LPCWSTR tool, LPCWSTR archive, LPCWSTR destination, LPCWSTR log) {
-    try { return ExtractApplication(parent, tool, archive, destination, log); }
-    catch (const std::bad_alloc&) { return LaunchFailure(ERROR_NOT_ENOUGH_MEMORY); }
-}
-
 // Returns a Win32 error code; no cleanup request may traverse a linked root or touch the protected root.
 extern "C" __declspec(dllexport) DWORD __cdecl UninstallRemoveData(LPCWSTR path, LPCWSTR installation, LPCWSTR protectedRoot) {
     return uninstall_data::Remove(path, installation, protectedRoot);
