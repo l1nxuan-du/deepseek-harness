@@ -2,6 +2,8 @@
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
 !define INSTALLER_SOURCE_DIR "${__FILEDIR__}\..\installer"
+; The native helper and raster assets `prepare-windows-installer.ps1` writes for this target.
+!define /ifndef INSTALLER_BUILD_DIR "${__FILEDIR__}\..\.desktop-build\targets\win-x64\installer-ui"
 !define /ifndef INSTALLER_STRINGS_FILE "${INSTALLER_SOURCE_DIR}\strings.nsh"
 
 ManifestDPIAware true
